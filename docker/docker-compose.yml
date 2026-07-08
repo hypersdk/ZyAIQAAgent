@@ -1,0 +1,21 @@
+services:
+  zyvor-qa:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    env_file:
+      - ../.env
+    volumes:
+      - ../reports:/app/reports
+      - ../test-results:/app/test-results
+    command: ["test"]
+
+  zyvor-qa-webhook:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    env_file:
+      - ../.env
+    ports:
+      - "8080:8080"
+    command: ["serve", "--port", "8080", "--host", "0.0.0.0"]

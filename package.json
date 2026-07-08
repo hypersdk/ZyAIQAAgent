@@ -1,0 +1,16 @@
+{
+  "name": "zyvor-qa-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Playwright test execution layer for Zyvor QA Agent",
+  "scripts": {
+    "test": "playwright test --config=playwright/playwright.config.ts",
+    "test:manual": "playwright test --config=playwright/playwright.config.ts tests/manual",
+    "test:generated": "playwright test --config=playwright/playwright.config.ts tests/generated",
+    "report": "playwright show-report reports"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "typescript": "^5.7.0"
+  }
+}

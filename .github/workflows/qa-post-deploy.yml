@@ -1,0 +1,55 @@
+name: QA Post-Deploy
+
+on:
+  repository_dispatch:
+    types: [staging-deployed]
+
+jobs:
+  full-pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Python dependencies
+        run: pip install -e .
+
+      - name: Install Node dependencies
+        run: npm install
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run full QA pipeline
+        run: zyvor-qa run --source github
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ZYVOR_PRODUCT_REPO: ${{ vars.ZYVOR_PRODUCT_REPO }}
+          ZYVOR_BASE_URL: ${{ vars.ZYVOR_BASE_URL || 'https://zyvor.dev' }}
+          ZYVOR_STAGING_URL: ${{ vars.ZYVOR_STAGING_URL }}
+          LLM_PROVIDER: ${{ vars.LLM_PROVIDER || 'openai' }}
+          LLM_MODEL: ${{ vars.LLM_MODEL || 'gpt-4o' }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Upload QA artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-pipeline-artifacts
+          path: |
+            reports/
+            test-results/
+            screenshots/
+            videos/
+            traces/
+          retention-days: 30

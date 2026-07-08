@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zyvor QA Report</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+    h1 { color: #1a1a2e; }
+    .summary { background: #f4f4f8; padding: 1rem; border-radius: 8px; margin: 1rem 0; }
+    .pass { color: #0a7; } .fail { color: #c33; }
+    .meta { color: #666; font-size: 0.9rem; }
+    pre { background: #1a1a2e; color: #eee; padding: 1rem; border-radius: 8px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>Zyvor QA Agent Report</h1>
+  <p class="meta">Generated: {{ generated_at }} | Source: {{ source }}</p>
+  <div class="summary">
+    <p><strong>Results:</strong>
+      <span class="pass">{{ passed }} passed</span>,
+      <span class="fail">{{ failed }} failed</span>,
+      {{ total }} total
+    </p>
+    <p>{{ summary }}</p>
+  </div>
+  {% if failure_analysis %}
+  <h2>Failure Analysis</h2>
+  <pre>{{ failure_analysis }}</pre>
+  {% endif %}
+  {% if cases %}
+  <h2>Test Cases</h2>
+  <ul>
+  {% for case in cases %}
+    <li class="{{ case.status }}">{{ case.title }} — {{ case.status }}{% if case.error_message %}: {{ case.error_message }}{% endif %}</li>
+  {% endfor %}
+  </ul>
+  {% endif %}
+</body>
+</html>
