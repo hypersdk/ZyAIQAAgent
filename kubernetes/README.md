@@ -1,14 +1,41 @@
 # Kubernetes Deployment (Phase 3)
 
-Run Zyvor QA Agent as a scheduled CronJob or webhook Deployment.
+Run Zyvor QA Agent on Kubernetes.
 
-## Planned manifests
+## Manifests
 
-- `cronjob.yaml` — nightly smoke tests
-- `deployment.yaml` — webhook server for post-deploy triggers
-- `configmap.yaml` — non-secret configuration
-- `secret.yaml` — API keys (use external secrets operator in production)
+| File | Purpose |
+|------|---------|
+| `configmap.yaml` | Non-secret configuration (feature flags, URLs) |
+| `secret.yaml` | API keys, tokens (use ExternalSecrets in production) |
+| `cronjob.yaml` | Nightly smoke tests (`zyvor-qa test`) |
+| `deployment.yaml` | Webhook server (`zyvor-qa serve`) |
+| `service.yaml` | ClusterIP service for webhook |
+| `ingress.yaml` | External access to GitHub webhook endpoint |
 
-## Status
+## Deploy
 
-Stub only — add manifests when deploying to Zyvor-managed K8s clusters.
+```bash
+# Edit secret.yaml with your API keys first
+kubectl apply -f kubernetes/configmap.yaml
+kubectl apply -f kubernetes/secret.yaml
+kubectl apply -f kubernetes/deployment.yaml
+kubectl apply -f kubernetes/service.yaml
+kubectl apply -f kubernetes/cronjob.yaml
+kubectl apply -f kubernetes/ingress.yaml
+```
+
+Or use the Makefile:
+
+```bash
+make k8s-apply
+```
+
+## GitHub Webhook
+
+Point your GitHub webhook to:
+```
+https://qa-webhook.zyvor.dev/webhook/github
+```
+
+Events: `push`, `pull_request`, `repository_dispatch`

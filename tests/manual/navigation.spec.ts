@@ -1,14 +1,17 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../playwright/fixtures/base';
 import { waitForPageReady } from '../../playwright/utils/helpers';
 
 test.describe('Zyvor Navigation & CTAs', () => {
-  test('Schedule Demo CTA is present', async ({ page }) => {
+  test('Schedule Demo CTA is present', async ({ page, networkErrors }) => {
     await page.goto('/');
     await waitForPageReady(page);
 
     const demoCta = page.getByRole('link', { name: /schedule.*demo|book.*demo/i });
     await expect(demoCta.first()).toBeVisible();
     await expect(demoCta.first()).toHaveAttribute('href', /.+/);
+
+    const criticalErrors = networkErrors.filter((e) => e.startsWith('5'));
+    expect(criticalErrors).toHaveLength(0);
   });
 
   test('documentation links resolve', async ({ page }) => {

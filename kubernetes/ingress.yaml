@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: zyvor-qa-webhook
+  labels:
+    app: zyvor-qa-agent
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: qa-webhook.zyvor.dev
+      http:
+        paths:
+          - path: /webhook/github
+            pathType: Prefix
+            backend:
+              service:
+                name: zyvor-qa-webhook
+                port:
+                  number: 80

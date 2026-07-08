@@ -40,6 +40,11 @@ jobs:
           LLM_MODEL: ${{ vars.LLM_MODEL || 'gpt-4o' }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ENABLE_REGRESSION: ${{ vars.ENABLE_REGRESSION || 'true' }}
+          ENABLE_API_VALIDATION: true
+          ENABLE_LLM_ANALYSIS: true
+          ENABLE_LLM_REPORT: true
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: Upload QA artifacts
         if: always()

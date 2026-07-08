@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zyvor-qa-config
+  labels:
+    app: zyvor-qa-agent
+data:
+  ZYVOR_BASE_URL: "https://zyvor.dev"
+  LLM_PROVIDER: "openai"
+  LLM_MODEL: "gpt-4o"
+  ENABLE_REGRESSION: "false"
+  ENABLE_API_VALIDATION: "true"
+  ENABLE_LLM_ANALYSIS: "true"
+  ENABLE_LLM_REPORT: "true"
+  ENABLE_AUTOFIX: "false"
+  ENABLE_MULTI_BROWSER: "false"
+  REGRESSION_THRESHOLD: "1.0"

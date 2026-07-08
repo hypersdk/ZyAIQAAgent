@@ -14,11 +14,12 @@ def generate_report(state: PipelineState) -> PipelineState:
     if not test_results:
         return {**state, "error": "No test results to report"}
 
-    use_llm = os.environ.get("ENABLE_LLM_REPORT", "false").lower() == "true"
+    use_llm = os.environ.get("ENABLE_LLM_REPORT", "true").lower() == "true"
     report = build_report(
         test_results=test_results,
         source=state.get("source", "local"),
         failure_analysis=state.get("failure_analysis"),
+        autofix_suggestions=state.get("autofix_suggestions"),
         use_llm=use_llm,
     )
 

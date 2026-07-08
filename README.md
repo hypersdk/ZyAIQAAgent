@@ -10,14 +10,12 @@ GitHub (specs, PRs, deploy events)
         ▼
 LangGraph Orchestrator (Python)
         │
-   ┌────┴────┬──────────┬──────────┐
-   ▼         ▼          ▼          ▼
- Parser   Generator  Playwright  Analyzer
- (LLM)     (LLM)     (Node.js)   (LLM stub)
-   │         │          │          │
-   └────┬────┴──────────┴──────────┘
-        ▼
-   Report Generator → GitHub / Slack / Email
+   fetch → parse → generate → execute → regression → api_validate → log_analyze
+        │
+   ┌────┴──── pass → report → notify
+   └──── fail → analyze → autofix → report → notify
+        │
+   Playwright (Node.js) + Rust diff (optional)
 ```
 
 - **Orchestrator**: LangGraph state machine coordinates all pipeline stages
@@ -37,8 +35,6 @@ LangGraph Orchestrator (Python)
 
 ```bash
 cp .env.example .env
-# Edit .env with your API keys and repo settings
-
 make install
 ```
 
@@ -54,109 +50,122 @@ zyvor-qa test
 zyvor-qa run --source local --spec prompts/examples/vm-create.md
 ```
 
-### Generate tests only
-
-```bash
-zyvor-qa generate --spec prompts/examples/vm-create.md
-```
-
-### Start webhook server
-
-```bash
-zyvor-qa serve --port 8080
-```
-
 ## CLI Commands
 
-| Command | Description |
-|---------|-------------|
-| `zyvor-qa run` | Full pipeline: fetch → parse → generate → execute → report → notify |
-| `zyvor-qa test` | Run Playwright smoke tests only |
-| `zyvor-qa generate --spec <path>` | Parse spec and generate Playwright tests |
-| `zyvor-qa serve` | Start GitHub webhook server |
+| Command | Phase | Description |
+|---------|-------|-------------|
+| `zyvor-qa run` | 1 | Full pipeline end-to-end |
+| `zyvor-qa test` | 1 | Playwright smoke tests only |
+| `zyvor-qa generate --spec <path>` | 1 | Parse spec and generate tests |
+| `zyvor-qa regression` | 2 | Visual regression check |
+| `zyvor-qa regression --update-baselines` | 2 | Capture new screenshot baselines |
+| `zyvor-qa create "description"` | 4 | NL test creation |
+| `zyvor-qa serve` | 1 | GitHub webhook server |
+
+## Phase Features
+
+### Phase 2 — Regression, API, Logs
+
+| Feature | Flag | Description |
+|---------|------|-------------|
+| Screenshot regression | `ENABLE_REGRESSION=true` | Pixel diff against baselines in `screenshots/baselines/` |
+| API validation | `ENABLE_API_VALIDATION=true` | Validates HTTP status codes from captured API calls |
+| Browser log analysis | always on | Console errors and network failures flagged in report |
+
+```bash
+# Capture baselines
+make regression-update
+
+# Compare against baselines
+make regression
+```
+
+### Phase 3 — LLM Analysis & Notifications
+
+| Feature | Flag | Description |
+|---------|------|-------------|
+| LLM failure analysis | `ENABLE_LLM_ANALYSIS=true` | Root cause + fix suggestions from traces/screenshots |
+| LLM report summary | `ENABLE_LLM_REPORT=true` | Plain-English PR comment summary |
+| Slack notifications | `SLACK_WEBHOOK_URL` | Rich block-formatted messages |
+| Teams notifications | `TEAMS_WEBHOOK_URL` | Adaptive card messages |
+| Email notifications | `SMTP_*` env vars | HTML email reports |
+| K8s deployment | `kubernetes/` | CronJob, Deployment, Service, Ingress |
+
+```bash
+# Deploy to Kubernetes
+make k8s-apply
+kubectl apply -f kubernetes/ingress.yaml
+```
+
+### Phase 4 — Autofix, NL Tests, Multi-browser, Rust
+
+| Feature | Flag | Description |
+|---------|------|-------------|
+| Autofix suggestions | `ENABLE_AUTOFIX=true` | LLM-powered selector repair after failures |
+| NL test creation | `zyvor-qa create` | Generate tests from plain English |
+| Multi-browser | `ENABLE_MULTI_BROWSER=true` | Chromium + Firefox + WebKit |
+| Rust diff processor | `ENABLE_RUST_PROCESSOR=true` | Fast screenshot diff via `zyvor-diff` binary |
+
+```bash
+# Natural language test
+zyvor-qa create "Verify homepage shows all 14 products" --execute
+
+# Build Rust diff tool
+make rust
+
+# Multi-browser (manual)
+ENABLE_MULTI_BROWSER=true npx playwright test
+```
 
 ## Environment Variables
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `LLM_PROVIDER` | For AI features | `openai`, `anthropic`, `azure`, `google`, `ollama` |
-| `LLM_MODEL` | No | Model name (default: `gpt-4o`) |
-| `OPENAI_API_KEY` | If provider=openai | OpenAI API key |
-| `ANTHROPIC_API_KEY` | If provider=anthropic | Anthropic API key |
-| `GITHUB_TOKEN` | For GitHub source | PAT with `repo` scope |
-| `GITHUB_WEBHOOK_SECRET` | For webhook server | HMAC secret for GitHub webhooks |
-| `ZYVOR_PRODUCT_REPO` | For GitHub source | e.g. `owner/zyvor-monorepo` |
-| `ZYVOR_BASE_URL` | No | Test target (default: `https://zyvor.dev`) |
-| `ZYVOR_STAGING_URL` | For dashboard tests | Staging environment URL |
-| `ZYVOR_TEST_USER` | For auth tests | Staging login username |
-| `ZYVOR_TEST_PASSWORD` | For auth tests | Staging login password |
+See [`.env.example`](.env.example) for the full list. Key variables:
 
-See [`.env.example`](.env.example) for the full list.
-
-## LLM Provider Setup
-
-Set `LLM_PROVIDER` and the matching API key:
-
-```bash
-# OpenAI (default)
-LLM_PROVIDER=openai
-OPENAI_API_KEY=sk-...
-
-# Anthropic
-LLM_PROVIDER=anthropic
-ANTHROPIC_API_KEY=sk-ant-...
-
-# Local Ollama
-LLM_PROVIDER=ollama
-LLM_MODEL=llama3
-OLLAMA_BASE_URL=http://localhost:11434
-```
+| Variable | Description |
+|----------|-------------|
+| `LLM_PROVIDER` | `openai`, `anthropic`, `azure`, `google`, `ollama` |
+| `ENABLE_REGRESSION` | Enable screenshot visual regression |
+| `ENABLE_API_VALIDATION` | Enable API response validation |
+| `ENABLE_LLM_ANALYSIS` | LLM-powered failure analysis |
+| `ENABLE_AUTOFIX` | Selector repair suggestions |
+| `ENABLE_MULTI_BROWSER` | Run tests on chromium, firefox, webkit |
+| `ENABLE_RUST_PROCESSOR` | Use Rust `zyvor-diff` for screenshot comparison |
 
 ## Project Structure
 
 ```
 ├── orchestrator/       # LangGraph pipeline, CLI, webhook
-├── agents/             # Parser, generator, analyzer, reporter, execution
-├── playwright/         # Playwright config, fixtures, utils
-├── tests/
-│   ├── manual/         # Hand-written smoke tests
-│   └── generated/      # AI-generated tests
-├── prompts/            # LLM system prompts
-├── templates/          # Jinja2 templates for tests and reports
-├── github/             # GitHub REST client
-├── docker/             # Docker image and compose
-├── kubernetes/         # K8s manifests (Phase 3)
-└── rust/               # Perf-critical processing (Phase 4)
+├── agents/
+│   ├── parser/         # Requirement parsing
+│   ├── generator/      # Playwright test generation
+│   ├── regression/     # Screenshot diff (Phase 2)
+│   ├── api_validation/ # API response checks (Phase 2)
+│   ├── logs/           # Console/network log analysis (Phase 2)
+│   ├── analyzer/       # LLM failure analysis (Phase 3)
+│   ├── autofix/        # Selector repair (Phase 4)
+│   ├── nl_create/      # NL test creation (Phase 4)
+│   └── reporter/       # Reports + notifications
+├── playwright/         # Config, fixtures, utils
+├── tests/manual/         # Hand-written smoke + visual regression tests
+├── rust/                 # zyvor-diff screenshot processor (Phase 4)
+├── kubernetes/           # K8s manifests (Phase 3)
+└── docker/               # Container image
 ```
 
 ## CI/CD
 
-- **Smoke tests**: `.github/workflows/qa-smoke.yml` — runs on push, PR, nightly
-- **Post-deploy**: `.github/workflows/qa-post-deploy.yml` — triggered by `repository_dispatch: staging-deployed`
+- **Smoke tests**: `.github/workflows/qa-smoke.yml` — push, PR, nightly
+- **Multi-browser**: manual `workflow_dispatch` trigger in same workflow
+- **Post-deploy**: `.github/workflows/qa-post-deploy.yml` — `repository_dispatch: staging-deployed`
 
-Trigger post-deploy from your product repo:
-
-```bash
-gh api repos/owner/ZyAIQAAgent/dispatches \
-  -f event_type=staging-deployed
-```
-
-## Docker
-
-```bash
-make docker
-# or
-docker compose -f docker/docker-compose.yml up zyvor-qa
-```
-
-## Roadmap
+## Roadmap Status
 
 | Phase | Status | Features |
 |-------|--------|----------|
-| **1** | Current | GitHub integration, Playwright, basic test gen, CI/CD, HTML reports |
-| **2** | Stub | Screenshot regression, API validation, browser log analysis |
-| **3** | Stub | LLM failure analysis, Slack/Teams/email, K8s deployment |
-| **4** | Stub | Self-healing selectors, NL test creation, Rust artifact processing |
+| **1** | Complete | GitHub integration, Playwright, test gen, CI/CD, HTML reports |
+| **2** | Complete | Screenshot regression, API validation, browser log analysis |
+| **3** | Complete | LLM failure analysis, Slack/Teams/email, K8s deployment |
+| **4** | Complete | Autofix, NL test creation, multi-browser, Rust processor |
 
 ## License
 

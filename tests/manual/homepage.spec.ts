@@ -1,13 +1,17 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../playwright/fixtures/base';
 import { waitForPageReady } from '../../playwright/utils/helpers';
 
 test.describe('Zyvor Homepage', () => {
-  test('homepage loads with hero content visible', async ({ page }) => {
+  test('homepage loads with hero content visible', async ({ page, consoleLogs }) => {
     await page.goto('/');
     await waitForPageReady(page);
 
     await expect(page).toHaveTitle(/Zyvor|HyperSDK/i);
     await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
+    const appErrors = consoleLogs.filter(
+      (l) => l.startsWith('[error]') && !l.includes('Content Security Policy')
+    );
+    expect(appErrors).toHaveLength(0);
   });
 
   test('main navigation is accessible', async ({ page }) => {

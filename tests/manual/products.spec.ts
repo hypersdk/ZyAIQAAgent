@@ -1,14 +1,20 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../playwright/fixtures/base';
 import { waitForPageReady } from '../../playwright/utils/helpers';
+import { validateApiCalls } from '../../playwright/utils/api';
 
 test.describe('Zyvor Product Suite', () => {
-  test('product suite section is visible on homepage', async ({ page }) => {
+  test('product suite section is visible on homepage', async ({ page, apiCalls }) => {
     await page.goto('/');
     await waitForPageReady(page);
 
     await expect(
       page.getByRole('heading', { name: /14.*products|product suite|HyperSDK/i }).first()
     ).toBeVisible({ timeout: 15000 });
+
+    const apiFailures = validateApiCalls(apiCalls, [
+      { urlPattern: /zyvor\.dev/, method: 'GET', expectedStatus: 200 },
+    ]);
+    expect(apiFailures).toHaveLength(0);
   });
 
   test('key product names are present in page content', async ({ page }) => {

@@ -3,6 +3,22 @@ import path from 'path';
 
 const baseURL = process.env.ZYVOR_BASE_URL || 'https://zyvor.dev';
 const repoRoot = path.resolve(__dirname, '..');
+const multiBrowser = process.env.ENABLE_MULTI_BROWSER === 'true';
+const regressionMode = process.env.ENABLE_REGRESSION === 'true';
+
+const projects = [
+  {
+    name: 'chromium',
+    use: { ...devices['Desktop Chrome'] },
+  },
+];
+
+if (multiBrowser) {
+  projects.push(
+    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+  );
+}
 
 export default defineConfig({
   testDir: path.join(repoRoot, 'tests'),
@@ -18,16 +34,11 @@ export default defineConfig({
   use: {
     baseURL,
     trace: 'retain-on-failure',
-    screenshot: 'only-on-failure',
+    screenshot: regressionMode ? 'on' : 'only-on-failure',
     video: 'retain-on-failure',
     actionTimeout: 15000,
     navigationTimeout: 30000,
   },
   outputDir: path.join(repoRoot, 'test-results'),
-  projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
-  ],
+  projects,
 });

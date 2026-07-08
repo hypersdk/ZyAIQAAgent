@@ -5,12 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Zyvor QA Report</title>
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+    body { font-family: system-ui, sans-serif; max-width: 960px; margin: 2rem auto; padding: 0 1rem; }
     h1 { color: #1a1a2e; }
     .summary { background: #f4f4f8; padding: 1rem; border-radius: 8px; margin: 1rem 0; }
-    .pass { color: #0a7; } .fail { color: #c33; }
+    .pass { color: #0a7; } .fail { color: #c33; } .warn { color: #c80; }
     .meta { color: #666; font-size: 0.9rem; }
-    pre { background: #1a1a2e; color: #eee; padding: 1rem; border-radius: 8px; overflow-x: auto; }
+    pre { background: #1a1a2e; color: #eee; padding: 1rem; border-radius: 8px; overflow-x: auto; white-space: pre-wrap; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+    th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid #ddd; }
   </style>
 </head>
 <body>
@@ -24,17 +26,67 @@
     </p>
     <p>{{ summary }}</p>
   </div>
+
+  {% if regression_diffs %}
+  <h2>Visual Regression</h2>
+  <table>
+    <tr><th>File</th><th>Status</th><th>Diff %</th><th>Message</th></tr>
+    {% for d in regression_diffs %}
+    <tr class="{{ d.status }}">
+      <td>{{ d.file }}</td><td>{{ d.status }}</td><td>{{ d.diff_percent }}</td><td>{{ d.message or '' }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
+  {% if api_validations %}
+  <h2>API Validation</h2>
+  <table>
+    <tr><th>URL</th><th>Method</th><th>Expected</th><th>Actual</th><th>Status</th></tr>
+    {% for v in api_validations %}
+    <tr class="{{ 'pass' if v.passed else 'fail' }}">
+      <td>{{ v.url[:60] }}</td><td>{{ v.method }}</td><td>{{ v.expected_status }}</td><td>{{ v.actual_status }}</td>
+      <td>{{ 'pass' if v.passed else 'fail' }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
+  {% if log_issues %}
+  <h2>Log Issues</h2>
+  <ul>
+  {% for i in log_issues %}
+    <li class="{{ i.severity }}">[{{ i.source }}] {{ i.test_title }}: {{ i.message }}</li>
+  {% endfor %}
+  </ul>
+  {% endif %}
+
   {% if failure_analysis %}
   <h2>Failure Analysis</h2>
   <pre>{{ failure_analysis }}</pre>
   {% endif %}
-  {% if cases %}
-  <h2>Test Cases</h2>
+
+  {% if autofix_suggestions %}
+  <h2>Autofix Suggestions</h2>
   <ul>
-  {% for case in cases %}
-    <li class="{{ case.status }}">{{ case.title }} — {{ case.status }}{% if case.error_message %}: {{ case.error_message }}{% endif %}</li>
+  {% for s in autofix_suggestions %}
+    <li><strong>{{ s.test_title }}</strong>: {{ s.original_selector }} → {{ s.suggested_selector }}
+      <em>({{ s.confidence }})</em> — {{ s.explanation }}</li>
   {% endfor %}
   </ul>
+  {% endif %}
+
+  {% if cases %}
+  <h2>Test Cases</h2>
+  <table>
+    <tr><th>Title</th><th>Browser</th><th>Status</th><th>Error</th></tr>
+    {% for case in cases %}
+    <tr class="{{ case.status }}">
+      <td>{{ case.title }}</td><td>{{ case.browser or 'chromium' }}</td><td>{{ case.status }}</td>
+      <td>{{ case.error_message or '' }}</td>
+    </tr>
+    {% endfor %}
+  </table>
   {% endif %}
 </body>
 </html>
