@@ -92,9 +92,9 @@ make regression
 | K8s deployment | `kubernetes/` | CronJob, Deployment, Service, Ingress |
 
 ```bash
-# Deploy to Kubernetes
-make k8s-apply
-kubectl apply -f kubernetes/ingress.yaml
+# Deploy to Kubernetes (cluster must be running)
+make k8s-validate   # offline manifest check
+make k8s-apply      # apply to cluster
 ```
 
 ### Phase 4 — Autofix, NL Tests, Multi-browser, Rust

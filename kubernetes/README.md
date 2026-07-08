@@ -15,6 +15,18 @@ Run Zyvor QA Agent on Kubernetes.
 
 ## Deploy
 
+**Prerequisites:** A running Kubernetes cluster (`kubectl cluster-info` must succeed).
+
+```bash
+# Validate manifests locally (no cluster required)
+make k8s-validate
+
+# Apply to a running cluster
+make k8s-apply
+```
+
+Do not put shell comments on the same line as `make` — `make k8s-apply # comment` is parsed as multiple targets and will fail.
+
 ```bash
 # Edit secret.yaml with your API keys first
 kubectl apply -f kubernetes/configmap.yaml
@@ -25,9 +37,22 @@ kubectl apply -f kubernetes/cronjob.yaml
 kubectl apply -f kubernetes/ingress.yaml
 ```
 
-Or use the Makefile:
+### Local cluster options
 
 ```bash
+# kind
+kind create cluster --name zyvor-qa
+
+# minikube
+minikube start
+
+# Docker Desktop: enable Kubernetes in settings
+```
+
+Then verify:
+
+```bash
+kubectl cluster-info
 make k8s-apply
 ```
 

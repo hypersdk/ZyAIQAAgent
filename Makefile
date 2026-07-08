@@ -1,4 +1,5 @@
-.PHONY: install test generate run serve docker lint regression create rust
+.PHONY: install test generate run serve docker lint regression create rust \
+        k8s-check k8s-validate k8s-validate-cluster k8s-apply k8s-delete
 
 install:
 	pip install -e ".[dev]"
@@ -37,5 +38,25 @@ lint:
 	ruff check orchestrator agents github
 	npx tsc --noEmit
 
-k8s-apply:
-	kubectl apply -f kubernetes/configmap.yaml -f kubernetes/secret.yaml -f kubernetes/deployment.yaml -f kubernetes/service.yaml -f kubernetes/cronjob.yaml
+K8S_DIR := kubernetes
+
+k8s-check:
+	@kubectl cluster-info >/dev/null 2>&1 || { \
+		echo "ERROR: No Kubernetes cluster is reachable."; \
+		echo "  Start a local cluster (minikube, kind, Docker Desktop K8s) or set KUBECONFIG."; \
+		echo "  To validate manifests without a cluster, run: make k8s-validate"; \
+		exit 1; \
+	}
+	@echo "Kubernetes cluster is reachable."
+
+k8s-validate:
+	python3 scripts/validate_k8s_manifests.py
+
+k8s-validate-cluster: k8s-check
+	kubectl apply --dry-run=server -f $(K8S_DIR)/configmap.yaml -f $(K8S_DIR)/secret.yaml -f $(K8S_DIR)/deployment.yaml -f $(K8S_DIR)/service.yaml -f $(K8S_DIR)/cronjob.yaml
+
+k8s-apply: k8s-check
+	kubectl apply -f $(K8S_DIR)/configmap.yaml -f $(K8S_DIR)/secret.yaml -f $(K8S_DIR)/deployment.yaml -f $(K8S_DIR)/service.yaml -f $(K8S_DIR)/cronjob.yaml
+
+k8s-delete: k8s-check
+	kubectl delete -f $(K8S_DIR)/configmap.yaml -f $(K8S_DIR)/secret.yaml -f $(K8S_DIR)/deployment.yaml -f $(K8S_DIR)/service.yaml -f $(K8S_DIR)/cronjob.yaml --ignore-not-found
