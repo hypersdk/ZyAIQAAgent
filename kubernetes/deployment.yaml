@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zyvor-qa-webhook
+  labels:
+    app: zyvor-qa-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zyvor-qa-agent
+      component: webhook
+  template:
+    metadata:
+      labels:
+        app: zyvor-qa-agent
+        component: webhook
+    spec:
+      containers:
+        - name: zyvor-qa
+          image: zyvor-qa-agent:latest
+          command: ["zyvor-qa", "serve", "--port", "8080", "--host", "0.0.0.0"]
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: zyvor-qa-config
+            - secretRef:
+                name: zyvor-qa-secrets
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"

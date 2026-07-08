@@ -1,0 +1,16 @@
+import { test, expect } from '@playwright/test';
+{% if login_required %}import { login } from '../../playwright/utils/auth';
+{% endif %}
+test.describe('{{ title }}', () => {
+{% for step in steps %}
+  // {{ step.action }}: {{ step.target or '' }}
+{% endfor %}
+  test('{{ title }}', async ({ page }) => {
+{% if login_required %}    await login(page);
+{% endif %}
+    // Generated from requirement: {{ requirement_id }}
+    await page.goto('{{ start_path }}');
+    // TODO: implement steps from spec
+    await expect(page).toHaveURL(/./);
+  });
+});

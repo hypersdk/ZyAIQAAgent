@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: zyvor-qa-webhook
+  labels:
+    app: zyvor-qa-agent
+spec:
+  selector:
+    app: zyvor-qa-agent
+    component: webhook
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+  type: ClusterIP

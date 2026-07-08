@@ -1,0 +1,22 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: zyvor-qa-smoke
+  labels:
+    app: zyvor-qa-agent
+spec:
+  schedule: "0 6 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: zyvor-qa
+              image: zyvor-qa-agent:latest
+              command: ["zyvor-qa", "test"]
+              envFrom:
+                - configMapRef:
+                    name: zyvor-qa-config
+                - secretRef:
+                    name: zyvor-qa-secrets
+          restartPolicy: OnFailure
