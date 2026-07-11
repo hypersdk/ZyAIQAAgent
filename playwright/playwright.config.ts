@@ -35,10 +35,14 @@ export default defineConfig({
     baseURL,
     trace: 'retain-on-failure',
     screenshot: regressionMode ? 'on' : 'only-on-failure',
-    video: 'retain-on-failure',
+    video: {
+      mode: 'retain-on-failure',
+      size: { width: 1280, height: 720 },
+    },
     actionTimeout: 15000,
     navigationTimeout: 30000,
   },
   outputDir: path.join(repoRoot, 'test-results'),
+  preserveOutput: 'always',
   projects,
 });

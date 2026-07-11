@@ -44,23 +44,47 @@ make install
 zyvor-qa test
 ```
 
-### Run full pipeline (requires LLM API key)
+### Run full pipeline from GitHub (your product repo)
 
 ```bash
-zyvor-qa run --source local --spec prompts/examples/vm-create.md
+# Ensure .env has ZYVOR_PRODUCT_REPO=ssahani/hypersdk-web
+gh auth login
+
+# Generate + run tests from a specific markdown file in the repo
+zyvor-qa run --source github --spec docs/specs/my-feature.md
+
+# Generate tests only
+zyvor-qa generate --source github --spec docs/specs/my-feature.md
 ```
+
+See [**Writing Tests & GitHub Integration**](docs/test-authoring.md) for the full command reference.
+
+## Documentation
+
+| Guide | Description |
+|-------|-------------|
+| [**Writing Tests & GitHub Integration**](docs/test-authoring.md) | How tests are created (manual, spec, NL) and how to connect a GitHub repo |
+| [`.env.example`](.env.example) | Full environment variable reference |
+| [`kubernetes/README.md`](kubernetes/README.md) | Kubernetes deployment |
+| [`prompts/examples/vm-create.md`](prompts/examples/vm-create.md) | Example requirement spec |
 
 ## CLI Commands
 
-| Command | Phase | Description |
-|---------|-------|-------------|
-| `zyvor-qa run` | 1 | Full pipeline end-to-end |
-| `zyvor-qa test` | 1 | Playwright smoke tests only |
-| `zyvor-qa generate --spec <path>` | 1 | Parse spec and generate tests |
-| `zyvor-qa regression` | 2 | Visual regression check |
-| `zyvor-qa regression --update-baselines` | 2 | Capture new screenshot baselines |
-| `zyvor-qa create "description"` | 4 | NL test creation |
-| `zyvor-qa serve` | 1 | GitHub webhook server |
+Full examples: [**docs/test-authoring.md**](docs/test-authoring.md)
+
+| Command | Description |
+|---------|-------------|
+| `zyvor-qa test` | Run hand-written smoke tests only |
+| `zyvor-qa run --source local --spec <path>` | Full pipeline from a local markdown spec |
+| `zyvor-qa run --source github --spec <path>` | Full pipeline from a GitHub markdown file |
+| `zyvor-qa run --source github` | Full pipeline from all GitHub specs/issues |
+| `zyvor-qa generate --spec <path>` | Generate tests from local spec (no run) |
+| `zyvor-qa generate --source github --spec <path>` | Generate tests from GitHub `.md` (no run) |
+| `zyvor-qa create "description"` | Generate tests from plain English |
+| `zyvor-qa create "description" --execute` | Generate and run NL tests |
+| `zyvor-qa regression` | Visual regression check |
+| `zyvor-qa regression --update-baselines` | Capture new screenshot baselines |
+| `zyvor-qa serve` | GitHub webhook server |
 
 ## Phase Features
 
@@ -86,9 +110,10 @@ make regression
 |---------|------|-------------|
 | LLM failure analysis | `ENABLE_LLM_ANALYSIS=true` | Root cause + fix suggestions from traces/screenshots |
 | LLM report summary | `ENABLE_LLM_REPORT=true` | Plain-English PR comment summary |
+| PDF report export | `ENABLE_PDF_REPORT=true` | Generates `reports/qa-summary.pdf` from HTML |
 | Slack notifications | `SLACK_WEBHOOK_URL` | Rich block-formatted messages |
 | Teams notifications | `TEAMS_WEBHOOK_URL` | Adaptive card messages |
-| Email notifications | `SMTP_*` env vars | HTML email reports |
+| Email notifications | `SMTP_*` env vars | HTML email with PDF attachment |
 | K8s deployment | `kubernetes/` | CronJob, Deployment, Service, Ingress |
 
 ```bash
@@ -162,7 +187,7 @@ See [`.env.example`](.env.example) for the full list. Key variables:
 
 | Phase | Status | Features |
 |-------|--------|----------|
-| **1** | Complete | GitHub integration, Playwright, test gen, CI/CD, HTML reports |
+| **1** | Complete | GitHub integration, Playwright, test gen, CI/CD, HTML + PDF reports |
 | **2** | Complete | Screenshot regression, API validation, browser log analysis |
 | **3** | Complete | LLM failure analysis, Slack/Teams/email, K8s deployment |
 | **4** | Complete | Autofix, NL test creation, multi-browser, Rust processor |

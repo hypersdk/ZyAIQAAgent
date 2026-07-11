@@ -7,7 +7,9 @@
     "test": "playwright test --config=playwright/playwright.config.ts",
     "test:manual": "playwright test --config=playwright/playwright.config.ts tests/manual",
     "test:generated": "playwright test --config=playwright/playwright.config.ts tests/generated",
-    "report": "playwright show-report reports"
+    "crawl": "node playwright/scripts/crawl-site.mjs",
+    "report": "playwright show-report reports",
+    "report:pdf": "node playwright/scripts/html-to-pdf.mjs reports/qa-summary.html reports/qa-summary.pdf"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0",

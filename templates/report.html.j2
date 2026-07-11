@@ -13,6 +13,12 @@
     pre { background: #1a1a2e; color: #eee; padding: 1rem; border-radius: 8px; overflow-x: auto; white-space: pre-wrap; }
     table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
     th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid #ddd; }
+    @media print {
+      body { max-width: none; margin: 0; padding: 0; }
+      .summary { break-inside: avoid; }
+      table { break-inside: avoid; }
+      h2 { break-after: avoid; }
+    }
   </style>
 </head>
 <body>
@@ -76,13 +82,35 @@
   </ul>
   {% endif %}
 
+  {% if v8_coverage %}
+  <h2>V8 JS Coverage</h2>
+  <p><strong>{{ v8_coverage.percentage }}%</strong> of instrumented JS bytes executed
+    ({{ v8_coverage.used_bytes }} / {{ v8_coverage.total_bytes }} bytes)</p>
+  {% if v8_coverage.files %}
+  <table>
+    <tr><th>Script URL</th><th>Coverage</th><th>Used / Total bytes</th></tr>
+    {% for f in v8_coverage.files[:20] %}
+    <tr>
+      <td>{{ f.url[:80] }}</td><td>{{ f.percentage }}%</td>
+      <td>{{ f.used_bytes }} / {{ f.total_bytes }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+  {% endif %}
+
   {% if cases %}
   <h2>Test Cases</h2>
   <table>
-    <tr><th>Title</th><th>Browser</th><th>Status</th><th>Error</th></tr>
+    <tr><th>Title</th><th>Browser</th><th>Status</th><th>Artifacts</th><th>Error</th></tr>
     {% for case in cases %}
     <tr class="{{ case.status }}">
       <td>{{ case.title }}</td><td>{{ case.browser or 'chromium' }}</td><td>{{ case.status }}</td>
+      <td>
+        {% if case.video_href %}<a href="{{ case.video_href }}">video</a>{% endif %}
+        {% if case.screenshot_href %}{% if case.video_href %} | {% endif %}<a href="{{ case.screenshot_href }}">screenshot</a>{% endif %}
+        {% if case.trace_href %}{% if case.video_href or case.screenshot_href %} | {% endif %}<a href="{{ case.trace_href }}">trace</a>{% endif %}
+      </td>
       <td>{{ case.error_message or '' }}</td>
     </tr>
     {% endfor %}

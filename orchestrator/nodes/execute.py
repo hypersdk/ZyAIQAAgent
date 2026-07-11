@@ -14,10 +14,7 @@ def _repo_root() -> Path:
 
 
 def execute_tests(state: PipelineState) -> PipelineState:
-    """Run Playwright test suite."""
-    if state.get("error"):
-        return state
-
+    """Run Playwright test suite (always runs manual tests; generated if available)."""
     base_url = os.environ.get("ZYVOR_BASE_URL", "https://zyvor.dev")
     generated = state.get("generated_tests", [])
 

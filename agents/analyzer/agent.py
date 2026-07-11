@@ -44,6 +44,13 @@ def _collect_artifact_context(
             context["artifacts"].append({"type": "trace", "path": str(trace)})
         for png in artifact_dir.rglob("*.png"):
             context["artifacts"].append({"type": "screenshot", "path": str(png)})
+        for webm in artifact_dir.rglob("*.webm"):
+            context["artifacts"].append({"type": "video", "path": str(webm)})
+
+    videos_dir = Path(__file__).resolve().parents[2] / "videos"
+    if videos_dir.exists():
+        for webm in videos_dir.glob("*.webm"):
+            context["artifacts"].append({"type": "video", "path": str(webm)})
 
     return context
 
@@ -79,6 +86,14 @@ def analyze_failures_stub(test_results: TestResult) -> str:
             lines.append("\n### Log Issues")
             for i in errors[:10]:
                 lines.append(f"- [{i.source}] {i.message}")
+
+    for case in test_results.cases:
+        if case.status == "passed":
+            continue
+        if case.video_path:
+            lines.append(f"\n- Video: `{case.video_path}`")
+        if case.screenshot_path:
+            lines.append(f"- Screenshot: `{case.screenshot_path}`")
 
     return "\n".join(lines)
 

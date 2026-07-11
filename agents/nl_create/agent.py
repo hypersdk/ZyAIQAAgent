@@ -40,4 +40,5 @@ def create_from_natural_language(description: str) -> ParsedRequirements:
 def create_and_generate(description: str, output_dir: str) -> list[str]:
     """NL description → requirements → Playwright tests."""
     parsed = create_from_natural_language(description)
-    return generate_tests_from_requirements(parsed.requirements, output_dir)
+    generated, _ = generate_tests_from_requirements(parsed.requirements, output_dir)
+    return generated

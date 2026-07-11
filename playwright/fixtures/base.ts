@@ -1,4 +1,6 @@
 import { test as base, expect } from '@playwright/test';
+import path from 'path';
+import { writeCoverageArtifact } from '../utils/coverage';
 
 export type LogFixtures = {
   consoleLogs: string[];
@@ -6,7 +8,21 @@ export type LogFixtures = {
   apiCalls: { url: string; method: string; status: number }[];
 };
 
+const repoRoot = path.resolve(__dirname, '../..');
+const v8Enabled = () => process.env.ENABLE_V8_COVERAGE === 'true';
+
 export const test = base.extend<LogFixtures>({
+  page: async ({ page }, use, testInfo) => {
+    if (v8Enabled()) {
+      await page.coverage.startJSCoverage();
+    }
+    await use(page);
+    if (v8Enabled()) {
+      const coverage = await page.coverage.stopJSCoverage();
+      await writeCoverageArtifact(testInfo, coverage, repoRoot);
+    }
+  },
+
   consoleLogs: async ({ page }, use, testInfo) => {
     const logs: string[] = [];
     page.on('console', (msg) => {

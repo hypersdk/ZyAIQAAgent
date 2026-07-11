@@ -1,22 +1,37 @@
 import { Page } from '@playwright/test';
+import { getTargetUrl, hasAuthCredentials, isMarketingSite } from './target';
+
+export { getTargetUrl, hasAuthCredentials, isMarketingSite };
+
+/** @deprecated Use hasAuthCredentials */
+export function hasStagingCredentials(): boolean {
+  return hasAuthCredentials();
+}
 
 /**
- * Authenticate against Zyvor staging (requires ZYVOR_STAGING_URL + credentials).
+ * Authenticate against a Zyvor dashboard (not available on the public marketing site).
  */
 export async function login(page: Page): Promise<void> {
-  const stagingUrl = process.env.ZYVOR_STAGING_URL;
-  const user = process.env.ZYVOR_TEST_USER;
-  const password = process.env.ZYVOR_TEST_PASSWORD;
-
-  if (!stagingUrl || !user || !password) {
+  if (isMarketingSite()) {
     throw new Error(
-      'Login requires ZYVOR_STAGING_URL, ZYVOR_TEST_USER, and ZYVOR_TEST_PASSWORD'
+      'Login is not available on zyvor.dev (marketing site). ' +
+        'Set ENABLE_DASHBOARD_TESTS=true and a dashboard URL to run auth tests.'
     );
   }
 
-  await page.goto(stagingUrl);
+  const targetUrl = getTargetUrl();
+  const user = process.env.ZYVOR_TEST_USER;
+  const password = process.env.ZYVOR_TEST_PASSWORD;
+
+  if (!user || !password) {
+    throw new Error(
+      'Login requires ZYVOR_TEST_USER and ZYVOR_TEST_PASSWORD in .env'
+    );
+  }
+
+  await page.goto(targetUrl);
   await page.getByLabel(/email|username/i).fill(user);
   await page.getByLabel(/password/i).fill(password);
   await page.getByRole('button', { name: /sign in|log in/i }).click();
-  await page.waitForURL(/dashboard|home/i);
+  await page.waitForURL(/dashboard|home|vm/i, { timeout: 30000 });
 }

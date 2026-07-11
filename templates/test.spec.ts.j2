@@ -1,16 +1,55 @@
-import { test, expect } from '@playwright/test';
-{% if login_required %}import { login } from '../../playwright/utils/auth';
+import { test, expect } from '../../playwright/fixtures/base';
+import { waitForPageReady } from '../../playwright/utils/helpers';
+{% if login_required %}
+import { login, hasAuthCredentials } from '../../playwright/utils/auth';
 {% endif %}
+
 test.describe('{{ title }}', () => {
-{% for step in steps %}
-  // {{ step.action }}: {{ step.target or '' }}
-{% endfor %}
-  test('{{ title }}', async ({ page }) => {
-{% if login_required %}    await login(page);
+  test('{{ title }}', async ({ page, consoleLogs }) => {
+{% if login_required %}
+    test.skip(
+      !hasAuthCredentials(),
+      'Skipped: dashboard auth not configured (set ENABLE_DASHBOARD_TESTS=true and credentials)'
+    );
+    await login(page);
 {% endif %}
-    // Generated from requirement: {{ requirement_id }}
+{% for step in steps %}
+{% if step.action == 'navigate' %}
+    await page.goto('{{ step.target }}');
+    await waitForPageReady(page);
+{% elif step.action == 'click' %}
+    await page.getByRole('button', { name: /{{ step.target }}/i }).click();
+{% elif step.action == 'fill' %}
+    await page.getByLabel(/{{ step.target }}|name/i).fill('{{ step.value }}');
+{% elif step.action == 'assert' %}
+{% if step.target == 'heading' %}
+    await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible({ timeout: 15000 });
+    await expect(page).toHaveTitle(/.+/);
+{% elif step.assertion and step.assertion != 'visible' and step.assertion != 'heading' %}
+    await expect(page.getByText({{ step.assertion | tojson }}).first()).toBeVisible({ timeout: 15000 });
+{% elif step.target and step.target not in ['page', 'content'] %}
+    await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible({ timeout: 15000 });
+{% else %}
+    await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible({ timeout: 15000 });
+{% endif %}
+{% elif step.action == 'wait' %}
+    await waitForPageReady(page);
+{% endif %}
+{% endfor %}
+{% if not steps %}
     await page.goto('{{ start_path }}');
-    // TODO: implement steps from spec
-    await expect(page).toHaveURL(/./);
+    await waitForPageReady(page);
+{% if start_path == '/' %}
+    await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
+    await expect(page).toHaveTitle(/Zyvor|HyperSDK/i);
+{% else %}
+    await expect(page).toHaveURL(new RegExp('{{ start_path }}'));
+    await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
+{% endif %}
+{% endif %}
+    const appErrors = consoleLogs.filter(
+      (l) => l.startsWith('[error]') && !l.includes('Content Security Policy')
+    );
+    expect(appErrors).toHaveLength(0);
   });
 });

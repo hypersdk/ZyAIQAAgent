@@ -1,1 +1,32 @@
-[]
+{
+  "source": "local",
+  "requirements": [
+    {
+      "id": "req-administrator-creates-a-vm-marketing-sit",
+      "title": "Administrator creates a VM — marketing site validation",
+      "description": "**As a** visitor **I want to** see VM and infrastructure capabilities on zyvor.dev **So that** I can evaluate the Zyvor platform - Target: `ZYVOR_BASE_URL=https://zyvor.dev` (marketing site only) - No dashboard or staging environment required",
+      "priority": "high",
+      "steps": [
+        {
+          "action": "navigate",
+          "target": "/",
+          "value": null,
+          "assertion": null
+        },
+        {
+          "action": "navigate",
+          "target": "/vm",
+          "value": null,
+          "assertion": null
+        }
+      ],
+      "tags": [
+        "vm",
+        "marketing",
+        "smoke",
+        "vm",
+        "marketing"
+      ]
+    }
+  ]
+}

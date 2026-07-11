@@ -100,6 +100,11 @@ class PipelineReport(BaseModel):
     failure_analysis: Optional[str] = None
     autofix_suggestions: Optional[List[str]] = None
     html_path: Optional[str] = None
+    pdf_path: Optional[str] = None
+    coverage_inventory_size: Optional[int] = None
+    coverage_gaps_remaining: Optional[int] = None
+    coverage_tests_generated: Optional[int] = None
+    v8_coverage_percentage: Optional[float] = None
 
 
 class AutofixSuggestion(BaseModel):
@@ -108,3 +113,33 @@ class AutofixSuggestion(BaseModel):
     suggested_selector: str
     confidence: str = "medium"
     explanation: str = ""
+
+
+class CoverageCandidate(BaseModel):
+    id: str
+    kind: str  # route | page | doc | api | story
+    path: str
+    title: str
+    signals: List[str] = Field(default_factory=list)
+    priority: str = "medium"
+    source_file: Optional[str] = None
+    context: Optional[str] = None
+
+
+class CoverageGap(BaseModel):
+    candidate: CoverageCandidate
+    reason: str = "no matching test found"
+
+
+class V8CoverageFile(BaseModel):
+    url: str
+    total_bytes: int = 0
+    used_bytes: int = 0
+    percentage: float = 0.0
+
+
+class V8CoverageSummary(BaseModel):
+    total_bytes: int = 0
+    used_bytes: int = 0
+    percentage: float = 0.0
+    files: List[V8CoverageFile] = Field(default_factory=list)

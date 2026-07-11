@@ -1,22 +1,21 @@
-# Administrator creates a VM
+# Administrator creates a VM — marketing site validation
 
-**As an** administrator
-**I want to** provision a new Ubuntu VM
-**So that** I can run workloads on Zyvor infrastructure
+**As a** visitor
+**I want to** see VM and infrastructure capabilities on zyvor.dev
+**So that** I can evaluate the Zyvor platform
 
 ## Acceptance Criteria
 
-1. Navigate to the VM management page at `/vm`
-2. Click "Create VM" button
-3. Enter VM name: `ubuntu-test`
-4. Click "Provision"
-5. VM status shows "Running" within 60 seconds
+1. Homepage loads at `https://zyvor.dev`
+2. VM migration and KubeVirt content is visible
+3. HyperSDK / Zeus OS product names are listed
+4. `/vm` route serves the marketing site (no dashboard login)
 
 ## Environment
 
-- Requires staging environment (`ZYVOR_STAGING_URL`)
-- Requires authenticated admin user
+- Target: `ZYVOR_BASE_URL=https://zyvor.dev` (marketing site only)
+- No dashboard or staging environment required
 
 ## Tags
 
-vm, provisioning, smoke
+vm, marketing, smoke

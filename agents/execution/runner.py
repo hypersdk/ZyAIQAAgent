@@ -7,6 +7,8 @@ import os
 import subprocess
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from agents.common.models import TestCaseResult, TestResult
 
 
@@ -14,11 +16,21 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
+def _load_env() -> None:
+    load_dotenv(_repo_root() / ".env")
+
+
 def _find_attachment(results: list, name: str) -> str | None:
     for att in results:
         if att.get("name") == name and att.get("path"):
             return att["path"]
     return None
+
+
+def _find_video(attachments: list) -> str | None:
+    from agents.execution.artifacts import _find_video_attachment
+
+    return _find_video_attachment(attachments)
 
 
 def _find_screenshot(results: list) -> str | None:
@@ -35,12 +47,32 @@ def _load_sidecar_log(test_output_dir: Path, filename: str) -> list[str]:
     return []
 
 
+def _expand_valid_test_targets(test_dirs: list[str]) -> list[str]:
+    """Expand directories to valid spec files, skipping syntactically broken specs."""
+    from agents.generator.quality import validate_spec_file
+
+    targets: list[str] = []
+    for item in test_dirs:
+        path = Path(item)
+        if path.is_file() and path.suffix == ".ts":
+            if validate_spec_file(path):
+                targets.append(str(path))
+            continue
+        if not path.is_dir():
+            continue
+        for spec in sorted(path.glob("**/*.spec.ts")):
+            if validate_spec_file(spec):
+                targets.append(str(spec))
+    return targets
+
+
 def run_playwright(
     test_dirs: list[str] | None = None,
     base_url: str | None = None,
     project: str | None = None,
 ) -> TestResult:
     """Execute Playwright tests and parse JSON results."""
+    _load_env()
     repo_root = _repo_root()
     config = repo_root / "playwright" / "playwright.config.ts"
     reports_dir = repo_root / "reports"
@@ -49,21 +81,41 @@ def run_playwright(
     env = {**os.environ}
     if base_url:
         env["ZYVOR_BASE_URL"] = base_url
-    env["PLAYWRIGHT_JSON_OUTPUT"] = str(reports_dir / "results.json")
 
-    cmd = ["npx", "playwright", "test", f"--config={config}"]
+    if test_dirs:
+        targets = _expand_valid_test_targets(test_dirs)
+    else:
+        targets = _expand_valid_test_targets([str(repo_root / "tests" / "manual")])
+
+    if not targets:
+        return TestResult(
+            passed=0,
+            failed=1,
+            total=1,
+            cases=[
+                TestCaseResult(
+                    title="playwright execution",
+                    status="failed",
+                    error_message="No valid Playwright spec files found to execute",
+                )
+            ],
+        )
+
+    json_path = reports_dir / "results.json"
+    cmd = ["npx", "playwright", "test", f"--config={config}", *targets]
     if project:
         cmd.extend(["--project", project])
-    if test_dirs:
-        cmd.extend(test_dirs)
-    else:
-        cmd.append(str(repo_root / "tests" / "manual"))
 
     result = subprocess.run(cmd, cwd=repo_root, env=env, capture_output=True, text=True)
 
-    json_path = reports_dir / "results.json"
     if json_path.exists():
-        return parse_playwright_json(json_path, repo_root / "test-results")
+        parsed = parse_playwright_json(json_path, repo_root / "test-results")
+        if parsed.total > 0:
+            from agents.execution.artifacts import discover_videos_from_output_dir, persist_failure_artifacts
+
+            parsed = discover_videos_from_output_dir(parsed, repo_root / "test-results")
+            parsed = persist_failure_artifacts(parsed)
+            return parsed
 
     return TestResult(
         passed=0,
@@ -111,7 +163,7 @@ def parse_playwright_json(
                         attachments = result.get("attachments", [])
                         screenshot = _find_screenshot(attachments)
                         trace = _find_attachment(attachments, "trace")
-                        video = _find_attachment(attachments, "video")
+                        video = _find_video(attachments)
 
                         console_logs: list[str] = []
                         network_errors: list[str] = []

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
@@ -11,7 +12,8 @@ from jinja2 import Environment, FileSystemLoader
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from agents.common.llm import get_llm
-from agents.common.models import AutofixSuggestion, PipelineReport, TestResult
+from agents.common.models import AutofixSuggestion, PipelineReport, TestResult, V8CoverageSummary
+from agents.reporter.pdf import html_to_pdf
 
 
 def _repo_root() -> Path:
@@ -80,18 +82,51 @@ def generate_summary_stub(test_results: TestResult) -> str:
     return "\n".join(lines)
 
 
+def _artifact_href(report_dir: Path, artifact_path: Optional[str]) -> Optional[str]:
+    """Convert absolute artifact path to a report-relative href."""
+    if not artifact_path:
+        return None
+    path = Path(artifact_path)
+    if not path.exists():
+        return None
+    try:
+        return str(path.relative_to(report_dir))
+    except ValueError:
+        try:
+            return str(path.relative_to(report_dir.parent))
+        except ValueError:
+            return str(path)
+
+
+def _cases_for_report(test_results: TestResult, report_dir: Path) -> list[dict]:
+    cases = []
+    for case in test_results.cases:
+        data = case.model_dump()
+        data["video_href"] = _artifact_href(report_dir, case.video_path)
+        data["screenshot_href"] = _artifact_href(report_dir, case.screenshot_path)
+        data["trace_href"] = _artifact_href(report_dir, case.trace_path)
+        cases.append(data)
+    return cases
+
+
 def render_html_report(
     test_results: TestResult,
     summary: str,
     source: str = "local",
     failure_analysis: Optional[str] = None,
     autofix_suggestions: Optional[List[AutofixSuggestion]] = None,
+    v8_coverage: Optional[V8CoverageSummary] = None,
     output_path: Optional[str | Path] = None,
 ) -> Path:
     """Render HTML report from template."""
     repo_root = _repo_root()
     env = Environment(loader=FileSystemLoader(repo_root / "templates"))
     template = env.get_template("report.html.j2")
+
+    if output_path is None:
+        output_path = repo_root / "reports" / "qa-summary.html"
+    output_path = Path(output_path)
+    report_dir = output_path.parent
 
     html = template.render(
         generated_at=datetime.now(timezone.utc).isoformat(),
@@ -101,11 +136,12 @@ def render_html_report(
         total=test_results.total,
         summary=summary,
         failure_analysis=failure_analysis,
-        cases=[c.model_dump() for c in test_results.cases],
+        cases=_cases_for_report(test_results, report_dir),
         regression_diffs=[d.model_dump() for d in test_results.regression_diffs],
         api_validations=[v.model_dump() for v in test_results.api_validations],
         log_issues=[i.model_dump() for i in test_results.log_issues],
         autofix_suggestions=[s.model_dump() for s in (autofix_suggestions or [])],
+        v8_coverage=v8_coverage.model_dump() if v8_coverage else None,
     )
 
     if output_path is None:
@@ -121,6 +157,7 @@ def build_report(
     source: str = "local",
     failure_analysis: Optional[str] = None,
     autofix_suggestions: Optional[List[AutofixSuggestion]] = None,
+    v8_coverage: Optional[V8CoverageSummary] = None,
     use_llm: bool = False,
 ) -> PipelineReport:
     """Build full pipeline report."""
@@ -135,7 +172,12 @@ def build_report(
         source=source,
         failure_analysis=failure_analysis,
         autofix_suggestions=autofix_suggestions,
+        v8_coverage=v8_coverage,
     )
+
+    pdf_path: Optional[Path] = None
+    if os.environ.get("ENABLE_PDF_REPORT", "true").lower() == "true":
+        pdf_path = html_to_pdf(html_path)
 
     return PipelineReport(
         summary=summary,
@@ -145,4 +187,6 @@ def build_report(
         failure_analysis=failure_analysis,
         autofix_suggestions=[s.suggested_selector for s in (autofix_suggestions or [])],
         html_path=str(html_path),
+        pdf_path=str(pdf_path) if pdf_path else None,
+        v8_coverage_percentage=v8_coverage.percentage if v8_coverage else None,
     )

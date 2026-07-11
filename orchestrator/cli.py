@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+import warnings
+
+warnings.filterwarnings("ignore", message=".*OpenSSL.*")
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="langgraph.*")
+
 import os
 from pathlib import Path
 from typing import Optional
@@ -26,12 +31,20 @@ def _load_env() -> None:
 
 def _initial_state(
     source: str = "local",
-    spec: Optional[Path] = None,
+    spec: Optional[str] = None,
     pr_number: Optional[int] = None,
+    expand_coverage: bool = False,
 ) -> PipelineState:
     spec_paths: list[str] = []
     if spec:
-        spec_paths = [str(spec.resolve())]
+        if source == "github":
+            from github.client import normalize_github_spec_path
+
+            spec_paths = [normalize_github_spec_path(spec)]
+        else:
+            spec_paths = [str(Path(spec).resolve())]
+
+    env_expand = os.environ.get("ENABLE_COVERAGE_EXPANSION", "false").lower() == "true"
 
     return {
         "source": source,
@@ -42,38 +55,85 @@ def _initial_state(
         "test_results": None,
         "failure_analysis": None,
         "report_path": None,
+        "pdf_report_path": None,
         "report_summary": None,
         "pr_number": pr_number,
         "repo_full_name": os.environ.get("ZYVOR_PRODUCT_REPO"),
         "error": None,
-        "metadata": {},
+        "metadata": {"explicit_spec": bool(spec)},
+        "expand_coverage": expand_coverage or env_expand,
+        "coverage_inventory": [],
+        "coverage_gaps": [],
     }
+
+
+def _run_discovery_subgraph(state: PipelineState) -> PipelineState:
+    from orchestrator.nodes.discover import discover_coverage
+    from orchestrator.nodes.fetch import fetch_requirements
+    from orchestrator.nodes.gap_analyze import gap_analyze
+
+    state = fetch_requirements(state)
+    if state.get("error"):
+        return state
+    state = discover_coverage(state)
+    return gap_analyze(state)
 
 
 @app.command()
 def run(
     source: str = typer.Option("local", help="Requirement source: local | github"),
-    spec: Optional[Path] = typer.Option(None, help="Local spec file path"),
+    spec: Optional[str] = typer.Option(
+        None,
+        help="Spec path: local file, GitHub repo path (docs/specs/foo.md), or GitHub blob URL",
+    ),
     pr_number: Optional[int] = typer.Option(None, help="PR number for GitHub comment"),
+    expand_coverage: bool = typer.Option(
+        False,
+        "--expand-coverage",
+        help="Discover routes/pages from GitHub code/docs and generate missing tests",
+    ),
 ) -> None:
     """Run the full QA pipeline: fetch → parse → generate → execute → report → notify."""
     _load_env()
     graph = get_compiled_graph()
-    state = _initial_state(source=source, spec=spec, pr_number=pr_number)
+    state = _initial_state(
+        source=source,
+        spec=spec,
+        pr_number=pr_number,
+        expand_coverage=expand_coverage,
+    )
     result = graph.invoke(state)
 
     if result.get("error"):
         typer.echo(f"Pipeline error: {result['error']}", err=True)
+        if result.get("test_results"):
+            tr = result["test_results"]
+            typer.echo(
+                f"Partial results: {tr.passed} passed, {tr.failed} failed",
+                err=True,
+            )
         raise typer.Exit(code=1)
 
     test_results = result.get("test_results")
+    metadata = result.get("metadata", {})
+    if metadata.get("coverage_inventory_size") is not None:
+        typer.echo(
+            f"Coverage: {metadata.get('coverage_inventory_size', 0)} candidates, "
+            f"{metadata.get('coverage_gaps_remaining', 0)} gaps, "
+            f"{metadata.get('coverage_tests_generated', 0)} new tests"
+        )
     if test_results:
         typer.echo(
             f"Results: {test_results.passed} passed, "
             f"{test_results.failed} failed, {test_results.total} total"
         )
+        generated = result.get("generated_tests", [])
+        if generated:
+            typer.echo(f"Generated tests: {len(generated)} file(s)")
     if result.get("report_path"):
         typer.echo(f"Report: {result['report_path']}")
+    if result.get("pdf_report_path"):
+        typer.echo(f"PDF report: {result['pdf_report_path']}")
 
     if test_results and test_results.failed > 0:
         raise typer.Exit(code=1)
@@ -99,19 +159,36 @@ def test() -> None:
 
 @app.command()
 def generate(
-    spec: Path = typer.Option(..., help="Spec file to parse and generate tests from"),
+    spec: Optional[str] = typer.Option(
+        None,
+        help="Spec path: local file, GitHub repo path (docs/specs/foo.md), or GitHub blob URL",
+    ),
+    source: str = typer.Option("local", help="Requirement source: local | github"),
+    expand_coverage: bool = typer.Option(
+        False,
+        "--expand-coverage",
+        help="Discover routes/pages from GitHub code/docs and generate missing tests",
+    ),
 ) -> None:
     """Parse spec and generate Playwright tests (no execution)."""
     _load_env()
 
-    subgraph_nodes = ["fetch", "parse", "generate"]
-    state = _initial_state(source="local", spec=spec)
+    subgraph_nodes = ["fetch", "discover", "gap_analyze", "parse", "generate"]
+    state = _initial_state(source=source, spec=spec, expand_coverage=expand_coverage)
 
     for node in subgraph_nodes:
         if node == "fetch":
             from orchestrator.nodes.fetch import fetch_requirements
 
             state = fetch_requirements(state)
+        elif node == "discover":
+            from orchestrator.nodes.discover import discover_coverage
+
+            state = discover_coverage(state)
+        elif node == "gap_analyze":
+            from orchestrator.nodes.gap_analyze import gap_analyze
+
+            state = gap_analyze(state)
         elif node == "parse":
             from orchestrator.nodes.parse import parse_requirements
 
@@ -125,10 +202,57 @@ def generate(
         typer.echo(f"Error: {state['error']}", err=True)
         raise typer.Exit(code=1)
 
+    metadata = state.get("metadata", {})
+    if metadata.get("coverage_inventory_size") is not None:
+        typer.echo(
+            f"Coverage: {metadata.get('coverage_inventory_size', 0)} candidates, "
+            f"{metadata.get('coverage_gaps_remaining', 0)} gaps, "
+            f"{metadata.get('coverage_tests_generated', 0)} new tests"
+        )
+
     generated = state.get("generated_tests", [])
     typer.echo(f"Generated {len(generated)} test file(s):")
     for path in generated:
         typer.echo(f"  {path}")
+
+
+@app.command()
+def discover(
+    source: str = typer.Option("github", help="Requirement source: local | github"),
+    spec: Optional[str] = typer.Option(
+        None,
+        help="Optional spec path when fetching from GitHub",
+    ),
+    pr_number: Optional[int] = typer.Option(None, help="PR number for changed-file scoping"),
+) -> None:
+    """Discover coverage inventory and gaps without generating or running tests."""
+    _load_env()
+    state = _initial_state(
+        source=source,
+        spec=spec,
+        pr_number=pr_number,
+        expand_coverage=True,
+    )
+    state = _run_discovery_subgraph(state)
+
+    if state.get("error"):
+        typer.echo(f"Error: {state['error']}", err=True)
+        raise typer.Exit(code=1)
+
+    inventory = state.get("coverage_inventory", [])
+    gaps = state.get("coverage_gaps", [])
+    metadata = state.get("metadata", {})
+
+    typer.echo(f"Discovered {len(inventory)} coverage candidate(s)")
+    typer.echo(f"Uncovered gaps: {len(gaps)}")
+    if metadata.get("discovered_paths"):
+        typer.echo(f"Files scanned: {len(metadata['discovered_paths'])}")
+
+    for gap in gaps[:20]:
+        candidate = gap.candidate
+        typer.echo(f"  [gap] {candidate.kind} {candidate.path} — {candidate.title}")
+    if len(gaps) > 20:
+        typer.echo(f"  ... and {len(gaps) - 20} more")
 
 
 @app.command()

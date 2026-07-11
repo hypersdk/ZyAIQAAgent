@@ -1,14 +1,23 @@
-# Autofix Agent (Phase 4)
+# Autofix Agent
 
-Self-healing selectors and automated test maintenance.
+LLM-powered selector repair with optional self-healing.
 
-## Planned capabilities
+## Modes
 
-- Detect broken selectors from Playwright failure output
-- Suggest updated selectors using DOM snapshots and LLM
-- Auto-generate PRs with test fixes
-- Natural language test creation ("Test VM cloning with Ubuntu")
+| Flag | Behavior |
+|------|----------|
+| `ENABLE_AUTOFIX=true` | Generate selector fix suggestions on failure |
+| `ENABLE_AUTOFIX_APPLY=true` | Patch `tests/manual/` and `tests/generated/` specs and re-run |
+| `AUTOFIX_MAX_RETRIES=2` | Max self-heal re-execution attempts |
 
-## Implementation status
+## Flow
 
-Stub only — no runtime code yet. Enable with `ENABLE_AUTOFIX=true` in Phase 4.
+```
+fail → analyze → autofix → apply_autofix → execute (loop) → report
+```
+
+## Files
+
+- `agents/autofix/agent.py` — LLM/stub suggestions
+- `agents/autofix/apply.py` — patch test source files
+- `orchestrator/nodes/apply_autofix.py` — graph node

@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import os
 import smtplib
+from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from pathlib import Path
 from typing import Dict, Optional
 
 import httpx
@@ -27,6 +29,15 @@ def notify_github_pr(
 
     client = GitHubClient()
     body = f"{_status_emoji(report)} {report.summary}"
+    if report.coverage_inventory_size is not None:
+        body += "\n\n### Coverage"
+        body += f"\n- Inventory: {report.coverage_inventory_size} candidate(s)"
+        if report.coverage_gaps_remaining is not None:
+            body += f"\n- Gaps remaining: {report.coverage_gaps_remaining}"
+        if report.coverage_tests_generated is not None:
+            body += f"\n- New coverage tests generated: {report.coverage_tests_generated}"
+    if report.v8_coverage_percentage is not None:
+        body += f"\n- V8 JS coverage: {report.v8_coverage_percentage}%"
     if report.failure_analysis:
         body += f"\n\n### Failure Analysis\n\n{report.failure_analysis}"
     if report.autofix_suggestions:
@@ -35,6 +46,8 @@ def notify_github_pr(
             body += f"- `{suggestion}`\n"
     if report.html_path:
         body += f"\n\n📄 Full report: `{report.html_path}`"
+    if report.pdf_path:
+        body += f"\n📑 PDF report: `{report.pdf_path}`"
 
     client.post_pr_comment(repo_full_name, pr_number, body)
     return True
@@ -137,6 +150,18 @@ def notify_email(report: PipelineReport) -> bool:
 
     msg.attach(MIMEText(text_body, "plain"))
     msg.attach(MIMEText(html_body, "html"))
+
+    if report.pdf_path:
+        pdf_file = Path(report.pdf_path)
+        if pdf_file.is_file():
+            with pdf_file.open("rb") as attachment:
+                part = MIMEApplication(attachment.read(), _subtype="pdf")
+            part.add_header(
+                "Content-Disposition",
+                "attachment",
+                filename=pdf_file.name,
+            )
+            msg.attach(part)
 
     with smtplib.SMTP(host, int(os.environ.get("SMTP_PORT", "587"))) as server:
         user = os.environ.get("SMTP_USER")
