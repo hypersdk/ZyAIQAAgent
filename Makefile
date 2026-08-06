@@ -35,7 +35,7 @@ docker:
 	docker run --env-file .env zyvor-qa-agent
 
 lint:
-	ruff check orchestrator agents github
+	ruff check orchestrator agents github_integration
 	npx tsc --noEmit
 
 K8S_DIR := kubernetes

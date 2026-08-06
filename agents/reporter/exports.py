@@ -58,7 +58,7 @@ def cases_to_csv(cases: list[dict[str, Any]]) -> str:
 
 def cases_to_html(meta: dict[str, Any], cases: list[dict[str, Any]]) -> str:
     """Render a standalone HTML report for a job's cases."""
-    env = Environment(loader=FileSystemLoader(_repo_root() / "templates"))
+    env = Environment(loader=FileSystemLoader(_repo_root() / "templates"), autoescape=True)
     template = env.get_template("job-report.html.j2")
     failures = [c for c in cases if c.get("status") != "passed"]
     return template.render(
@@ -142,7 +142,7 @@ def build_flow_bundle(url: str, steps: list[dict[str, Any]], summary: dict[str, 
         w.writerow([s.get("n"), s.get("action"), s.get("desc"), s.get("status"), (s.get("error") or "").replace("\n", " ")])
     (job_dir / "report.csv").write_text(buf.getvalue(), encoding="utf-8")
 
-    env = Environment(loader=FileSystemLoader(_repo_root() / "templates"))
+    env = Environment(loader=FileSystemLoader(_repo_root() / "templates"), autoescape=True)
     html = env.get_template("flow-report.html.j2").render(
         url=url, steps=steps, summary=summary,
         generated_at=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
@@ -173,7 +173,7 @@ def build_checks_bundle(url: str, data: dict[str, Any], *, kind: str = "checks",
         w.writerow([c.get("name"), c.get("ok"), c.get("detail")])
     (job_dir / "report.csv").write_text(buf.getvalue(), encoding="utf-8")
 
-    env = Environment(loader=FileSystemLoader(_repo_root() / "templates"))
+    env = Environment(loader=FileSystemLoader(_repo_root() / "templates"), autoescape=True)
     html = env.get_template("checks-report.html.j2").render(
         url=url, data=data, title=title,
         generated_at=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
@@ -204,7 +204,7 @@ def build_realtime_bundle(url: str, data: dict[str, Any]) -> dict[str, str]:
         w.writerow([c.get("name"), c.get("ok"), c.get("detail")])
     (job_dir / "report.csv").write_text(buf.getvalue(), encoding="utf-8")
 
-    env = Environment(loader=FileSystemLoader(_repo_root() / "templates"))
+    env = Environment(loader=FileSystemLoader(_repo_root() / "templates"), autoescape=True)
     html = env.get_template("realtime-report.html.j2").render(
         url=url, data=data,
         generated_at=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
@@ -235,7 +235,7 @@ def build_vitals_bundle(url: str, data: dict[str, Any]) -> dict[str, str]:
         w.writerow([name, m.get("value"), m.get("grade")])
     (job_dir / "report.csv").write_text(buf.getvalue(), encoding="utf-8")
 
-    env = Environment(loader=FileSystemLoader(_repo_root() / "templates"))
+    env = Environment(loader=FileSystemLoader(_repo_root() / "templates"), autoescape=True)
     html = env.get_template("vitals-report.html.j2").render(
         url=url, data=data,
         generated_at=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
@@ -273,7 +273,7 @@ def build_api_contract_bundle(url: str, mode: str, rows: list[dict[str, Any]], s
                         r.get("status"), r.get("ok"), r.get("error", ""), r.get("latency_ms")])
     (job_dir / "report.csv").write_text(buf.getvalue(), encoding="utf-8")
 
-    env = Environment(loader=FileSystemLoader(_repo_root() / "templates"))
+    env = Environment(loader=FileSystemLoader(_repo_root() / "templates"), autoescape=True)
     html = env.get_template("api-contract-report.html.j2").render(
         url=url, mode=mode, rows=rows, summary=summary,
         generated_at=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
@@ -304,7 +304,7 @@ def build_route_sweep_bundle(url: str, rows: list[dict[str, Any]], summary: dict
         w.writerow([r.get("route"), r.get("viewport"), r.get("status"), r.get("diff")])
     (job_dir / "report.csv").write_text(buf.getvalue(), encoding="utf-8")
 
-    env = Environment(loader=FileSystemLoader(_repo_root() / "templates"))
+    env = Environment(loader=FileSystemLoader(_repo_root() / "templates"), autoescape=True)
     html = env.get_template("route-sweep-report.html.j2").render(
         url=url, rows=rows, summary=summary,
         generated_at=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
@@ -331,7 +331,7 @@ def build_audit_bundle(
     job_dir.mkdir(parents=True, exist_ok=True)
 
     (job_dir / "report.csv").write_text(audit_to_csv(checks, pages), encoding="utf-8")
-    env = Environment(loader=FileSystemLoader(_repo_root() / "templates"))
+    env = Environment(loader=FileSystemLoader(_repo_root() / "templates"), autoescape=True)
     html = env.get_template("audit-report.html.j2").render(
         url=url,
         checks=checks,

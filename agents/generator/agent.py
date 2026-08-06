@@ -24,7 +24,7 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from agents.common.llm import get_llm, load_prompt
+from agents.common.llm import content_to_text, get_llm, load_prompt
 from agents.common.models import ParsedRequirements, Requirement
 
 
@@ -72,7 +72,7 @@ def generate_test_for_requirement(
             ),
         ]
     )
-    return _extract_typescript(response.content)
+    return _extract_typescript(content_to_text(response.content))
 
 
 def generate_tests_from_requirements(
@@ -132,7 +132,9 @@ def render_template_fallback(
 ) -> str:
     """Fallback: render Jinja2 template when LLM is unavailable."""
     repo_root = Path(__file__).resolve().parents[2]
-    env = Environment(loader=FileSystemLoader(repo_root / "templates"))
+    # Renders TypeScript source, not HTML — autoescaping would corrupt generated
+    # code (e.g. `<` becoming `&lt;`), so this one is deliberately not autoescaped.
+    env = Environment(loader=FileSystemLoader(repo_root / "templates"), autoescape=False)  # nosec B701
     template = env.get_template("test.spec.ts.j2")
 
     from agents.generator.quality import sanitize_steps

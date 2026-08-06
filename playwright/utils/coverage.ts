@@ -78,7 +78,11 @@ export function summarizeCoverage(entries: V8CoverageEntry[]) {
 }
 
 export async function writeCoverageArtifact(
-  testInfo: { title: string; outputPath: (name: string) => string },
+  testInfo: {
+    title: string;
+    outputPath: (name: string) => string;
+    attach: (name: string, options?: { body?: string | Buffer; contentType?: string }) => Promise<void>;
+  },
   coverage: V8CoverageEntry[],
   repoRoot: string,
 ): Promise<void> {

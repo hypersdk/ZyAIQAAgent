@@ -136,7 +136,7 @@ class TargetPolicy:
             return True
         return any(fnmatch.fnmatchcase(host, pattern) for pattern in self.allowed_hosts)
 
-    def _resolve(self, host: str) -> list[ipaddress._BaseAddress]:
+    def _resolve(self, host: str) -> list[ipaddress.IPv4Address | ipaddress.IPv6Address]:
         try:
             literal = ipaddress.ip_address(host.strip("[]"))
             return [literal]
@@ -146,7 +146,7 @@ class TargetPolicy:
             infos = socket.getaddrinfo(host, None, type=socket.SOCK_STREAM)
         except socket.gaierror:
             return []
-        result: list[ipaddress._BaseAddress] = []
+        result: list[ipaddress.IPv4Address | ipaddress.IPv6Address] = []
         for info in infos:
             try:
                 ip = ipaddress.ip_address(info[4][0])
@@ -156,7 +156,9 @@ class TargetPolicy:
                 result.append(ip)
         return result
 
-    def _validate_ip(self, ip: ipaddress._BaseAddress, *, host_allowed: bool) -> None:
+    def _validate_ip(
+        self, ip: ipaddress.IPv4Address | ipaddress.IPv6Address, *, host_allowed: bool
+    ) -> None:
         if ip in _METADATA_IPS:
             raise TargetPolicyError("cloud metadata IPs are blocked")
         if any(ip in network for network in self.allowed_cidrs):

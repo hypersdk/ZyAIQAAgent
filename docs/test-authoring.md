@@ -498,7 +498,7 @@ Do not set `ZYVOR_STAGING_URL` or test credentials unless you have a real dashbo
 | `orchestrator/nodes/gap_analyze.py` | Gap analysis vs existing tests |
 | `agents/discover/agent.py` | Heuristic extractors for routes/pages/docs |
 | `agents/coverage/gap.py` | Gap matching and requirement conversion |
-| `github/client.py` | GitHub API, token resolution, file download |
+| `github_integration/client.py` | GitHub API, token resolution, file download |
 | `agents/parser/agent.py` | Spec → requirements |
 | `agents/generator/agent.py` | Requirements → Playwright tests |
 | `templates/test.spec.ts.j2` | Template fallback for generation |

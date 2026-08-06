@@ -39,7 +39,7 @@ def notify_github_pr(
     report: PipelineReport,
 ) -> bool:
     """Post report summary as a PR comment."""
-    from github.client import GitHubClient
+    from github_integration.client import GitHubClient
 
     client = GitHubClient()
     body = f"{_status_emoji(report)} {report.summary}"

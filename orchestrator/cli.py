@@ -55,7 +55,7 @@ def _initial_state(
     spec_paths: list[str] = []
     if spec:
         if source == "github":
-            from github.client import normalize_github_spec_path
+            from github_integration.client import normalize_github_spec_path
 
             spec_paths = [normalize_github_spec_path(spec)]
         else:
@@ -358,7 +358,7 @@ def create(
     save_requirements(parsed, repo_root / "tests" / "fixtures" / "requirements.json")
 
     try:
-        generated = create_and_generate(description, output_dir)
+        generated = create_and_generate(description, str(output_dir))
     except Exception as exc:
         typer.echo(f"Test generation failed: {exc}", err=True)
         raise typer.Exit(code=1)
@@ -780,7 +780,7 @@ def vitals(
 @app.command()
 def serve(
     port: int = typer.Option(8080, help="Webhook server port"),
-    host: str = typer.Option("0.0.0.0", help="Bind host"),
+    host: str = typer.Option("0.0.0.0", help="Bind host"),  # nosec B104 - server must be externally reachable in Docker/K8s
     tls: bool = typer.Option(False, help="Serve over HTTPS (generates a self-signed cert if none given)"),
     tls_cert: Optional[str] = typer.Option(None, help="Path to a TLS certificate (PEM)"),
     tls_key: Optional[str] = typer.Option(None, help="Path to the TLS private key (PEM)"),
@@ -791,14 +791,14 @@ def serve(
 
     from orchestrator.webhook import create_app
 
-    ssl_kwargs: dict[str, str] = {}
+    ssl_certfile: Optional[str] = None
+    ssl_keyfile: Optional[str] = None
     if tls or tls_cert or tls_key:
-        cert, key = _ensure_tls_cert(tls_cert, tls_key, host)
-        ssl_kwargs = {"ssl_certfile": cert, "ssl_keyfile": key}
-        typer.echo(f"Starting HTTPS server on {host}:{port} (cert: {cert})")
+        ssl_certfile, ssl_keyfile = _ensure_tls_cert(tls_cert, tls_key, host)
+        typer.echo(f"Starting HTTPS server on {host}:{port} (cert: {ssl_certfile})")
     else:
         typer.echo(f"Starting webhook server on {host}:{port}")
-    uvicorn.run(create_app(), host=host, port=port, **ssl_kwargs)
+    uvicorn.run(create_app(), host=host, port=port, ssl_certfile=ssl_certfile, ssl_keyfile=ssl_keyfile)
 
 
 def _ensure_tls_cert(cert: Optional[str], key: Optional[str], host: str) -> tuple[str, str]:
@@ -812,7 +812,7 @@ def _ensure_tls_cert(cert: Optional[str], key: Optional[str], host: str) -> tupl
     cert_path, key_path = cert_dir / "server.crt", cert_dir / "server.key"
     if cert_path.exists() and key_path.exists():
         return str(cert_path), str(key_path)
-    cn = host if host not in ("0.0.0.0", "") else "localhost"
+    cn = host if host not in ("0.0.0.0", "") else "localhost"  # nosec B104 - cert CN choice, not a bind address
     typer.echo(f"Generating self-signed TLS certificate (CN={cn}) → {cert_dir}")
     subprocess.run(
         [

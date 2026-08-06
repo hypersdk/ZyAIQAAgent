@@ -1240,7 +1240,7 @@ def _job_ping(params: dict[str, Any]) -> dict[str, Any]:
 
     results = []
     up = 0
-    with httpx.Client(timeout=15, follow_redirects=True, verify=False) as client:
+    with httpx.Client(timeout=15, follow_redirects=True, verify=not params.get("insecure", False)) as client:
         for url in params["urls"]:
             _check_cancel()
             t0 = _time.time()
@@ -1273,9 +1273,11 @@ def _job_loadtest(params: dict[str, Any]) -> dict[str, Any]:
     lock = threading.Lock()
     t_start = _time.time()
 
+    insecure = bool(params.get("insecure", False))
+
     def _one(_i: int) -> None:
         nonlocal ok
-        with httpx.Client(timeout=20, verify=False, follow_redirects=True) as client:
+        with httpx.Client(timeout=20, verify=not insecure, follow_redirects=True) as client:
             t0 = _time.time()
             try:
                 resp = client.get(url)
@@ -1327,7 +1329,7 @@ def _job_tls(params: dict[str, Any]) -> dict[str, Any]:
     log_progress(f"resolving {host}…")
     try:
         infos = socket.getaddrinfo(host, port, proto=socket.IPPROTO_TCP)
-        ips = sorted({i[4][0] for i in infos})
+        ips = sorted({str(i[4][0]) for i in infos})
     except Exception as exc:
         raise RuntimeError(f"DNS resolution failed: {exc}")
     log_progress(f"{host} → {', '.join(ips)}")
@@ -1340,13 +1342,17 @@ def _job_tls(params: dict[str, Any]) -> dict[str, Any]:
             proto = ssock.version()
             cipher = ssock.cipher()
 
+    assert cert is not None, "getpeercert() only returns None before the handshake completes"
+
     def _name(field: Any) -> str:
         return ", ".join("=".join(x) for rdn in (field or ()) for x in rdn)
 
-    not_after = cert.get("notAfter")
+    not_after_raw = cert.get("notAfter")
+    not_after = not_after_raw if isinstance(not_after_raw, str) else None
     expiry = _dt.strptime(not_after, "%b %d %H:%M:%S %Y %Z") if not_after else None
     days_left = (expiry - _dt.utcnow()).days if expiry else None
-    sans = [v for k, v in cert.get("subjectAltName", []) if k == "DNS"]
+    san_raw = cert.get("subjectAltName")
+    sans = [v for k, v in san_raw if k == "DNS"] if isinstance(san_raw, tuple) else []
 
     status = "ok"
     if days_left is not None:
@@ -1391,7 +1397,7 @@ def _job_flow(params: dict[str, Any]) -> dict[str, Any]:
             session_path = str(sp)
             log_progress(f"reusing saved session {params['session']}")
     log_progress(f"running journey against {url} (video on)…")
-    flow_env = {"ZYVOR_NO_SANDBOX": os.environ.get("ZYVOR_NO_SANDBOX", "false")}
+    flow_env: dict[str, Optional[str]] = {"ZYVOR_NO_SANDBOX": os.environ.get("ZYVOR_NO_SANDBOX", "false")}
     if params.get("browser"):
         flow_env["ZYVOR_BROWSER"] = params["browser"]
     if params.get("device"):

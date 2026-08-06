@@ -182,7 +182,7 @@ def parse_prose_heuristic(text: str) -> list[dict[str, Any]]:
 
 
 def parse_prose_llm(text: str) -> list[dict[str, Any]]:
-    from agents.common.llm import get_llm, load_prompt
+    from agents.common.llm import content_to_text, get_llm, load_prompt
     from langchain_core.messages import HumanMessage, SystemMessage
 
     llm = get_llm()
@@ -190,7 +190,7 @@ def parse_prose_llm(text: str) -> list[dict[str, Any]]:
         SystemMessage(content=load_prompt("flow")),
         HumanMessage(content=f"Turn this journey into steps:\n\n{text}"),
     ])
-    raw = resp.content.strip()
+    raw = content_to_text(resp.content).strip()
     fence = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", raw)
     if fence:
         raw = fence.group(1)

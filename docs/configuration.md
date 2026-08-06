@@ -34,7 +34,7 @@ Consumed by: `agents/common/llm.py`, `agents/parser/agent.py`.
 | `GITHUB_TOKEN` | — | PAT with `Contents: Read` (+ `Pull requests: Write` for PR comments). Optional if `gh auth login` is configured — resolution order is `GITHUB_TOKEN` → `gh auth token`. |
 | `GITHUB_WEBHOOK_SECRET` | — | HMAC secret for `zyvor-qa serve`. If empty, signature verification is skipped (do not leave empty in production). |
 
-Consumed by: `github/client.py`, `orchestrator/webhook.py`, `orchestrator/nodes/fetch.py`.
+Consumed by: `github_integration/client.py`, `orchestrator/webhook.py`, `orchestrator/nodes/fetch.py`.
 
 ---
 
@@ -131,7 +131,7 @@ Consumed by: `playwright/playwright.config.ts`, `agents/execution/runner.py`. In
 | `COVERAGE_MAX_DISCOVERY_FILES` | `200` | Max files downloaded per discovery run |
 | `COVERAGE_MAX_DISCOVERY_BYTES` | `2000000` | Max total bytes downloaded |
 
-Consumed by: `orchestrator/coverage_config.py`, `github/client.py`, `orchestrator/nodes/{fetch,discover,gap_analyze}.py`.
+Consumed by: `orchestrator/coverage_config.py`, `github_integration/client.py`, `orchestrator/nodes/{fetch,discover,gap_analyze}.py`.
 
 Note: an explicit `--spec` disables coverage expansion unless you also pass `--expand-coverage`.
 

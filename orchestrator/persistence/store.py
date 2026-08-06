@@ -411,7 +411,8 @@ class MissionControlStore:
                 VALUES (?, ?, ?, ?, ?, ?, ?, 'open', ?, ?)""",
                 (fingerprint, source, severity, title[:200], detail[:2000], url[:1000], location[:500], now, now),
             )
-            return int(cur.lastrowid)
+            assert cur.lastrowid is not None
+            return cur.lastrowid
 
     def list_findings(self, limit: int = 200, severity: str | None = None) -> dict[str, Any]:
         where = "WHERE status='open'"
@@ -420,11 +421,13 @@ class MissionControlStore:
             where += " AND severity=?"
             args.append(severity)
         with self.connect() as conn:
+            # `where` is always one of two fixed literals above, never user-controlled;
+            # the actual values (severity, limit) are bound via `?` placeholders.
             total = int(
-                conn.execute(f"SELECT COUNT(*) AS n FROM findings {where}", args).fetchone()["n"]
+                conn.execute(f"SELECT COUNT(*) AS n FROM findings {where}", args).fetchone()["n"]  # nosec B608
             )
             rows = conn.execute(
-                f"SELECT * FROM findings {where} ORDER BY last_seen DESC LIMIT ?",
+                f"SELECT * FROM findings {where} ORDER BY last_seen DESC LIMIT ?",  # nosec B608
                 [*args, min(limit, 500)],
             ).fetchall()
             counts_rows = conn.execute(

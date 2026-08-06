@@ -105,7 +105,7 @@ if (emulation) {
       use: {
         ...devices['Desktop Chrome'],
         ...sharedUse,
-        reducedMotion: 'reduce' as const,
+        contextOptions: { reducedMotion: 'reduce' as const },
       },
     },
     {

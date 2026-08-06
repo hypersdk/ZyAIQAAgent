@@ -11,7 +11,7 @@ WORKDIR /app
 COPY pyproject.toml ./
 COPY orchestrator/ ./orchestrator/
 COPY agents/ ./agents/
-COPY github/ ./github/
+COPY github_integration/ ./github_integration/
 COPY prompts/ ./prompts/
 COPY templates/ ./templates/
 COPY playwright/ ./playwright/
@@ -43,7 +43,7 @@ COPY --from=python-base /app /app
 COPY package.json tsconfig.json ./
 COPY orchestrator/ ./orchestrator/
 COPY agents/ ./agents/
-COPY github/ ./github/
+COPY github_integration/ ./github_integration/
 COPY prompts/ ./prompts/
 COPY templates/ ./templates/
 COPY playwright/ ./playwright/

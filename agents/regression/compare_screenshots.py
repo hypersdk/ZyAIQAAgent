@@ -30,7 +30,7 @@ except ImportError:
 
 def _diff_percent(img1: "Image.Image", img2: "Image.Image") -> float:
     diff = ImageChops.difference(img1, img2)
-    pixels = diff.getdata()
+    pixels = list(diff.getdata())
     total = len(pixels) * 3
     changed = sum(sum(p) for p in pixels)
     return (changed / (total * 255)) * 100 if total else 0.0

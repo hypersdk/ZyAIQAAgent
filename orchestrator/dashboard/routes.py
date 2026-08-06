@@ -62,7 +62,7 @@ async def favicon() -> Response:
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page() -> str:
-    env = Environment(loader=FileSystemLoader(_repo_root() / "templates"))
+    env = Environment(loader=FileSystemLoader(_repo_root() / "templates"), autoescape=True)
     return env.get_template("login.html.j2").render(auth_enabled=auth.enabled())
 
 
@@ -132,7 +132,7 @@ async def api_logout() -> Response:
 
 @router.get("/dashboard", response_class=HTMLResponse)
 async def dashboard_page() -> str:
-    env = Environment(loader=FileSystemLoader(_repo_root() / "templates"))
+    env = Environment(loader=FileSystemLoader(_repo_root() / "templates"), autoescape=True)
     template = env.get_template("dashboard.html.j2")
     return template.render(refresh_interval_ms=REFRESH_INTERVAL_MS)
 

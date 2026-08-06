@@ -33,7 +33,7 @@ setup('authenticate', async ({ page }) => {
 
   // Capture cookies + localStorage (Playwright), then enrich with sessionStorage + token
   const state = await page.context().storageState();
-  const sessionStorage = await page.evaluate(() => {
+  const sessionStorageData = await page.evaluate(() => {
     const out: Record<string, string> = {};
     for (let i = 0; i < sessionStorage.length; i++) {
       const k = sessionStorage.key(i);
@@ -42,15 +42,15 @@ setup('authenticate', async ({ page }) => {
     return out;
   });
   const token =
-    sessionStorage['token'] ||
-    sessionStorage['access_token'] ||
-    sessionStorage['auth_token'] ||
-    sessionStorage['jwt'] ||
+    sessionStorageData['token'] ||
+    sessionStorageData['access_token'] ||
+    sessionStorageData['auth_token'] ||
+    sessionStorageData['jwt'] ||
     '';
 
   const enriched = {
     ...state,
-    _sessionStorage: JSON.stringify(sessionStorage),
+    _sessionStorage: JSON.stringify(sessionStorageData),
     _token: token,
   };
   fs.writeFileSync(AUTH_FILE, JSON.stringify(enriched, null, 2));

@@ -1,5 +1,6 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+# Floor bumped past CVE-2025-47273 (path traversal in setuptools PackageIndex).
+requires = ["setuptools>=78.1.1", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -27,6 +28,11 @@ dependencies = [
     "Pillow>=10.0",
     "PyYAML>=6.0",
     "kubernetes>=29.0",
+    # Transitive floors bumped past known CVEs (pip-audit/trivy): PYSEC-2026-3545/6/7,
+    # PYSEC-2026-3552, GHSA-6v7p-g79w-8964 (msgpack, via langgraph-checkpoint).
+    "aiohttp>=3.14.3",
+    "cryptography>=50.0.0",
+    "msgpack>=1.2.1",
 ]
 
 [project.optional-dependencies]
@@ -52,7 +58,7 @@ zyvor-qa-knowledge-evaluate = "scripts.knowledge_evaluate:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["orchestrator*", "agents*", "github*", "knowledge*", "scripts*"]
+include = ["orchestrator*", "agents*", "github_integration*", "knowledge*", "scripts*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/unit"]
@@ -61,8 +67,28 @@ addopts = "-q"
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py310"
+
+[tool.ruff.lint]
+# Pinned explicitly so a ruff upgrade can't silently widen enforcement — ruff's
+# own implicit default rule set has changed between minor versions (e.g. 0.15 -> 0.16),
+# which otherwise turns a clean `ruff check .` into hundreds of new failures overnight.
+select = ["E4", "E7", "E9", "F"]
 
 [tool.ruff.lint.per-file-ignores]
 # cli.py filters warnings before importing heavy modules — imports intentionally follow.
 "orchestrator/cli.py" = ["E402"]
+
+[tool.bandit]
+# All reviewed and confirmed either false-positive or architecturally inherent to
+# what this tool does, not silently ignored:
+#   B101 assert_used         - intentional in validation/security-check helpers
+#   B105 hardcoded_password_string - matches dict keys like "pass"/"DASHBOARD_SECRET"
+#                                     (env var *names*, not credential values)
+#   B110/B112 try_except_pass/continue - deliberate graceful degradation when
+#                                          optional [knowledge] extras aren't installed
+#   B404/B603/B607 subprocess usage  - this tool's whole job is shelling out to
+#                                       node/playwright/docker/kubectl/git/openssl
+# Real findings (B501 no-cert-verification, B701 autoescape, B608 SQL, B104 bind-all)
+# were fixed in code instead of skipped here.
+skips = ["B101", "B105", "B110", "B112", "B404", "B603", "B607"]

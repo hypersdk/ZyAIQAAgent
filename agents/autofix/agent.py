@@ -22,7 +22,7 @@ from typing import List, Optional
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from agents.common.llm import get_llm
+from agents.common.llm import content_to_text, get_llm
 from agents.common.models import AutofixSuggestion, TestResult
 
 
@@ -71,7 +71,7 @@ def suggest_fixes_llm(
         ]
     )
 
-    text = response.content.strip()
+    text = content_to_text(response.content).strip()
     fence = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", text)
     if fence:
         text = fence.group(1)

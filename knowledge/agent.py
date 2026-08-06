@@ -17,6 +17,7 @@ from langchain.agents.middleware import (
 )
 from langchain.agents.structured_output import ToolStrategy
 from langchain_core.messages import ToolMessage
+from langchain_core.tools import BaseTool
 from langchain_openai import ChatOpenAI
 
 from knowledge.checkpoint import get_checkpointer
@@ -141,7 +142,7 @@ def _chat_model(*, model: str | None = None, api_key: Any = None) -> ChatOpenAI:
 
 
 def _build_middleware(settings: Any) -> list[Any]:
-    tool_names = _agent_tool_names(settings)
+    tool_names: list[BaseTool | str] = list(_agent_tool_names(settings))
     middleware: list[Any] = [
         PIIMiddleware("email", strategy="redact", apply_to_input=True, apply_to_tool_results=True),
         PIIMiddleware(

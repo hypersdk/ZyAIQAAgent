@@ -23,7 +23,7 @@ from pathlib import Path
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from agents.common.llm import LLMConfigError, get_llm, load_prompt
+from agents.common.llm import LLMConfigError, content_to_text, get_llm, load_prompt
 from agents.common.models import ParsedRequirements, Requirement
 from agents.parser.rule_parser import parse_spec_rule_based
 
@@ -65,7 +65,7 @@ def parse_spec_content(content: str, source: str = "local") -> ParsedRequirement
                 HumanMessage(content=f"Parse the following specification:\n\n{content}"),
             ]
         )
-        raw = _extract_json(response.content)
+        raw = _extract_json(content_to_text(response.content))
         requirements = [Requirement.model_validate(r) for r in raw.get("requirements", [])]
         return ParsedRequirements(source=source, requirements=requirements)
     except (LLMConfigError, json.JSONDecodeError, ValueError, Exception):

@@ -25,7 +25,7 @@ from typing import List, Optional
 from jinja2 import Environment, FileSystemLoader
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from agents.common.llm import get_llm
+from agents.common.llm import content_to_text, get_llm
 from agents.common.models import AutofixSuggestion, PipelineReport, TestResult, V8CoverageSummary
 from agents.reporter.pdf import html_to_pdf
 
@@ -65,7 +65,7 @@ def generate_summary_llm(
                 HumanMessage(content=json.dumps(payload, indent=2)),
             ]
         )
-        return response.content
+        return content_to_text(response.content)
     except Exception:
         return generate_summary_stub(test_results)
 
@@ -134,7 +134,7 @@ def render_html_report(
 ) -> Path:
     """Render HTML report from template."""
     repo_root = _repo_root()
-    env = Environment(loader=FileSystemLoader(repo_root / "templates"))
+    env = Environment(loader=FileSystemLoader(repo_root / "templates"), autoescape=True)
     template = env.get_template("report.html.j2")
 
     if output_path is None:

@@ -20,6 +20,7 @@ import os
 from functools import lru_cache
 
 from langchain_core.language_models.chat_models import BaseChatModel
+from pydantic import SecretStr
 
 
 class LLMConfigError(ValueError):
@@ -38,7 +39,7 @@ def get_llm() -> BaseChatModel:
         api_key = os.environ.get("OPENAI_API_KEY")
         if not api_key:
             raise LLMConfigError("OPENAI_API_KEY is required when LLM_PROVIDER=openai")
-        return ChatOpenAI(model=model, api_key=api_key, temperature=0)
+        return ChatOpenAI(model=model, api_key=SecretStr(api_key), temperature=0)
 
     if provider == "anthropic":
         from langchain_anthropic import ChatAnthropic
@@ -46,7 +47,9 @@ def get_llm() -> BaseChatModel:
         api_key = os.environ.get("ANTHROPIC_API_KEY")
         if not api_key:
             raise LLMConfigError("ANTHROPIC_API_KEY is required when LLM_PROVIDER=anthropic")
-        return ChatAnthropic(model=model, api_key=api_key, temperature=0)
+        # `model` is the real field (aliased to `model_name`); the stub's alias-keyed
+        # overload requires unrelated kwargs it shouldn't, so ignore this one mismatch.
+        return ChatAnthropic(model=model, api_key=SecretStr(api_key), temperature=0)  # type: ignore[call-arg]
 
     if provider == "azure":
         from langchain_openai import AzureChatOpenAI
@@ -60,7 +63,7 @@ def get_llm() -> BaseChatModel:
             )
         return AzureChatOpenAI(
             azure_deployment=deployment,
-            api_key=api_key,
+            api_key=SecretStr(api_key),
             azure_endpoint=endpoint,
             temperature=0,
         )
@@ -89,6 +92,24 @@ def get_llm() -> BaseChatModel:
         f"Unsupported LLM_PROVIDER: {provider}. "
         "Use one of: openai, anthropic, azure, google, ollama"
     )
+
+
+def content_to_text(content: str | list[str | dict]) -> str:
+    """Normalize a LangChain message's `.content` to plain text.
+
+    Chat models type `.content` as `str | list[str | dict]` to allow for
+    multimodal/tool-call content blocks, but every caller here only ever
+    sends plain-text prompts and expects plain-text responses.
+    """
+    if isinstance(content, str):
+        return content
+    parts = []
+    for block in content:
+        if isinstance(block, str):
+            parts.append(block)
+        elif isinstance(block, dict) and isinstance(block.get("text"), str):
+            parts.append(block["text"])
+    return "".join(parts)
 
 
 def load_prompt(name: str) -> str:

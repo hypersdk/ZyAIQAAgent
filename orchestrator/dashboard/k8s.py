@@ -266,7 +266,8 @@ def pod_logs(name: str, lines: int = 100, container: Optional[str] = None) -> di
     out: list[str] = []
     fetched = 0
     last_error: Optional[str] = None
-    for cname in containers or [None]:
+    names_to_fetch: list[Optional[str]] = list(containers) if containers else [None]
+    for cname in names_to_fetch:
         try:
             raw = clients["core"].read_namespaced_pod_log(
                 name,

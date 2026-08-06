@@ -67,7 +67,7 @@ def qdrant_filter(
 ) -> models.Filter:
     settings = get_settings()
 
-    tenant_conditions = [
+    tenant_conditions: list[models.Condition] = [
         models.FieldCondition(
             key="metadata.tenant_id",
             match=models.MatchValue(value=tenant_id),

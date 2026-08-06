@@ -39,7 +39,7 @@ def fetch_requirements(state: PipelineState) -> PipelineState:
         if not repo:
             return {**state, "error": "ZYVOR_PRODUCT_REPO is not set"}
 
-        from github.client import GitHubClient
+        from github_integration.client import GitHubClient
 
         client = GitHubClient()
         if not client.available:

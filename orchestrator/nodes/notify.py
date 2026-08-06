@@ -29,7 +29,7 @@ def notify_channels(state: PipelineState) -> PipelineState:
 
     metadata = state.get("metadata", {})
     report = PipelineReport(
-        summary=state.get("report_summary", ""),
+        summary=state.get("report_summary") or "",
         passed=test_results.passed,
         failed=test_results.failed,
         total=test_results.total,

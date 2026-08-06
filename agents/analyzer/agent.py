@@ -21,7 +21,7 @@ from pathlib import Path
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from agents.common.llm import get_llm, load_prompt
+from agents.common.llm import content_to_text, get_llm, load_prompt
 from agents.common.models import TestResult
 
 
@@ -137,7 +137,7 @@ def analyze_failures_llm(
             ),
         ]
     )
-    return response.content
+    return content_to_text(response.content)
 
 
 def analyze_failures(

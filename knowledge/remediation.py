@@ -164,23 +164,24 @@ def get_remediation_agent() -> Any:
     if settings.llm_base_url:
         kwargs["base_url"] = settings.llm_base_url
 
+    middleware: list[Any] = [
+        HumanInTheLoopMiddleware(
+            interrupt_on={
+                "request_pod_restart": True,
+                "propose_remediation_plan": False,
+            },
+            description_prefix="Remediation tool requires approval",
+        ),
+        ModelRetryMiddleware(max_retries=2, initial_delay=1.0, max_delay=8.0),
+        ToolCallLimitMiddleware(run_limit=4, exit_behavior="end"),
+    ]
     return create_agent(
         model=ChatOpenAI(**kwargs),
         tools=[propose_remediation_plan, request_pod_restart],
         system_prompt=REMEDIATION_PROMPT,
         response_format=RemediationResponse,
         checkpointer=get_checkpointer(),
-        middleware=[
-            HumanInTheLoopMiddleware(
-                interrupt_on={
-                    "request_pod_restart": True,
-                    "propose_remediation_plan": False,
-                },
-                description_prefix="Remediation tool requires approval",
-            ),
-            ModelRetryMiddleware(max_retries=2, initial_delay=1.0, max_delay=8.0),
-            ToolCallLimitMiddleware(run_limit=4, exit_behavior="end"),
-        ],
+        middleware=middleware,
         name="zyvor-remediation",
     )
 

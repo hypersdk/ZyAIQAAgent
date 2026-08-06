@@ -1,6 +1,10 @@
 # syntax=docker/dockerfile:1.7
 FROM node:20-bookworm-slim AS node-deps
 WORKDIR /app
+# Patches CVEs in npm's own bundled deps (tar, brace-expansion) before anything
+# under /usr/local/lib/node_modules gets copied into the final image. Pinned
+# (not @latest) because npm 12+ requires Node >=22, newer than this image's Node 20.
+RUN npm install -g npm@11.19.0
 COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts
 RUN npx playwright install --with-deps chromium
@@ -11,7 +15,7 @@ WORKDIR /app
 COPY pyproject.toml ./
 COPY orchestrator ./orchestrator
 COPY agents ./agents
-COPY github ./github
+COPY github_integration ./github_integration
 COPY prompts ./prompts
 COPY templates ./templates
 COPY playwright ./playwright
@@ -36,6 +40,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && groupadd --system --gid 10001 zyvor \
     && useradd --system --uid 10001 --gid 10001 --home /app --shell /usr/sbin/nologin zyvor
 
+# Patches CVEs in the base image's own bundled pip/setuptools (unused at runtime —
+# the app only ever runs via /opt/venv — but still scanned by container-scan).
+RUN pip install --no-cache-dir --upgrade pip setuptools
+
 WORKDIR /app
 COPY --from=node-deps /usr/local/bin/node /usr/local/bin/node
 COPY --from=node-deps /usr/local/lib/node_modules /usr/local/lib/node_modules
@@ -47,7 +55,7 @@ COPY --from=node-deps /root/.cache/ms-playwright /ms-playwright
 COPY package.json tsconfig.json ./
 COPY orchestrator ./orchestrator
 COPY agents ./agents
-COPY github ./github
+COPY github_integration ./github_integration
 COPY prompts ./prompts
 COPY templates ./templates
 COPY playwright ./playwright

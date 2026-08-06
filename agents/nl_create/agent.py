@@ -21,7 +21,7 @@ import re
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from agents.common.llm import get_llm, load_prompt
+from agents.common.llm import content_to_text, get_llm, load_prompt
 from agents.common.models import ParsedRequirements, Requirement
 from agents.generator.agent import generate_tests_from_requirements
 
@@ -46,7 +46,7 @@ def create_from_natural_language(description: str) -> ParsedRequirements:
         ]
     )
 
-    raw = _extract_json(response.content)
+    raw = _extract_json(content_to_text(response.content))
     requirements = [Requirement.model_validate(r) for r in raw.get("requirements", [])]
     return ParsedRequirements(source="natural_language", requirements=requirements)
 
