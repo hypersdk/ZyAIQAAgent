@@ -11,7 +11,7 @@ Run `zyvor-qa` as a QA gate inside **your own** repo's pipeline — GitHub Actio
 ### (a) GitHub Actions — the reusable Action
 
 ```yaml
-- uses: hypersdk/ZyAIQAAgent@v0.3.0
+- uses: hypersdk/ZyAIQAAgent@v0.4.0
   with:
     command: test
     target-url: https://staging.example.com
@@ -38,7 +38,7 @@ Outputs `exit-code`, `passed`, `failed`, `summary-path` are populated from `repo
 docker run --rm \
   -e ZYVOR_BASE_URL=https://staging.example.com \
   -v "$PWD/reports:/app/reports" \
-  ghcr.io/hypersdk/zyaiqaagent:v0.3.0 \
+  ghcr.io/hypersdk/zyaiqaagent:v0.4.0 \
   test --grep @smoke
 ```
 

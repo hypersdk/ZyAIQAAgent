@@ -2,11 +2,11 @@
 
 Tagged releases are published automatically by [`.github/workflows/release.yml`](../.github/workflows/release.yml).
 
-**Current release:** [v0.3.0](https://github.com/hypersdk/ZyAIQAAgent/releases/tag/v0.3.0)
+**Current release:** [v0.4.0](https://github.com/hypersdk/ZyAIQAAgent/releases/tag/v0.4.0)
 
 ## What happens on a release
 
-Pushing a tag matching `v*.*.*` (e.g. `v0.3.0`) to the `hypersdk/ZyAIQAAgent` repo:
+Pushing a tag matching `v*.*.*` (e.g. `v0.4.0`) to the `hypersdk/ZyAIQAAgent` repo:
 
 1. Builds the container image from [`docker/Dockerfile`](../docker/Dockerfile).
 2. Pushes it to GHCR as `ghcr.io/hypersdk/zyaiqaagent:<tag>` and `:latest`.
@@ -15,11 +15,11 @@ Pushing a tag matching `v*.*.*` (e.g. `v0.3.0`) to the `hypersdk/ZyAIQAAgent` re
 ## Pulling the image
 
 ```bash
-docker pull ghcr.io/hypersdk/zyaiqaagent:v0.3.0
+docker pull ghcr.io/hypersdk/zyaiqaagent:v0.4.0
 # or track latest
 docker pull ghcr.io/hypersdk/zyaiqaagent:latest
 
-docker run --rm --env-file .env ghcr.io/hypersdk/zyaiqaagent:v0.3.0 test
+docker run --rm --env-file .env ghcr.io/hypersdk/zyaiqaagent:v0.4.0 test
 ```
 
 The image entrypoint is `zyvor-qa` (see [`docker/Dockerfile`](../docker/Dockerfile)); pass any `zyvor-qa` subcommand as the container command, e.g. `serve --port 8080 --host 0.0.0.0`.
@@ -27,7 +27,7 @@ The image entrypoint is `zyvor-qa` (see [`docker/Dockerfile`](../docker/Dockerfi
 No k3s/Kubernetes cluster is required to run it — it's a normal container. A single Pod works fine against any existing cluster too:
 
 ```bash
-kubectl run zyvor-qa --image=ghcr.io/hypersdk/zyaiqaagent:v0.3.0 \
+kubectl run zyvor-qa --image=ghcr.io/hypersdk/zyaiqaagent:v0.4.0 \
   --env="ZYVOR_BASE_URL=https://zyvor.dev" \
   -- serve --port 8080 --host 0.0.0.0
 ```

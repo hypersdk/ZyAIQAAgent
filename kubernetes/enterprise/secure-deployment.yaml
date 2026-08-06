@@ -68,7 +68,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: zyvor-qa
-          image: ghcr.io/hypersdk/zyaiqaagent:v0.3.0
+          image: ghcr.io/hypersdk/zyaiqaagent:v0.4.0
           imagePullPolicy: IfNotPresent
           args: ["serve", "--host", "0.0.0.0", "--port", "8080"]
           ports:
