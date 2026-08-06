@@ -78,6 +78,18 @@ def resolve_identity(
                 return identity
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key")
 
+    if not settings.trust_client_tenant_header:
+        # No AUTH_TOKENS_JSON mapping configured, and header-trust is disabled
+        # (the secure default). Refuse rather than let a client dictate its own
+        # tenant_id via X-Tenant-ID — that would let any caller read/answer as
+        # any tenant. Set AUTH_TOKENS_JSON (preferred) or explicitly opt into
+        # TRUST_CLIENT_TENANT_HEADER=true for trusted, network-isolated
+        # internal-only deployments.
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Tenant identity is not configured (set AUTH_TOKENS_JSON)",
+        )
+
     expected_secret = settings.app_api_key
     if expected_secret is not None:
         expected = expected_secret.get_secret_value()
