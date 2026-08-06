@@ -87,6 +87,8 @@ export ZYVOR_ALLOW_HTTP_TARGETS=false
 
 Even when a hostname is allowlisted, metadata IPs remain blocked. Every resolved address and redirect destination must pass policy.
 
+The live-crawl agent (`playwright/scripts/crawl-site.mjs`) has its own, narrower guard (`playwright/scripts/lib/target-policy.mjs`) for the same purpose — it validates every page navigated to during the BFS, not just the initial URL, since the crawler follows arbitrary in-site links. It blocks the same private/loopback/link-local/metadata ranges by default; set `CRAWL_ALLOW_PRIVATE_TARGETS=true` only for local dev targets.
+
 ## Autonomous-agent modes
 
 - `read_only`: assertions, waits, navigation and non-submitting UI exploration
