@@ -30,7 +30,7 @@ npx playwright install --with-deps
 
 ### Python version errors on install
 
-Requires Python ≥ 3.9 (3.11+ recommended — `ruff` targets py311). Check with `python3 --version`.
+Requires Python ≥ 3.10 (3.11+ recommended — `ruff` targets py310). Check with `python3 --version`.
 
 ---
 

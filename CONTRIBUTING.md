@@ -30,7 +30,7 @@ agents/              the actual logic, one package per capability
   common/            Pydantic models + LLM factory (shared by everything)
   parser/ generator/ execution/ analyzer/ autofix/ regression/
   api_validation/ logs/ discover/ coverage/ nl_create/ reporter/
-github/              PyGithub client, token resolution, discovery download
+github_integration/  PyGithub client, token resolution, discovery download
 playwright/          config, fixtures (log/coverage capture), utils, scripts
 prompts/             system prompts (markdown) for each LLM agent
 templates/           Jinja2: fallback test template + HTML report
@@ -45,7 +45,7 @@ docs/                guides and tutorials
 
 ### Python
 
-- Ruff, line length 100, `target-version = py311`; run `ruff check orchestrator agents github`.
+- Ruff, line length 100, `target-version = py310` (matches `requires-python = ">=3.10"`); rules are pinned explicitly in `pyproject.toml` rather than left to ruff's own defaults, so a ruff upgrade can't silently widen enforcement. Run `ruff check orchestrator agents github_integration`.
 - Every module starts with `from __future__ import annotations`.
 - Data crossing node boundaries is a Pydantic model in `agents/common/models.py` — don't pass ad-hoc dicts through `PipelineState` (the `metadata` dict is for counters/bookkeeping only).
 - Feature flags are read from `os.environ` at call time (not import time) with an explicit default: `os.environ.get("FLAG", "false").lower() == "true"`.
@@ -84,9 +84,8 @@ Extend `get_llm()` in `agents/common/llm.py` with the new branch, add the key to
 
 ## Testing your changes
 
-There is no Python unit-test suite yet (contributions welcome — `pytest` is already a dev dependency). Current verification is end-to-end:
-
 ```bash
+pytest tests/unit -q                              # unit suite (mypy/bandit/coverage also run in CI — see security.yml)
 make lint
 zyvor-qa run --source local                       # no-LLM path (unset keys first)
 zyvor-qa run --source local --spec <your-spec>    # with LLM if you have a key
@@ -94,7 +93,7 @@ python3 scripts/validate_k8s_manifests.py         # if you touched kubernetes/
 cd rust && cargo build --release                  # if you touched rust/
 ```
 
-Good first contributions: pytest coverage for `agents/parser/rule_parser.py`, `agents/generator/quality.py`, and `agents/coverage/gap.py` — they're pure functions and easy to test.
+Unit-test coverage is currently thin relative to the codebase (~30%, gated at 28% in CI rather than a target) — contributions adding coverage for pure-function modules like `agents/parser/rule_parser.py`, `agents/generator/quality.py`, and `agents/coverage/gap.py` are especially welcome.
 
 ## Pull requests
 
