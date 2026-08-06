@@ -9,7 +9,7 @@ version: 2.1
 jobs:
   zyvor-qa-smoke:
     docker:
-      - image: ghcr.io/hypersdk/zyaiqaagent:v0.3.0
+      - image: ghcr.io/hypersdk/zyaiqaagent:v0.4.0
         entrypoint: [""]
     environment:
       ZYVOR_BASE_URL: https://staging.example.com   # or interpolate a CircleCI context/env var

@@ -6,7 +6,7 @@
 # so `script` must call `zyvor-qa` explicitly (a plain `docker run` would not need this).
 zyvor-qa-smoke:
   stage: test
-  image: ghcr.io/hypersdk/zyaiqaagent:v0.3.0
+  image: ghcr.io/hypersdk/zyaiqaagent:v0.4.0
   variables:
     ZYVOR_BASE_URL: "$STAGING_URL"        # set STAGING_URL as a CI/CD variable
     ZYVOR_ENV: "development"              # "production" enforces ZYVOR_TARGET_ALLOWLIST for private targets

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "zyvor-qa-agent"
-version = "0.3.0"
+version = "0.4.0"
 description = "Autonomous AI QA agent for Zyvor platform testing"
 readme = "README.md"
 requires-python = ">=3.10"
