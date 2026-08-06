@@ -18,6 +18,7 @@ Hands-on, step-by-step guides. Follow them in order the first time; each later t
 | 12 | [API, Auth, Live-data & Web-quality](12-api-auth-realtime.md) | Test the product beyond the page: OpenAPI contracts, auth/session, WebSocket/SSE, Core Web Vitals, device/cross-browser | ~30 min |
 | 13 | [Test zyvor.dev with recording](13-test-zyvor-dev-recording.md) | YouTube Mission Control demo + smoke/flow/HAR against https://zyvor.dev | ~15 min |
 | 14 | [Ask Zyvor (knowledge RAG)](14-ask-zyvor-knowledge.md) | Optional citation-first product Q&A with Qdrant hybrid retrieval in Mission Control | ~20 min |
+| 15 | [External CI/CD integration](15-external-cicd-integration.md) | Drop zyvor-qa into *any* project's pipeline: reusable GitHub Action, GitLab/CircleCI/Jenkins/Azure templates, exit-code & summary.json contract | ~15 min |
 
 Deployment: [**Remote deploy**](../remote-deploy.md) — `deploy-remote.sh` puts the agent + dashboard on any host (bare metal, container, or k3s) in one command.
 

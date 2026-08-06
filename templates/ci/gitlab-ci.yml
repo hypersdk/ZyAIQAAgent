@@ -1,0 +1,26 @@
+# Copy into your own repo as .gitlab-ci.yml (or merge the job into an existing one).
+# Full env var / exit-code / summary.json contract:
+# https://github.com/hypersdk/ZyAIQAAgent/blob/main/docs/tutorials/15-external-cicd-integration.md
+#
+# GitLab's `image:` + `script:` combo overrides the container's own ENTRYPOINT,
+# so `script` must call `zyvor-qa` explicitly (a plain `docker run` would not need this).
+zyvor-qa-smoke:
+  stage: test
+  image: ghcr.io/hypersdk/zyaiqaagent:v0.3.0
+  variables:
+    ZYVOR_BASE_URL: "$STAGING_URL"        # set STAGING_URL as a CI/CD variable
+    ZYVOR_ENV: "development"              # "production" enforces ZYVOR_TARGET_ALLOWLIST for private targets
+    # OPENAI_API_KEY / ANTHROPIC_API_KEY: only needed for LLM-driven commands (ai-test, run, flow --describe)
+  script:
+    - zyvor-qa test --grep @smoke
+  artifacts:
+    when: always
+    paths:
+      - reports/
+      - test-results/
+      - screenshots/
+      - videos/
+      - traces/
+    expire_in: 30 days
+  # zyvor-qa's own exit code fails this job natively; reports/summary.json is
+  # also available for a downstream job that wants counts without re-parsing logs.

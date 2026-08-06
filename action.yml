@@ -1,0 +1,94 @@
+name: 'Zyvor QA'
+description: 'Run zyvor-qa Playwright-based QA checks against any target URL, from any CI/CD pipeline.'
+author: 'ZyvorAI Labs'
+branding:
+  icon: 'check-circle'
+  color: 'purple'
+
+inputs:
+  command:
+    description: >-
+      zyvor-qa subcommand to run: test | flow | route-sweep | vitals | api-test | run.
+      See docs/tutorials/15-external-cicd-integration.md for the full command/exit-code contract.
+    required: false
+    default: 'test'
+  args:
+    description: 'Additional raw zyvor-qa CLI flags, appended verbatim (e.g. "--grep @smoke --shard 1/2").'
+    required: false
+    default: ''
+  target-url:
+    description: 'Base URL under test. Sets ZYVOR_BASE_URL.'
+    required: false
+    default: ''
+  grep:
+    description: 'Playwright --grep filter, e.g. @smoke. Sets ZYVOR_GREP.'
+    required: false
+    default: ''
+  shard:
+    description: 'Playwright --shard i/n, e.g. 1/2. Sets ZYVOR_SHARD.'
+    required: false
+    default: ''
+  zyvor-env:
+    description: >-
+      ZYVOR_ENV: "development" (default; permissive target policy, safe for public URLs)
+      or "production" (enforces the target allowlist below — required for private/internal targets).
+    required: false
+    default: 'development'
+  target-allowlist:
+    description: 'Comma-separated ZYVOR_TARGET_ALLOWLIST hostnames. Required when zyvor-env=production and the target is not public.'
+    required: false
+    default: ''
+  allow-private-targets:
+    description: 'Overrides ZYVOR_ALLOW_PRIVATE_TARGETS (true/false).'
+    required: false
+    default: ''
+  allow-http-targets:
+    description: 'Overrides ZYVOR_ALLOW_HTTP_TARGETS (true/false).'
+    required: false
+    default: ''
+  llm-provider:
+    description: 'LLM_PROVIDER for AI-driven commands (ai-test, run, flow --describe, create).'
+    required: false
+    default: ''
+  openai-api-key:
+    description: 'OPENAI_API_KEY — pass via a GitHub secret, never a literal value.'
+    required: false
+    default: ''
+  anthropic-api-key:
+    description: 'ANTHROPIC_API_KEY — pass via a GitHub secret, never a literal value.'
+    required: false
+    default: ''
+  fail-on-error:
+    description: 'If "false", the Action always exits 0 (report-only mode) regardless of zyvor-qa results. Default "true" propagates the real exit code.'
+    required: false
+    default: 'true'
+
+outputs:
+  exit-code:
+    description: 'Raw exit code returned by zyvor-qa.'
+  passed:
+    description: 'Number of passed checks, parsed from reports/summary.json.'
+  failed:
+    description: 'Number of failed checks, parsed from reports/summary.json.'
+  summary-path:
+    description: 'Workspace-relative path to reports/summary.json.'
+
+runs:
+  using: 'docker'
+  image: 'docker://ghcr.io/hypersdk/zyaiqaagent:v0.3.0'
+  entrypoint: '/action-entrypoint.sh'
+  args:
+    - ${{ inputs.command }}
+    - ${{ inputs.args }}
+  env:
+    ACTION_TARGET_URL: ${{ inputs.target-url }}
+    ACTION_GREP: ${{ inputs.grep }}
+    ACTION_SHARD: ${{ inputs.shard }}
+    ACTION_ZYVOR_ENV: ${{ inputs.zyvor-env }}
+    ACTION_TARGET_ALLOWLIST: ${{ inputs.target-allowlist }}
+    ACTION_ALLOW_PRIVATE_TARGETS: ${{ inputs.allow-private-targets }}
+    ACTION_ALLOW_HTTP_TARGETS: ${{ inputs.allow-http-targets }}
+    ACTION_LLM_PROVIDER: ${{ inputs.llm-provider }}
+    ACTION_OPENAI_API_KEY: ${{ inputs.openai-api-key }}
+    ACTION_ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
+    ACTION_FAIL_ON_ERROR: ${{ inputs.fail-on-error }}

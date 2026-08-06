@@ -23,6 +23,8 @@ warnings.filterwarnings("ignore", category=DeprecationWarning, module="langgraph
 
 import os
 import sys
+import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -110,6 +112,8 @@ def run(
 ) -> None:
     """Run the full QA pipeline: fetch → parse → generate → execute → report → notify."""
     _load_env()
+    t0 = time.time()
+    started_at = datetime.fromtimestamp(t0, tz=timezone.utc).isoformat()
     graph = get_compiled_graph()
     state = _initial_state(
         source=source,
@@ -119,14 +123,29 @@ def run(
     )
     result = graph.invoke(state)
 
+    from agents.reporter.summary import write_ci_summary
+
+    base_url = os.environ.get("ZYVOR_BASE_URL")
+
     if result.get("error"):
         typer.echo(f"Pipeline error: {result['error']}", err=True)
-        if result.get("test_results"):
-            tr = result["test_results"]
+        tr = result.get("test_results")
+        if tr:
             typer.echo(
                 f"Partial results: {tr.passed} passed, {tr.failed} failed",
                 err=True,
             )
+        write_ci_summary(
+            command="run",
+            target_url=base_url,
+            passed=tr.passed if tr else 0,
+            failed=tr.failed if tr else 0,
+            total=tr.total if tr else 0,
+            exit_code=1,
+            started_at=started_at,
+            duration_s=time.time() - t0,
+            extra={"pipeline_error": result["error"]},
+        )
         raise typer.Exit(code=1)
 
     test_results = result.get("test_results")
@@ -150,7 +169,22 @@ def run(
     if result.get("pdf_report_path"):
         typer.echo(f"PDF report: {result['pdf_report_path']}")
 
-    if test_results and test_results.failed > 0:
+    failed = bool(test_results and test_results.failed > 0)
+    write_ci_summary(
+        command="run",
+        target_url=base_url,
+        passed=test_results.passed if test_results else 0,
+        failed=test_results.failed if test_results else 0,
+        total=test_results.total if test_results else 0,
+        exit_code=1 if failed else 0,
+        started_at=started_at,
+        duration_s=time.time() - t0,
+        artifacts={
+            "report_html": result.get("report_path"),
+            "report_pdf": result.get("pdf_report_path"),
+        },
+    )
+    if failed:
         raise typer.Exit(code=1)
 
 
@@ -161,7 +195,10 @@ def test(
 ) -> None:
     """Run Playwright tests only (skip parse/generate)."""
     _load_env()
+    t0 = time.time()
+    started_at = datetime.fromtimestamp(t0, tz=timezone.utc).isoformat()
     from agents.execution.runner import run_playwright
+    from agents.reporter.summary import write_ci_summary
 
     base_url = os.environ.get("ZYVOR_BASE_URL", "https://zyvor.dev")
     repo_root = Path(__file__).resolve().parents[1]
@@ -183,7 +220,20 @@ def test(
     )
     typer.echo(f"Results: {results.passed} passed, {results.failed} failed")
 
-    if results.failed > 0:
+    failed = results.failed > 0
+    write_ci_summary(
+        command="test",
+        target_url=base_url,
+        passed=results.passed,
+        failed=results.failed,
+        skipped=results.skipped,
+        total=results.total,
+        exit_code=1 if failed else 0,
+        started_at=started_at,
+        duration_s=time.time() - t0,
+        artifacts={"raw_json": "reports/results.json"},
+    )
+    if failed:
         raise typer.Exit(code=1)
 
 
@@ -376,10 +426,13 @@ def flow(
 ) -> None:
     """Drive a multi-step user journey and record it end-to-end as one video."""
     _load_env()
+    t0 = time.time()
+    started_at = datetime.fromtimestamp(t0, tz=timezone.utc).isoformat()
     import os as _os
 
     from agents.flow.engine import run_flow
     from agents.flow.parse import parse_flow
+    from agents.reporter.summary import write_ci_summary
 
     if browser in ("chromium", "firefox", "webkit"):
         _os.environ["ZYVOR_BROWSER"] = browser
@@ -418,7 +471,22 @@ def flow(
         typer.echo(f"Journey video: {out_dir / result['video']}")
     if result.get("trace"):
         typer.echo(f"Trace (open at trace.playwright.dev): {out_dir / result['trace']}")
-    if result["failed"] > 0:
+    failed = result["failed"] > 0
+    write_ci_summary(
+        command="flow",
+        target_url=url,
+        passed=result["passed"],
+        failed=result["failed"],
+        total=result["total"],
+        exit_code=1 if failed else 0,
+        started_at=started_at,
+        duration_s=time.time() - t0,
+        artifacts={
+            "video": str(out_dir / result["video"]) if result.get("video") else None,
+            "trace": str(out_dir / result["trace"]) if result.get("trace") else None,
+        },
+    )
+    if failed:
         raise typer.Exit(code=1)
 
 
@@ -434,7 +502,10 @@ def route_sweep(
 ) -> None:
     """Screenshot a list of routes and diff against baselines."""
     _load_env()
+    t0 = time.time()
+    started_at = datetime.fromtimestamp(t0, tz=timezone.utc).isoformat()
     from orchestrator.dashboard.jobs import _job_route_sweep
+    from agents.reporter.summary import write_ci_summary
 
     vps = ["desktop"] + (["mobile"] if mobile else [])
     result = _job_route_sweep({
@@ -449,6 +520,23 @@ def route_sweep(
     typer.echo(f"Swept {result['routes']} route(s): {result['fail_count']} changed, {result['new_baselines']} new baseline(s)")
     for row in result["sweep_rows"]:
         typer.echo(f"  {row['status']:8} {row['route']} [{row['viewport']}] {row['diff']}%")
+
+    fail_count = result["fail_count"]
+    total_rows = len(result["sweep_rows"])
+    write_ci_summary(
+        command="route-sweep",
+        target_url=url,
+        passed=total_rows - fail_count,
+        failed=fail_count,
+        total=total_rows,
+        exit_code=1 if fail_count > 0 else 0,
+        started_at=started_at,
+        duration_s=time.time() - t0,
+        artifacts={"report_html": (result.get("report") or {}).get("html")},
+        extra={"new_baselines": result["new_baselines"], "routes": result["routes"]},
+    )
+    if fail_count > 0:
+        raise typer.Exit(code=1)
 
 
 @app.command(name="api-test")
@@ -659,12 +747,34 @@ def vitals(
 ) -> None:
     """Measure Core Web Vitals (LCP/CLS/INP/FCP/TTFB) and grade them."""
     _load_env()
+    t0 = time.time()
+    started_at = datetime.fromtimestamp(t0, tz=timezone.utc).isoformat()
     from orchestrator.dashboard.jobs import _job_vitals
+    from agents.reporter.summary import write_ci_summary
 
     result = _job_vitals({"url": url, "device": device or "", "throttle": throttle or "", "insecure": insecure})
     typer.echo(f"Overall: {result.get('overall', '?').upper()}")
-    for name, m in (result.get("metrics") or {}).items():
+    metrics = result.get("metrics") or {}
+    for name, m in metrics.items():
         typer.echo(f"  {name:5} {str(m.get('value')):>8}  [{m.get('grade')}]")
+
+    total = len(metrics)
+    passed = sum(1 for m in metrics.values() if m.get("grade") == "good")
+    failed = total - passed
+    write_ci_summary(
+        command="vitals",
+        target_url=url,
+        passed=passed,
+        failed=failed,
+        total=total,
+        exit_code=1 if failed > 0 else 0,
+        started_at=started_at,
+        duration_s=time.time() - t0,
+        artifacts={"report_html": (result.get("report") or {}).get("html")},
+        extra={"overall": result.get("overall"), "metrics": metrics},
+    )
+    if failed > 0:
+        raise typer.Exit(code=1)
 
 
 @app.command()

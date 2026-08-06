@@ -140,6 +140,7 @@ See [**Writing Tests & GitHub Integration**](docs/test-authoring.md) for the ful
 | [**Customer docs**](docs/customer/README.md) | Mission Control page-by-page manual · PDFs · `sync-to-website.mjs` |
 | [**Enterprise v2**](docs/enterprise-v2.md) | Fail-closed security, SSRF allowlists, durable SQLite jobs, `/api/v2`, RBAC |
 | [**Tutorials**](docs/tutorials/README.md) | Getting started, spec-to-test, NL tests, GitHub, coverage, regression, autofix, notifications, CI/CD, dashboard, E2E flow tests |
+| [**External CI/CD integration**](docs/tutorials/15-external-cicd-integration.md) | Drop zyvor-qa into *any* project's pipeline via the reusable [GitHub Action](action.yml), or GitLab/CircleCI/Jenkins/Azure [templates](templates/ci/README.md) |
 | [**Architecture**](docs/architecture.md) | Pipeline internals: LangGraph nodes, state, agents, fallback design |
 | [**Configuration**](docs/configuration.md) | Complete environment variable reference with defaults |
 | [**Writing Tests & GitHub Integration**](docs/test-authoring.md) | Command reference; manual, spec-driven, and NL test creation |

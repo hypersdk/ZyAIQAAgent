@@ -1,0 +1,29 @@
+# Copy into your own repo as .circleci/config.yml (or merge the job/workflow in).
+# Full env var / exit-code / summary.json contract:
+# https://github.com/hypersdk/ZyAIQAAgent/blob/main/docs/tutorials/15-external-cicd-integration.md
+#
+# `entrypoint: [""]` clears the image's baked-in ENTRYPOINT so CircleCI's own
+# step commands (`run:`) execute directly instead of being appended as args to it.
+version: 2.1
+
+jobs:
+  zyvor-qa-smoke:
+    docker:
+      - image: ghcr.io/hypersdk/zyaiqaagent:v0.3.0
+        entrypoint: [""]
+    environment:
+      ZYVOR_BASE_URL: https://staging.example.com   # or interpolate a CircleCI context/env var
+      ZYVOR_ENV: development                        # "production" enforces ZYVOR_TARGET_ALLOWLIST for private targets
+    steps:
+      - run:
+          name: Run zyvor-qa smoke tests
+          command: zyvor-qa test --grep @smoke
+      - store_artifacts:
+          path: reports
+      - store_artifacts:
+          path: test-results
+
+workflows:
+  qa:
+    jobs:
+      - zyvor-qa-smoke

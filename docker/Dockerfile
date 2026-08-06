@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libnss3 libnspr4 libdbus-1-3 libatk1.0-0 libatk-bridge2.0-0 \
     libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 \
     libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2 \
+    jq \
     && rm -rf /var/lib/apt/lists/*
 
 # Node runtime — node_modules alone are useless without node/npx binaries
@@ -53,6 +54,11 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright
 ENV ZYVOR_NO_SANDBOX=true
 # Cap Playwright parallelism in containers — default (= CPU count) OOMs a 2-4Gi pod
 ENV ZYVOR_PW_WORKERS=2
+
+# Used only by action.yml (entrypoint override) — standalone/K8s/dashboard use is
+# unaffected since the default ENTRYPOINT/CMD below don't reference this file.
+COPY docker/action-entrypoint.sh /action-entrypoint.sh
+RUN chmod +x /action-entrypoint.sh
 
 ENTRYPOINT ["zyvor-qa"]
 CMD ["run", "--source", "local"]

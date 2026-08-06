@@ -50,6 +50,11 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Validate GitHub Action entrypoint
+        run: |
+          docker run --rm --entrypoint sh "${{ env.IMAGE }}:${{ steps.ref.outputs.tag }}" \
+            -c "test -x /action-entrypoint.sh && echo action-entrypoint.sh OK"
+
   github-release:
     needs: publish-image
     runs-on: ubuntu-latest
