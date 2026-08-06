@@ -22,6 +22,7 @@
 import { chromium } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { assertSafeTarget } from './lib/target-policy.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
@@ -29,6 +30,9 @@ const repoRoot = path.resolve(__dirname, '../..');
 const baseUrl = process.argv[2] || process.env.ZYVOR_BASE_URL || 'https://zyvor.dev';
 const maxPages = parseInt(process.argv[3] || process.env.CRAWL_MAX_PAGES || '50', 10);
 const maxDepth = parseInt(process.argv[4] || process.env.CRAWL_MAX_DEPTH || '2', 10);
+// Cap on captured page text so a huge page can't blow up memory/output size
+// or downstream embedding cost; enough for typical docs/marketing pages.
+const maxContentChars = parseInt(process.env.CRAWL_MAX_CONTENT_CHARS || '200000', 10);
 
 function normalizeUrl(href, origin) {
   try {
@@ -50,6 +54,7 @@ function slug(text) {
 }
 
 async function crawl() {
+  await assertSafeTarget(baseUrl);
   const origin = new URL(baseUrl).origin;
   const queue = [{ path: '/', depth: 0 }];
   const visited = new Set();
@@ -70,6 +75,7 @@ async function crawl() {
   const password = process.env.ZYVOR_TEST_PASSWORD;
   if (user && password) {
     try {
+      await assertSafeTarget(baseUrl);
       await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
       const userField = page
         .locator('input[type="email"], input[name*="user" i], input[name*="email" i], input[type="text"]')
@@ -99,9 +105,16 @@ async function crawl() {
 
     const url = routePath === '/' ? origin + '/' : origin + routePath;
     try {
+      // Re-validated per page, not just at start: a redirect or a hostname
+      // that resolves differently between the initial check and navigation
+      // (DNS rebinding) must not bypass the SSRF guardrail.
+      await assertSafeTarget(url);
       const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
       const title = (await page.title()) || routePath;
       const status = response?.status() ?? 0;
+      const content = await page
+        .evaluate(() => document.body?.innerText || '')
+        .catch(() => '');
 
       candidates.push({
         id: `crawl-${slug(routePath)}`,
@@ -112,6 +125,7 @@ async function crawl() {
         priority: depth === 0 ? 'high' : 'medium',
         source_file: 'live-crawl',
         context: `Crawled ${url} — HTTP ${status}`,
+        content: content.slice(0, maxContentChars).trim(),
       });
 
       if (depth >= maxDepth) continue;

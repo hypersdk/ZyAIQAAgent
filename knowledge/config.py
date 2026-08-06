@@ -20,6 +20,12 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     app_api_key: SecretStr | None = None
     auth_tokens_json: SecretStr | None = None
+    # Secure by default: when no AUTH_TOKENS_JSON mapping is configured, refuse
+    # requests instead of trusting a client-supplied X-Tenant-ID header. Only
+    # flip this on for trusted, network-isolated internal deployments (e.g. a
+    # single-operator Mission Control instance) — never for anything reachable
+    # by tenant-facing/external clients.
+    trust_client_tenant_header: bool = False
 
     llm_model: str = "gpt-5.5"
     llm_api_key: SecretStr = SecretStr("")
@@ -92,6 +98,7 @@ class Settings(BaseSettings):
         "enable_remediation_executor",
         "enable_query_understanding",
         "enable_ask_streaming",
+        "trust_client_tenant_header",
         mode="before",
     )
     @classmethod
