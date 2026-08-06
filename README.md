@@ -133,7 +133,7 @@ See [**Writing Tests & GitHub Integration**](docs/test-authoring.md) for the ful
 
 **Customer manual (page-by-page Mission Control):** [`docs/customer/`](docs/customer/README.md) — regenerate guides / PDFs / website sync with `scripts/customer-docs/` (same pattern as Zeus OS).
 
-**New here? Start with the [step-by-step tutorials](docs/tutorials/README.md)** — nine hands-on guides from install to Kubernetes.
+**New here? Start with the [step-by-step tutorials](docs/tutorials/README.md)** — 15 hands-on guides from install to external CI/CD integration.
 
 | Guide | Description |
 |-------|-------------|

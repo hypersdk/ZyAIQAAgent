@@ -144,9 +144,13 @@ Note: an explicit `--spec` disables coverage expansion unless you also pass `--e
 | `ENABLE_LIVE_CRAWL` | `false` | BFS-crawl the deployed site and merge routes into the coverage inventory |
 | `CRAWL_MAX_PAGES` | `50` | Page budget |
 | `CRAWL_MAX_DEPTH` | `2` | Link depth from `/` |
+| `CRAWL_MAX_CONTENT_CHARS` | `200000` | Cap on captured page text per page, so one large page can't blow up memory/output size or downstream embedding cost |
 | `CRAWL_TIMEOUT_SECONDS` | `120` | Subprocess timeout for the crawl script |
+| `CRAWL_ALLOW_PRIVATE_TARGETS` | `false` | Allow crawling private/loopback/link-local/metadata-adjacent addresses — for local dev targets only |
 
-Consumed by: `agents/discover/crawl.py`, `playwright/scripts/crawl-site.mjs`. Standalone run: `npm run crawl`.
+Every crawled URL — including per-page navigation during the BFS, not just the initial target — is validated as http(s)-only, credential-free, and resolving outside private/loopback/link-local/reserved ranges before navigating (`playwright/scripts/lib/target-policy.mjs`), so a redirect or DNS rebinding can't steer the crawler at an SSRF/internal target mid-crawl.
+
+Consumed by: `agents/discover/crawl.py`, `playwright/scripts/crawl-site.mjs`, `playwright/scripts/lib/target-policy.mjs`. Standalone run: `npm run crawl`.
 
 ---
 
@@ -196,6 +200,7 @@ Requires Python **3.11 or 3.12**, `pip install -e ".[knowledge]"`, and a running
 | `QDRANT_COLLECTION` | `zyvor_knowledge` | Collection name |
 | `APP_API_KEY` | *(none)* | Shared key for `POST /v1/qa` (dev). Prefer `AUTH_TOKENS_JSON` in production. |
 | `AUTH_TOKENS_JSON` | *(empty)* | JSON map of API token → `{tenant_id, access_levels}` |
+| `TRUST_CLIENT_TENANT_HEADER` | `false` | If `false` (default) and no `AUTH_TOKENS_JSON` mapping is configured, requests are refused rather than trusting a client-supplied `X-Tenant-ID` header. Only enable for trusted, network-isolated internal deployments — never for tenant-facing/external clients. |
 | `DEFAULT_ACCESS_LEVELS` | `public,customer` | Levels a non-mapped key may request |
 | `KNOWLEDGE_TENANT_ID` | `public` | Tenant used by Mission Control ask proxy (never from the browser) |
 | `KNOWLEDGE_ACCESS_LEVELS` | `public,customer` | Access levels for Mission Control ask proxy |
