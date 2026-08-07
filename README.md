@@ -47,6 +47,8 @@ zyvor-qa flow https://zyvor.dev --steps docs/assets/zyvor-dev-demo.steps --video
 
 ## 📖 Feature Guide
 
+**[Wiki](https://github.com/hypersdk/ZyAIQAAgent/wiki)** — operator cheat sheets (CLI, Mission Control, journeys, CI/CD, deploy).
+
 **[Zyvor QA Agent — Customer Feature Guide](docs/zyvor-qa-agent-customer-feature-guide.md)** — a complete, customer-facing reference covering **Mission Control**, journeys, probes, and optional **Ask Zyvor** knowledge Q&A. Also available as a print-ready **[PDF](docs/zyvor-qa-agent-customer-feature-guide.pdf)**.
 
 Autonomous AI testing agent for [Zyvor](https://zyvor.dev) — an AI-first infrastructure platform. Continuously validates the Zyvor platform by reading requirements from GitHub, generating Playwright tests, executing them after deployments, detecting regressions, and producing actionable reports.
@@ -130,6 +132,8 @@ zyvor-qa generate --source github --spec docs/specs/my-feature.md
 See [**Writing Tests & GitHub Integration**](docs/test-authoring.md) for the full command reference.
 
 ## Documentation
+
+**Operator wiki:** [https://github.com/hypersdk/ZyAIQAAgent/wiki](https://github.com/hypersdk/ZyAIQAAgent/wiki)
 
 **Customer manual (page-by-page Mission Control):** [`docs/customer/`](docs/customer/README.md) — regenerate guides / PDFs / website sync with `scripts/customer-docs/` (same pattern as Zeus OS).
 
