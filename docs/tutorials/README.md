@@ -20,6 +20,8 @@ Hands-on, step-by-step guides. Follow them in order the first time; each later t
 | 14 | [Ask Zyvor (knowledge RAG)](14-ask-zyvor-knowledge.md) | Optional citation-first product Q&A with Qdrant hybrid retrieval in Mission Control | ~20 min |
 | 15 | [External CI/CD integration](15-external-cicd-integration.md) | Drop zyvor-qa into *any* project's pipeline: reusable GitHub Action, GitLab/CircleCI/Jenkins/Azure templates, exit-code & summary.json contract | ~15 min |
 
+**DevOps / SRE:** operational runbooks (gates, secrets, specs, Mission Control, triage, pipeline tiers) → **[docs/devops/](../devops/README.md)**.
+
 Deployment: [**Remote deploy**](../remote-deploy.md) — `deploy-remote.sh` puts the agent + dashboard on any host (bare metal, container, or k3s) in one command.
 
 Reference documentation lives alongside these tutorials:
@@ -28,3 +30,4 @@ Reference documentation lives alongside these tutorials:
 - [Configuration](../configuration.md) — every environment variable
 - [Writing Tests & GitHub Integration](../test-authoring.md) — full command reference
 - [Troubleshooting](../troubleshooting.md) — common errors and fixes
+- [DevOps runbooks](../devops/README.md) — CI gates, target policy, on-call triage
