@@ -163,6 +163,7 @@ Consumed by: `agents/discover/crawl.py`, `playwright/scripts/crawl-site.mjs`, `p
 | `DASHBOARD_USER` | `admin` | Login username (Zyvor premium login screen) |
 | `DASHBOARD_PASSWORD` | *(empty — auth disabled)* | Setting this **enables login** for `/dashboard`, the API, and artifacts; `/health` and `/webhook/github` stay open. `deploy-remote.sh` generates one per host automatically (skip with `--no-auth`). Login is rate-limited (8 failures / 5 min per IP → 5-min lockout). |
 | `DASHBOARD_SECRET` | derived from credentials | Optional explicit session-signing secret |
+| `ZYVOR_DESKTOP_MODE` | `false` | Set automatically by `desktop/` (the Tauri app) — hides the pods/workloads panel, which is always "cluster unavailable" for a locally-wrapped app. Not meant to be set by hand. |
 | `ZYVOR_IGNORE_HTTPS_ERRORS` | `false` | Accept self-signed/invalid TLS on the target under test (the Test-any-site / audit / probe actions set this per job) |
 | `ZYVOR_VIDEO` | *(off)* | `on` records a video for every test (dashboard job runs set this) |
 | `ZYVOR_NO_SANDBOX` | *(off)* | `true` runs Chromium with `--no-sandbox` (required in containers/as root; set in the image) |

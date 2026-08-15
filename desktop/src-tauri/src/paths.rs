@@ -162,4 +162,31 @@ mod tests {
         // Falls through to the next tier rather than returning the bogus path.
         assert_ne!(resolved, PathBuf::from("/definitely/not/a/real/path/zyvor-qa"));
     }
+
+    #[test]
+    fn app_settings_round_trips_through_json() {
+        let settings = AppSettings {
+            zyvor_qa_bin: Some("/tmp/zyvor-qa".to_string()),
+        };
+        let json = serde_json::to_string(&settings).unwrap();
+        let parsed: AppSettings = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed.zyvor_qa_bin, settings.zyvor_qa_bin);
+    }
+
+    #[test]
+    fn app_settings_default_has_no_override() {
+        assert!(AppSettings::default().zyvor_qa_bin.is_none());
+    }
+
+    #[test]
+    fn app_settings_deserializes_the_shape_settings_html_sends() {
+        // Matches exactly what desktop/public/settings.html's Save button
+        // sends: invoke("set_settings", { settings: { zyvor_qa_bin: value
+        // || null } }) — a null clears the override, a string sets it.
+        let cleared: AppSettings = serde_json::from_str(r#"{"zyvor_qa_bin": null}"#).unwrap();
+        assert!(cleared.zyvor_qa_bin.is_none());
+
+        let set: AppSettings = serde_json::from_str(r#"{"zyvor_qa_bin": "/x/y/zyvor-qa"}"#).unwrap();
+        assert_eq!(set.zyvor_qa_bin.as_deref(), Some("/x/y/zyvor-qa"));
+    }
 }

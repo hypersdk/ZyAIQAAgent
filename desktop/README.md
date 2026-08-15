@@ -71,9 +71,35 @@ cd desktop && npm install && npm run tauri dev
 
 ## Settings
 
-`~/Library/Application Support/ZyvorQA/settings.json` — currently just
-`zyvor_qa_bin`, an explicit override for the resolved binary path if
+`⌘,` (or **Zyvor QA Agent → Settings…** in the menu bar) opens a small
+window to override the resolved `zyvor-qa` binary path — useful if
 auto-detection picks the wrong one (e.g. multiple Python environments).
+Saved to `~/Library/Application Support/ZyvorQA/settings.json`; takes
+effect on the next app restart, not live.
+
+## Code signing & notarization
+
+Not done automatically — `make desktop-build` produces an **unsigned**
+`.app`/`.dmg`. Tauri's bundler signs and notarizes automatically during
+`tauri build` when these are present in the environment (no extra script
+or config needed beyond that):
+
+| Variable | What it is |
+|----------|------------|
+| `APPLE_SIGNING_IDENTITY` | Your "Developer ID Application: …" identity, as it appears in `security find-identity -v -p codesigning` |
+| `APPLE_CERTIFICATE` | Base64-encoded `.p12` export of that identity (alternative to having it in the local keychain already) |
+| `APPLE_CERTIFICATE_PASSWORD` | Password for the `.p12` above |
+| `APPLE_ID` | Apple ID email for notarization |
+| `APPLE_PASSWORD` | App-specific password for that Apple ID (not your Apple ID password) |
+| `APPLE_TEAM_ID` | Your Apple Developer Team ID |
+
+```bash
+export APPLE_SIGNING_IDENTITY="Developer ID Application: Your Name (TEAMID)"
+export APPLE_ID="you@example.com"
+export APPLE_PASSWORD="app-specific-password"
+export APPLE_TEAM_ID="TEAMID"
+make desktop-build-signed   # fails fast with a clear message if any of these are unset
+```
 
 ## Icons
 

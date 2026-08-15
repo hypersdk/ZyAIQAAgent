@@ -3,7 +3,8 @@ mod server;
 
 use paths::AppSettings;
 use server::ServerState;
-use tauri::{Manager, RunEvent, WindowEvent};
+use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
+use tauri::{AppHandle, Manager, RunEvent, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 
 #[tauri::command]
 fn dashboard_url(state: tauri::State<ServerState>) -> Result<Option<String>, String> {
@@ -20,6 +21,80 @@ fn set_settings(settings: AppSettings) -> Result<(), String> {
     paths::save_settings(&settings)
 }
 
+fn open_settings_window(app: &AppHandle) {
+    if let Some(w) = app.get_webview_window("settings") {
+        let _ = w.show();
+        let _ = w.set_focus();
+        return;
+    }
+    let _ = WebviewWindowBuilder::new(app, "settings", WebviewUrl::App("settings.html".into()))
+        .title("Zyvor QA Agent Settings")
+        .inner_size(440.0, 300.0)
+        .resizable(false)
+        .build();
+}
+
+/// Native app menu — mainly so ⌘, opens Settings and the standard
+/// edit/window commands (⌘C/⌘V/⌘Q/…) exist at all; Tauri doesn't provide a
+/// default macOS menu bar for free the way a plain WKWebView-in-Xcode app
+/// would.
+fn setup_menu(app: &AppHandle) -> tauri::Result<()> {
+    let app_menu = Submenu::with_items(
+        app,
+        "Zyvor QA Agent",
+        true,
+        &[
+            &PredefinedMenuItem::about(app, None, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &MenuItem::with_id(app, "settings", "Settings…", true, Some("CmdOrCtrl+,"))?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::hide(app, None)?,
+            &PredefinedMenuItem::hide_others(app, None)?,
+            &PredefinedMenuItem::show_all(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::quit(app, None)?,
+        ],
+    )?;
+
+    let edit_menu = Submenu::with_items(
+        app,
+        "Edit",
+        true,
+        &[
+            &PredefinedMenuItem::undo(app, None)?,
+            &PredefinedMenuItem::redo(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::cut(app, None)?,
+            &PredefinedMenuItem::copy(app, None)?,
+            &PredefinedMenuItem::paste(app, None)?,
+            &PredefinedMenuItem::select_all(app, None)?,
+        ],
+    )?;
+
+    let window_menu = Submenu::with_items(
+        app,
+        "Window",
+        true,
+        &[
+            &PredefinedMenuItem::minimize(app, None)?,
+            &PredefinedMenuItem::maximize(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::close_window(app, None)?,
+        ],
+    )?;
+
+    let menu = Menu::with_items(app, &[&app_menu, &edit_menu, &window_menu])?;
+    app.set_menu(menu)?;
+
+    app.on_menu_event(|app, event| {
+        if event.id().as_ref() == "settings" {
+            open_settings_window(app);
+        }
+    });
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
@@ -30,6 +105,7 @@ pub fn run() {
             set_settings,
         ])
         .setup(|app| {
+            setup_menu(app.handle())?;
             let settings = paths::load_settings();
             server::start_in_background(app.handle().clone(), settings.zyvor_qa_bin);
             Ok(())
@@ -45,13 +121,17 @@ pub fn run() {
     // instead, leaving the server orphaned with its port still bound.
     app.run(|app_handle, event| match event {
         RunEvent::WindowEvent {
+            label,
             event: WindowEvent::CloseRequested { .. },
             ..
-        } => {
-            // This is a single-window utility app — there's no reason to
-            // keep `zyvor-qa serve` running invisibly after its only window
-            // closes, so treat "close the window" as "quit the app" rather
-            // than leaving it lingering in the Dock with nothing to show.
+        } if label == "main" => {
+            // Closing *the settings window* should just close that window —
+            // checked by `label` above, since a second window (added for
+            // Settings) means this event now fires for either one. Closing
+            // the *main* window quits the whole app: there's no tray icon
+            // and nothing else to show, so leaving `zyvor-qa serve` running
+            // invisibly after the only real window closes would just be an
+            // orphaned process with no way back to it.
             server::shutdown(&app_handle.state::<ServerState>());
             app_handle.exit(0);
         }

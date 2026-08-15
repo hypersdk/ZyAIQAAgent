@@ -88,10 +88,12 @@ distribution someone could install without a dev checkout:
   `docker/Dockerfile` multi-stage build than to a lightweight desktop
   installer.
 
-Also not done in v1, for the same "don't fake it" reason: code signing +
-notarization (needs an Apple Developer account) and a Windows/NSIS build
-(hypercluster's `desktop-pkg-windows` target is the template if this
-becomes worth doing).
+Code signing + notarization config is wired up (`make desktop-build-signed`,
+`desktop/README.md`'s "Code signing & notarization" section) but not
+actually usable without an Apple Developer account's credentials, which
+this session doesn't have — so it's configured, not done. Still fully
+open: a Windows/NSIS build (hypercluster's `desktop-pkg-windows` target is
+the template if this becomes worth doing).
 
 ## ~~CSRF~~ — done
 

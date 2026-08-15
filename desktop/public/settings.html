@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Settings</title>
+  <style>
+    :root { color-scheme: dark; --bg: #0b0b0f; --fg: #e8e8ec; --muted: #8a8a96; --accent: #ff8a3d; }
+    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
+    body { padding: 22px; box-sizing: border-box; }
+    h1 { font-size: 14px; font-weight: 600; margin: 0 0 4px; }
+    p.hint { font-size: 12px; color: var(--muted); line-height: 1.5; margin: 0 0 16px; }
+    label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    input {
+      width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; color: var(--fg);
+      padding: 8px 10px; font-size: 13px; font-family: ui-monospace, monospace;
+    }
+    input:focus { outline: none; border-color: var(--accent); }
+    .row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+    button {
+      border: none; border-radius: 6px; padding: 7px 14px; font-size: 13px;
+      cursor: pointer; background: rgba(255,255,255,0.08); color: var(--fg);
+    }
+    button.primary { background: var(--accent); color: #0b0b0f; font-weight: 600; }
+    button:disabled { opacity: 0.5; cursor: default; }
+    #status { font-size: 12px; color: var(--muted); margin-top: 10px; min-height: 16px; }
+    #status.ok { color: #7ee787; }
+    #status.err { color: #ff8a8a; }
+  </style>
+</head>
+<body>
+  <h1>zyvor-qa binary</h1>
+  <p class="hint">
+    Overrides how the app finds <code>zyvor-qa</code>. Leave blank to
+    auto-detect (this repo's own <code>.venv</code> first, then <code>PATH</code>).
+    Takes effect on the next app restart.
+  </p>
+  <label for="bin-path">Path override</label>
+  <input id="bin-path" placeholder="/path/to/venv/bin/zyvor-qa" autocomplete="off" spellcheck="false" />
+  <div id="status"></div>
+  <div class="row">
+    <button id="cancel">Close</button>
+    <button id="save" class="primary">Save</button>
+  </div>
+
+  <script>
+    const input = document.getElementById("bin-path");
+    const status = document.getElementById("status");
+    const saveBtn = document.getElementById("save");
+
+    function setStatus(text, kind) {
+      status.textContent = text;
+      status.className = kind || "";
+    }
+
+    async function load() {
+      try {
+        const settings = await window.__TAURI__.core.invoke("get_settings");
+        input.value = settings.zyvor_qa_bin || "";
+      } catch (err) {
+        setStatus(String(err), "err");
+      }
+    }
+
+    document.getElementById("save").onclick = async () => {
+      saveBtn.disabled = true;
+      const value = input.value.trim();
+      try {
+        await window.__TAURI__.core.invoke("set_settings", {
+          settings: { zyvor_qa_bin: value || null },
+        });
+        setStatus("Saved — restart the app for it to take effect.", "ok");
+      } catch (err) {
+        setStatus(String(err), "err");
+      } finally {
+        saveBtn.disabled = false;
+      }
+    };
+
+    document.getElementById("cancel").onclick = () => window.close();
+
+    load();
+  </script>
+</body>
+</html>

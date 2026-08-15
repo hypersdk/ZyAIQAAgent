@@ -51,20 +51,26 @@ make desktop-build
 Produces an **unsigned** `Zyvor QA Agent.app`/`.dmg` under
 `desktop/src-tauri/target/release/bundle/macos/` — open it directly, no
 `npm run desktop` needed. Unsigned means macOS Gatekeeper will warn on
-first launch (right-click → Open); code signing/notarization isn't wired
-up yet.
+first launch (right-click → Open). For a signed + notarized build (needs
+an Apple Developer account), see `desktop/README.md`'s "Code signing &
+notarization" section and `make desktop-build-signed`.
 
 ## 5. Pointing it at a different `zyvor-qa`
 
 If you have multiple Python environments, or the auto-detected binary
-isn't the one you want, override it in
-`~/Library/Application Support/ZyvorQA/settings.json`:
+isn't the one you want, override it via **⌘,** (or **Zyvor QA Agent →
+Settings…** in the menu bar) rather than hand-editing anything — enter the
+full path to the binary and Save. Takes effect on the next restart.
 
-```json
-{ "zyvor_qa_bin": "/path/to/your/venv/bin/zyvor-qa" }
-```
+## 6. What's different from viewing it in a browser
 
-## 6. Security notes
+- The Kubernetes pods/workloads panel is hidden — it's always "cluster
+  unavailable" for a locally-wrapped app with no cluster of its own, so
+  it's just clutter here (`ZYVOR_DESKTOP_MODE=true`, set automatically by
+  the app; everything else in the dashboard is identical).
+- Otherwise nothing — same server, same job queue, same CSRF/rate-limiting.
+
+## 7. Security notes
 
 - The spawned server binds to `127.0.0.1` only — opening the app never
   exposes the dashboard to your LAN, even though `zyvor-qa serve`'s own
