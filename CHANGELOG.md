@@ -5,10 +5,15 @@
 ### Added
 - Persistent "skill" memory for the autofix loop (`agents/skills/`): a selector fix that's patched and confirmed passing is remembered and reused directly next run instead of re-derived by the LLM every time
 - Inbound Slack slash-command gateway (`POST /webhook/slack/command`): `/zyvor run <kind>` / `/zyvor status <job_id>` trigger and check on pipeline runs from chat, HMAC-verified via `SLACK_SIGNING_SECRET` (Tutorial 16)
+- Per-IP rate limiting on `/api/dashboard/*` and `/api/v2/*` (`orchestrator/security/rate_limit.py`), 429 + `Retry-After` once `ZYVOR_API_RATE_LIMIT` is exceeded — previously only the login endpoint had any throttling
+- Double-submit-cookie CSRF protection for the Mission Control dashboard: mutating `/api/*` requests authenticated via the session cookie now require a matching `X-CSRF-Token` header (`orchestrator/dashboard/auth.py`, enforced in `orchestrator/webhook.py`); the dashboard's own JS attaches it automatically via a single `fetch` wrapper, no template call sites needed touching
+- `ROADMAP.md` consolidating known gaps (test coverage, tracing, horizontal scale) that were otherwise scattered across runbooks and CI comments
 
 ### Changed
 - `regression`/`api_validate`/`log_analyze`/`v8_coverage` now run in parallel off of `execute` instead of a forced sequential chain, joining at a new `merge_results` node — reduces pipeline wall-clock on every run and retry
 - Failure-analysis LLM context is now bounded: capped failed-case count, truncated per-case logs/error text, filtered to failing regression/API/log entries only (previously every entry, passing included, went into the prompt unfiltered)
+- `MissionControlStore.recover_stale_jobs()` now dead-letters (marks `failed`) a job once its attempt count hits `ZYVOR_JOB_MAX_ATTEMPTS`, instead of requeuing a crash-looping job forever
+- CI's unit-test coverage gate raised from 28% to 36% (`.github/workflows/security.yml`) after covering `orchestrator/dashboard/jobs.py`'s validation/state layer and `orchestrator/cli.py`'s helpers (~33% → ~39% actual coverage)
 
 ### Fixed
 - The failure-analysis prompt no longer globs every historical failure video out of the repo-wide `videos/` directory — only the current run's artifacts are included

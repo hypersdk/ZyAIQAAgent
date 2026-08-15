@@ -29,10 +29,11 @@ jobs:
       - run: pip install -e '.[dev]' mypy pip-audit bandit[toml] pytest-cov
       - run: ruff check .
       - run: mypy orchestrator agents --ignore-missing-imports
-      # TODO: raise back toward 70% as test coverage improves — actual coverage is
-      # ~30% today (6.7k statements, 144 tests); 70% was never actually met by this
-      # suite, it just went unenforced while `ruff check .` failed the job first.
-      - run: pytest tests/unit --cov=orchestrator --cov=agents --cov-report=term-missing --cov-fail-under=28
+      # TODO: raise back toward 70% as test coverage improves. Raised 28 -> 36 after
+      # covering orchestrator/dashboard/jobs.py's validation/state layer and
+      # orchestrator/cli.py's helpers (~33% -> ~39% actual); see ROADMAP.md for the
+      # next highest-leverage target (the ~30 job-runner functions themselves).
+      - run: pytest tests/unit --cov=orchestrator --cov=agents --cov-report=term-missing --cov-fail-under=36
       - run: pip-audit
       - run: bandit -q -c pyproject.toml -r orchestrator agents -x tests
 

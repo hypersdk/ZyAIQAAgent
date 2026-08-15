@@ -117,6 +117,25 @@ def create_app() -> FastAPI:
             if path.startswith(("/api/", "/reports", "/screenshots")):
                 return JSONResponse({"detail": "authentication required"}, status_code=401)
             return RedirectResponse(f"/login?next={quote(path)}", status_code=302)
+
+        # CSRF: only relevant for requests actually relying on the
+        # auto-attached session cookie for identity. A request carrying its
+        # own Authorization bearer token (the /api/v2 service-token path)
+        # isn't auto-replayable cross-site the way a cookie is, so it's
+        # exempt. Covers /api/dashboard/* (checked above) and /api/v2/*
+        # (which auth_middleware otherwise never authenticates — that's
+        # rbac.require_scope's job — but a session cookie can drive it too).
+        mutating = request.method not in {"GET", "HEAD", "OPTIONS"}
+        if (
+            auth.enabled()
+            and mutating
+            and path.startswith("/api/")
+            and "authorization" not in request.headers
+            and auth.is_authenticated(request)
+            and not auth.csrf_valid(request)
+        ):
+            return JSONResponse({"detail": "missing or invalid CSRF token"}, status_code=403)
+
         return await call_next(request)
 
     @app.middleware("http")

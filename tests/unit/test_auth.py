@@ -91,3 +91,39 @@ def test_requires_auth_paths(auth):
     assert auth.requires_auth("/health") is False
     assert auth.requires_auth("/webhook/github") is False
     assert auth.requires_auth("/api/login") is False
+
+
+class _FakeRequest:
+    def __init__(self, cookies=None, headers=None):
+        self.cookies = cookies or {}
+        self.headers = headers or {}
+
+
+def test_csrf_valid_for_matching_token(auth):
+    token, _ = auth.issue_token()
+    csrf = auth.csrf_token_for(token)
+    request = _FakeRequest(
+        cookies={auth.COOKIE_NAME: token}, headers={"x-csrf-token": csrf}
+    )
+    assert auth.csrf_valid(request) is True
+
+
+def test_csrf_invalid_without_header(auth):
+    token, _ = auth.issue_token()
+    request = _FakeRequest(cookies={auth.COOKIE_NAME: token})
+    assert auth.csrf_valid(request) is False
+
+
+def test_csrf_invalid_with_wrong_header(auth):
+    token, _ = auth.issue_token()
+    request = _FakeRequest(
+        cookies={auth.COOKIE_NAME: token}, headers={"x-csrf-token": "wrong"}
+    )
+    assert auth.csrf_valid(request) is False
+
+
+def test_csrf_invalid_without_a_valid_session_cookie(auth):
+    request = _FakeRequest(
+        cookies={auth.COOKIE_NAME: "garbage"}, headers={"x-csrf-token": "anything"}
+    )
+    assert auth.csrf_valid(request) is False

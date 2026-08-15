@@ -5,22 +5,35 @@ scattered across runbooks, docstrings, and CI config comments. This is
 inventory, not a promise sheet — no dates, just what's open and where the
 detail already lives.
 
-## Test coverage
+## Test coverage — in progress
 
-Overall unit-test coverage is ~33%, concentrated unevenly. The CI gate
-(`.github/workflows/security.yml`) currently enforces `--cov-fail-under=28`
-— quietly relaxed down from an original 70% target that was never actually
-met, with an inline `TODO` rather than a plan to close the gap. The two
-highest-leverage targets:
+Overall unit-test coverage moved from ~33% to ~39% by targeting the two
+worst-covered files:
 
-- `orchestrator/dashboard/jobs.py` — 1416 lines, 19% covered. Core job
-  orchestration logic; `tests/unit/test_jobs_validate.py` already covers
-  `_validate()` and is the natural file to extend next.
-- `orchestrator/cli.py` — 410 lines, 0% covered. The `zyvor-qa` entry point
-  itself has no test coverage at all.
+- `orchestrator/dashboard/jobs.py` — 19% → 33%. `_validate()` (all ~25 job
+  kinds, not just a handful) plus the state/dispatch layer (`log_progress`,
+  `_stream_line*`, `cancel`/`status`, `trigger`/`_run`, `_brief`, `_slug`,
+  `_explain_failure`, `_cases_payload`, `_env_overrides`,
+  `_safe_local_spec` — including a real path-traversal-rejection test) are
+  now covered (`tests/unit/test_jobs_validate.py`,
+  `tests/unit/test_jobs_state.py`).
+- `orchestrator/cli.py` — 0% → 19%. `_initial_state`, `_load_env`,
+  `_ensure_tls_cert` covered (`tests/unit/test_cli_helpers.py`).
 
-Raising the gate back toward something real is a multi-session initiative
-in its own right, not something to bolt onto a hygiene pass.
+**Deliberately still uncovered** in both files: the ~30 `_job_*` /
+`@app.command()` functions themselves. They're thin wrappers that
+immediately delegate to real subprocess/network calls (Playwright, crawl
+scripts, TLS probes, HTTP probes) — meaningfully unit-testing them means
+mocking `subprocess.run`/network I/O per job kind for a large effort-to-value
+ratio, versus the validation/state layer above where bugs actually bite
+(input validation, path safety, dispatch correctness) and where coverage is
+now real. That's still the next slice if coverage needs to go further.
+
+The CI gate (`.github/workflows/security.yml`) currently enforces
+`--cov-fail-under=28` — quietly relaxed down from an original 70% target
+that was never actually met, with an inline `TODO` rather than a plan to
+close the gap. Worth raising the gate to reflect the ~39% floor now that
+it's real, and continuing to close the gap from there.
 
 ## Observability: tracing
 
@@ -51,16 +64,15 @@ run is still in flight), and the runbook is explicit that schedules are for
 human alerting, not a substitute for the CI gate. Cross-linked here so it
 doesn't get "discovered" again as a surprise.
 
-## CSRF: already substantially mitigated, not a build item
+## ~~CSRF~~ — done
 
-An earlier audit pass flagged "no CSRF protection" from a `grep -r csrf`
-turning up nothing. On closer inspection: the session cookie
-(`orchestrator/dashboard/routes.py`) is already `httponly=True,
-samesite="lax", secure=<when https>`, and every state-changing dashboard
-call in `templates/dashboard.html.j2` uses explicit POST/DELETE — no
-GET-triggers-a-mutation routes. `SameSite=Lax` already blocks cross-site
-fetch/XHR and cross-site POST-navigation from attaching the cookie, which is
-the standard modern mitigation for this class of app. Building a
-double-submit-cookie token system on top would be redundant risk across the
-template's ~20 live `fetch()` call sites for little real gain — noted here
-so it isn't "fixed" again later without re-deriving this reasoning.
+Was flagged, then reconsidered as low-value (`SameSite=Lax` + `HttpOnly`
+already covers most of it), then built anyway: double-submit-cookie CSRF
+protection (`orchestrator/dashboard/auth.py`'s `csrf_token_for`/`csrf_valid`,
+enforced in `orchestrator/webhook.py`'s `auth_middleware` for mutating
+`/api/*` requests authenticated via the session cookie). The frontend side
+is a single `window.fetch` wrapper in `templates/dashboard.html.j2` that
+attaches `X-CSRF-Token` automatically — none of the ~20 existing `fetch()`
+call sites needed touching individually. Covered by
+`tests/unit/test_csrf_route.py` (real login → protected-route round trip)
+and `tests/unit/test_auth.py`.
