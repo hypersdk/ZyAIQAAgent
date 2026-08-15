@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.1](https://github.com/hypersdk/ZyAIQAAgent/releases/tag/v0.5.1) — 2026-08-15
+
+### Fixed
+- Desktop app: when `zyvor-qa` can't be found/spawned, the error now surfaces immediately instead of after a 30-second retry budget — found by actually downloading and running the v0.5.0 release build without a `zyvor-qa` install present, not just testing the happy path. The loading screen's poll loop was retrying on every failure regardless of whether it was recoverable; the Rust side only ever rejects for a genuine, permanent failure (a transient "still starting" state returns successfully with no result), so there was nothing to gain by waiting
+
 ## [0.5.0](https://github.com/hypersdk/ZyAIQAAgent/releases/tag/v0.5.0) — 2026-08-15
 
 ### Added

@@ -88,14 +88,23 @@
           window.location.replace(url);
           return;
         }
+        // No url yet and no error thrown = still starting; keep polling.
       } catch (err) {
-        if (attempt >= MAX_ATTEMPTS) {
-          showError(
-            "<code>zyvor-qa serve</code> did not start in time.<br>" +
-            String(err || "unknown error")
-          );
-          return;
-        }
+        // The Rust side only rejects dashboard_url for a genuine, permanent
+        // failure (ServerStatus::Failed) — "still starting" is Ok(None), not
+        // a rejection. So there's nothing to gain by waiting out the retry
+        // budget here; show it immediately instead of leaving the spinner
+        // up for up to MAX_ATTEMPTS * POLL_INTERVAL_MS on an error that will
+        // never resolve on its own.
+        showError(
+          "<code>zyvor-qa serve</code> failed to start.<br>" +
+          String(err || "unknown error")
+        );
+        return;
+      }
+      if (attempt >= MAX_ATTEMPTS) {
+        showError("<code>zyvor-qa serve</code> did not start in time.");
+        return;
       }
       setTimeout(() => poll(attempt + 1), POLL_INTERVAL_MS);
     }

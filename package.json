@@ -1,6 +1,6 @@
 {
   "name": "zyvor-qa-agent",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "private": true,
   "description": "Playwright test execution layer for Zyvor QA Agent",
   "workspaces": [
