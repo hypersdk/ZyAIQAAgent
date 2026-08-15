@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import pytest
 
-from orchestrator.dashboard.jobs import VALID_KINDS, _redact_params, _validate
+from orchestrator.dashboard.jobs import VALID_KINDS, _redact_params, _safe_local_spec, _validate
 
 
 def test_password_redacted_but_url_kept():
@@ -182,3 +182,262 @@ def test_realtime_requires_a_target():
         _validate("realtime", {"url": "https://x.io"})
     ok = _validate("realtime", {"url": "https://x.io", "ws": "/ws/flows", "expect_messages": 3})
     assert ok["ws"] == "/ws/flows" and ok["expect_messages"] == 3
+
+
+# ── _safe_local_spec: path-traversal safety ─────────────────────────────
+
+
+def test_safe_local_spec_accepts_a_real_file_inside_the_repo():
+    resolved = _safe_local_spec("prompts/examples/vm-create.md")
+    assert resolved.endswith("vm-create.md")
+    assert "prompts" in resolved
+
+
+def test_safe_local_spec_rejects_path_traversal():
+    with pytest.raises(ValueError, match="inside the repository"):
+        _safe_local_spec("../../../../etc/passwd")
+
+
+def test_safe_local_spec_rejects_absolute_path_outside_repo():
+    with pytest.raises(ValueError, match="inside the repository"):
+        _safe_local_spec("/etc/passwd")
+
+
+def test_safe_local_spec_rejects_missing_file():
+    with pytest.raises(ValueError, match="spec not found"):
+        _safe_local_spec("prompts/examples/does-not-exist.md")
+
+
+def test_flaky_target_is_path_checked_unless_manual():
+    clean = _validate("flaky", {"target": "manual", "runs": 5})
+    assert clean["target"] == "manual"
+    assert clean["runs"] == 5  # within [2, 10]
+    with pytest.raises(ValueError, match="inside the repository"):
+        _validate("flaky", {"target": "../../../../etc/passwd"})
+
+
+def test_flaky_runs_clamped():
+    assert _validate("flaky", {"runs": 1})["runs"] == 2
+    assert _validate("flaky", {"runs": 999})["runs"] == 10
+
+
+# ── full / generate / discover: source + spec + pr_number ───────────────
+
+
+@pytest.mark.parametrize("kind", ["full", "generate"])
+def test_source_defaults_to_local(kind):
+    assert _validate(kind, {})["source"] == "local"
+
+
+def test_discover_source_defaults_to_github():
+    assert _validate("discover", {})["source"] == "github"
+
+
+def test_invalid_source_rejected():
+    with pytest.raises(ValueError, match="source must be"):
+        _validate("full", {"source": "ftp"})
+
+
+def test_full_pr_number_coerced_to_int_or_none():
+    assert _validate("full", {"pr_number": "42"})["pr_number"] == 42
+    assert _validate("full", {"pr_number": ""})["pr_number"] is None
+    assert _validate("full", {})["pr_number"] is None
+
+
+def test_full_local_spec_goes_through_safe_local_spec():
+    with pytest.raises(ValueError, match="inside the repository"):
+        _validate("full", {"source": "local", "spec": "../../../../etc/passwd"})
+
+
+# ── create ────────────────────────────────────────────────────────────
+
+
+def test_create_requires_description():
+    with pytest.raises(ValueError, match="description is required"):
+        _validate("create", {"description": "   "})
+
+
+def test_create_description_truncated_and_execute_flag():
+    clean = _validate("create", {"description": "x" * 600, "execute": True})
+    assert len(clean["description"]) == 500
+    assert clean["execute"] is True
+
+
+# ── regression ────────────────────────────────────────────────────────
+
+
+def test_regression_update_baselines_flag():
+    assert _validate("regression", {})["update_baselines"] is False
+    assert _validate("regression", {"update_baselines": True})["update_baselines"] is True
+
+
+# ── crawl_test ────────────────────────────────────────────────────────
+
+
+def test_crawl_test_requires_url_scheme():
+    with pytest.raises(ValueError, match="http"):
+        _validate("crawl_test", {"url": "not-a-url"})
+
+
+def test_crawl_test_clamps_max_pages_and_truncates_credentials():
+    clean = _validate(
+        "crawl_test",
+        {"url": "https://x.io", "max_pages": 9999, "username": "u" * 300, "password": "p" * 300},
+    )
+    assert clean["max_pages"] == 200
+    assert len(clean["username"]) == 200
+    assert len(clean["password"]) == 200
+
+
+# ── audit ─────────────────────────────────────────────────────────────
+
+
+def test_audit_requires_url_scheme():
+    with pytest.raises(ValueError, match="http"):
+        _validate("audit", {"url": "not-a-url"})
+
+
+def test_audit_checks_filtered_to_valid_and_max_pages_clamped():
+    clean = _validate("audit", {"url": "https://x.io", "checks": ["a11y", "bogus"], "max_pages": 500})
+    assert clean["checks"] == ["a11y"]
+    assert clean["max_pages"] == 100
+
+
+def test_audit_invalid_checks_fall_back_to_default():
+    clean = _validate("audit", {"url": "https://x.io", "checks": ["bogus"]})
+    assert clean["checks"] == ["a11y", "seo", "console"]
+
+
+# ── screenshot ────────────────────────────────────────────────────────
+
+
+def test_screenshot_requires_url_scheme():
+    with pytest.raises(ValueError, match="http"):
+        _validate("screenshot", {"url": "not-a-url"})
+
+
+def test_screenshot_viewports_filtered_and_defaulted():
+    clean = _validate("screenshot", {"url": "https://x.io", "viewports": ["desktop", "watch"]})
+    assert clean["viewports"] == ["desktop"]
+    clean2 = _validate("screenshot", {"url": "https://x.io", "viewports": ["watch"]})
+    assert clean2["viewports"] == ["desktop"]
+
+
+# ── compare ───────────────────────────────────────────────────────────
+
+
+def test_compare_requires_both_urls():
+    with pytest.raises(ValueError, match="url_a"):
+        _validate("compare", {"url_b": "https://x.io"})
+    with pytest.raises(ValueError, match="url_b"):
+        _validate("compare", {"url_a": "https://x.io"})
+    clean = _validate("compare", {"url_a": "https://a.io", "url_b": "https://b.io"})
+    assert clean["url_a"] in {"https://a.io", "https://a.io/"}
+    assert clean["url_b"] in {"https://b.io", "https://b.io/"}
+
+
+# ── ping ──────────────────────────────────────────────────────────────
+
+
+def test_ping_requires_at_least_one_url():
+    with pytest.raises(ValueError, match="at least one"):
+        _validate("ping", {"urls": "not-a-url, also-bad"})
+
+
+def test_ping_parses_comma_and_newline_separated_urls():
+    clean = _validate("ping", {"urls": "https://a.io,https://b.io\nhttps://c.io"})
+    hosts = [u.split("//", 1)[1].rstrip("/") for u in clean["urls"]]
+    assert hosts == ["a.io", "b.io", "c.io"]
+
+
+def test_ping_caps_at_thirty_urls():
+    # Same resolvable host repeated with distinct paths — the cap is on URL
+    # count, not distinct hosts, and this avoids 50 real DNS lookups.
+    urls = ",".join(f"https://x.io/{i}" for i in range(50))
+    clean = _validate("ping", {"urls": urls})
+    assert len(clean["urls"]) == 30
+
+
+# ── loadtest ──────────────────────────────────────────────────────────
+
+
+def test_loadtest_requires_url_scheme():
+    with pytest.raises(ValueError, match="http"):
+        _validate("loadtest", {"url": "not-a-url"})
+
+
+def test_loadtest_requests_and_concurrency_clamped():
+    clean = _validate("loadtest", {"url": "https://x.io", "requests": 1, "concurrency": 999})
+    assert clean["requests"] == 10
+    assert clean["concurrency"] == 50
+
+
+# ── tls ───────────────────────────────────────────────────────────────
+
+
+def test_tls_extracts_hostname_from_url():
+    clean = _validate("tls", {"host": "https://zyvor.dev/some/path"})
+    assert clean["host"] == "zyvor.dev"
+
+
+def test_tls_rejects_host_with_slash_or_space():
+    with pytest.raises(ValueError, match="hostname"):
+        _validate("tls", {"host": "zyvor.dev/x"})
+    with pytest.raises(ValueError, match="hostname"):
+        _validate("tls", {"host": "zyvor dev"})
+
+
+def test_tls_default_port_kept():
+    assert _validate("tls", {"host": "zyvor.dev"})["port"] == 443
+
+
+def test_tls_arbitrary_port_rejected_by_target_policy():
+    # _validate's own clamp allows any port in [1, 65535], but the final
+    # TargetPolicy pass (below) further restricts to the allowed port set
+    # (80/443 by default) — confirms the two layers actually compose.
+    from orchestrator.security.target_policy import TargetPolicyError
+
+    with pytest.raises(TargetPolicyError, match="port"):
+        _validate("tls", {"host": "zyvor.dev", "port": 8443})
+
+
+# ── ai_flow ───────────────────────────────────────────────────────────
+
+
+def test_ai_flow_requires_goal():
+    with pytest.raises(ValueError, match="goal"):
+        _validate("ai_flow", {"url": "https://x.io"})
+
+
+def test_ai_flow_max_steps_clamped():
+    clean = _validate("ai_flow", {"url": "https://x.io", "goal": "log in", "max_steps": 999})
+    assert clean["max_steps"] == 40
+
+
+# ── probe kinds ───────────────────────────────────────────────────────
+
+
+def test_dns_records_requires_a_host():
+    with pytest.raises(ValueError, match="hostname"):
+        _validate("dns_records", {})
+    clean = _validate("dns_records", {"url": "zyvor.dev"})
+    assert clean["host"] == "zyvor.dev"
+
+
+@pytest.mark.parametrize("kind", sorted(k for k in VALID_KINDS if k != "dns_records" and k in
+                                         {"redirects", "headers", "cookies", "robots", "security_paths",
+                                          "api_check", "sitemap_test", "cors", "transport"}))
+def test_other_probe_kinds_require_url_scheme(kind):
+    with pytest.raises(ValueError, match="http"):
+        _validate(kind, {"url": "not-a-url"})
+    clean = _validate(kind, {"url": "https://x.io"})
+    assert clean["url"].startswith("https://x.io")
+
+
+def test_api_check_extra_fields():
+    clean = _validate(
+        "api_check", {"url": "https://x.io/api", "expect_status": 201, "json_path": "data.id", "contains": "ok"}
+    )
+    assert clean["expect_status"] == 201
+    assert clean["json_path"] == "data.id"
+    assert clean["contains"] == "ok"

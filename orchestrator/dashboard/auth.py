@@ -31,6 +31,7 @@ from collections import defaultdict, deque
 from typing import Any
 
 COOKIE_NAME = "zyvor_qa_session"
+CSRF_COOKIE_NAME = "zyvor_qa_csrf"
 SESSION_HOURS = 12
 REMEMBER_DAYS = 30
 
@@ -153,6 +154,26 @@ def is_authenticated(request: Any) -> bool:
     if not enabled():
         return True
     return validate_token(request.cookies.get(COOKIE_NAME))
+
+
+def csrf_token_for(session_token: str) -> str:
+    """Derive the (JS-readable) CSRF cookie value from an already-signed
+    session token — nothing new to issue or store server-side."""
+    return hashlib.sha256(f"{session_token}:csrf".encode()).hexdigest()
+
+
+def csrf_valid(request: Any) -> bool:
+    """Double-submit check: the X-CSRF-Token header must match the value
+    derived from the caller's own (valid) session cookie. Cross-site
+    attackers can get the session cookie auto-attached (mitigated by
+    SameSite=Lax, but this is defense in depth) yet cannot read it to
+    reproduce this header, since document.cookie is scoped per-origin."""
+    session_token = request.cookies.get(COOKIE_NAME)
+    if not session_token or not validate_token(session_token):
+        return False
+    expected = csrf_token_for(session_token)
+    provided = request.headers.get("x-csrf-token", "")
+    return bool(provided) and hmac.compare_digest(expected, provided)
 
 
 def requires_auth(path: str) -> bool:

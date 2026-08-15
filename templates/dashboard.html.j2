@@ -1017,6 +1017,26 @@
 
 <script>
 "use strict";
+
+// Attach X-CSRF-Token to every mutating same-origin fetch() automatically,
+// so none of the call sites below need to be touched individually. The
+// token is read from the (non-HttpOnly) zyvor_qa_csrf cookie set alongside
+// the session cookie at login; see orchestrator/dashboard/auth.py.
+(function () {
+  const realFetch = window.fetch.bind(window);
+  window.fetch = function (input, init) {
+    const method = ((init && init.method) || "GET").toUpperCase();
+    if (method !== "GET" && method !== "HEAD") {
+      const match = document.cookie.match(/(?:^|;\s*)zyvor_qa_csrf=([^;]+)/);
+      if (match) {
+        init = init || {};
+        init.headers = Object.assign({}, init.headers, {"X-CSRF-Token": match[1]});
+      }
+    }
+    return realFetch(input, init);
+  };
+})();
+
 const REFRESH = {{ refresh_interval_ms }};
 const $ = (id) => document.getElementById(id);
 let soundOn = localStorage.getItem("zyvor-sound") !== "off";

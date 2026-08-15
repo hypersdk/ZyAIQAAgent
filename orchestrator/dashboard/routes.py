@@ -110,13 +110,26 @@ def api_login(request: Request, payload: dict[str, Any] = Body(...)) -> Response
     auth.record_success(ip)
     token, max_age = auth.issue_token(remember=bool(payload.get("remember")))
     response = Response(content=json.dumps({"ok": True}), media_type="application/json")
+    secure = _is_https(request)
     response.set_cookie(
         auth.COOKIE_NAME,
         token,
         max_age=max_age,
         httponly=True,
         samesite="lax",
-        secure=_is_https(request),
+        secure=secure,
+    )
+    # Deliberately NOT httponly — the dashboard's own JS reads this to set
+    # X-CSRF-Token on mutating requests (see the fetch wrapper in
+    # dashboard.html.j2). A cross-origin page can't read it (browsers scope
+    # document.cookie per-origin), so this is safe to expose to same-origin JS.
+    response.set_cookie(
+        auth.CSRF_COOKIE_NAME,
+        auth.csrf_token_for(token),
+        max_age=max_age,
+        httponly=False,
+        samesite="lax",
+        secure=secure,
     )
     return response
 
@@ -127,6 +140,7 @@ async def api_logout() -> Response:
 
     response = Response(content=json.dumps({"ok": True}), media_type="application/json")
     response.delete_cookie(auth.COOKIE_NAME)
+    response.delete_cookie(auth.CSRF_COOKIE_NAME)
     return response
 
 
