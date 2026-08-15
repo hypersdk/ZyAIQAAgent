@@ -14,11 +14,16 @@ GitHub (specs, issues, PRs, deploy events)          Natural language (CLI)
 │                LangGraph Orchestrator (Python)                       │
 │                                                                      │
 │  fetch → discover → gap_analyze → parse → generate → execute        │
-│        → regression → api_validate → log_analyze → v8_coverage      │
-│              │                                                       │
-│         pass ├──────────────────────────► report → notify           │
-│         fail └─► analyze → autofix → apply_autofix ─┐                │
-│                       ▲                             │                │
+│                                                                       │
+│  execute fans out to 4 parallel analysis nodes, then joins:          │
+│      ┌─ regression ──┐                                               │
+│      ├─ api_validate ┼─► merge_results                               │
+│      ├─ log_analyze ─┤                                               │
+│      └─ v8_coverage ─┘                                               │
+│                                                                       │
+│         pass → learn_skills → report → notify                        │
+│         fail → analyze → autofix → apply_autofix ─┐                  │
+│                       ▲                            │                 │
 │                       └── re-execute (≤ retries) ◄──┘                │
 └─────────────────────────────────────────────────────────────────────┘
         │                                   │
@@ -52,13 +57,15 @@ Defined in [`orchestrator/graph.py`](../orchestrator/graph.py) as a LangGraph `S
 | `parse` | `nodes/parse.py` | Turns spec markdown into structured `Requirement` objects (LLM or rule-based) and converts coverage gaps into extra requirements. Persists `tests/fixtures/requirements.json`. |
 | `generate` | `nodes/generate.py` | Writes one `.spec.ts` per requirement into `tests/generated/`. LLM output goes through a quality gate; failures fall back to a Jinja2 template. |
 | `execute` | `nodes/execute.py` | Runs Playwright over `tests/manual/` (always) plus `tests/generated/` (when present) via `agents/execution/runner.py`. |
-| `regression` | `nodes/regression.py` | When `ENABLE_REGRESSION=true`, pixel-compares screenshots against `screenshots/baselines/` (Pillow, or Rust when enabled). |
-| `api_validate` | `nodes/api_validate.py` | When `ENABLE_API_VALIDATION=true`, validates captured HTTP statuses from fixtures and HAR files in `traces/`. |
-| `log_analyze` | `nodes/log_analyze.py` | Flags console errors and network failures from test sidecar logs (always on; noise like favicon/analytics is filtered). |
-| `v8_coverage` | `nodes/v8_coverage.py` | When `ENABLE_V8_COVERAGE=true`, aggregates V8 JS coverage JSON written by the Playwright fixture. |
+| `regression` | `nodes/regression.py` | When `ENABLE_REGRESSION=true`, pixel-compares screenshots against `screenshots/baselines/` (Pillow, or Rust when enabled). Runs in parallel with the three nodes below. |
+| `api_validate` | `nodes/api_validate.py` | When `ENABLE_API_VALIDATION=true`, validates captured HTTP statuses from fixtures and HAR files in `traces/`. Runs in parallel. |
+| `log_analyze` | `nodes/log_analyze.py` | Flags console errors and network failures from test sidecar logs (always on; noise like favicon/analytics is filtered). Runs in parallel. |
+| `v8_coverage` | `nodes/v8_coverage.py` | When `ENABLE_V8_COVERAGE=true`, aggregates V8 JS coverage JSON written by the Playwright fixture. Runs in parallel. |
+| `merge_results` | `nodes/merge_results.py` | Join point for the four parallel nodes above. Copies their outputs onto the shared `test_results` object once, sequentially, so no two parallel nodes ever write the same state key in one step. |
 | `analyze` | `nodes/analyze.py` | On failure: LLM root-cause analysis with full artifact context (screenshots, traces, videos), stub summary as fallback. |
-| `autofix` | `nodes/autofix.py` | When `ENABLE_AUTOFIX=true`: LLM suggests selector repairs (`AutofixSuggestion`). |
+| `autofix` | `nodes/autofix.py` | When `ENABLE_AUTOFIX=true`: checks the [skill store](../agents/autofix/README.md) for a previously-confirmed fix per failed case first, then falls back to an LLM suggestion (`AutofixSuggestion`) for unmatched cases. |
 | `apply_autofix` | `nodes/apply_autofix.py` | When `ENABLE_AUTOFIX_APPLY=true`: patches spec files in place and loops back to `execute` (bounded by `AUTOFIX_MAX_RETRIES`). |
+| `learn_skills` | `nodes/learn_skills.py` | If a patched retry passed, records the applied fix(es) into the skill store (`agents/skills/store.py`) for reuse in future runs. No-op otherwise. |
 | `report` | `nodes/report.py` | Renders `reports/qa-summary.html` (Jinja2), optional PDF via headless Chromium, optional LLM plain-English summary. |
 | `notify` | `nodes/notify.py` | Delivers to every configured channel: GitHub PR comment, Slack, Teams, email. |
 
@@ -66,9 +73,13 @@ Defined in [`orchestrator/graph.py`](../orchestrator/graph.py) as a LangGraph `S
 
 Three conditional edges (all in `graph.py`):
 
-1. **`route_on_results`** (after `v8_coverage`): "fail" if any of — test failures, regression diff over threshold, failed API validation, or error-severity log issue. Otherwise straight to `report`.
+1. **`route_on_results`** (after `merge_results`): "fail" if any of — test failures, regression diff over threshold, failed API validation, or error-severity log issue. Otherwise on to `learn_skills` → `report`.
 2. **`route_after_analyze`**: goes to `autofix` only when `ENABLE_AUTOFIX=true` and retry budget remains.
-3. **`route_after_apply_autofix`**: loops back to `execute` only when `ENABLE_AUTOFIX_APPLY=true`, patches were actually applied, and retries remain.
+3. **`route_after_apply_autofix`**: loops back to `execute` only when `ENABLE_AUTOFIX_APPLY=true`, patches were actually applied, and retries remain; otherwise on to `learn_skills`.
+
+### A note on the parallel fan-out
+
+`regression`/`api_validate`/`log_analyze`/`v8_coverage` all read `test_results` but never each other's output, so they run concurrently off of `execute` instead of chaining. LangGraph raises `InvalidUpdateError` if two nodes in the same superstep both write the same state key without a reducer — so, unlike the rest of the pipeline, **these four nodes return only the specific key(s) they change**, never a `{**state, ...}` spread, and none of them mutate `test_results` in place. `merge_results` is the single node that copies their outputs onto `test_results` afterwards. Keep this in mind if you add a fifth parallel branch or turn `discover`/`parse` into parallel branches later (see [Extending the pipeline](#extending-the-pipeline)).
 
 ---
 
@@ -82,7 +93,7 @@ Three conditional edges (all in `graph.py`):
 | `spec_paths`, `spec_contents` | `list[str]` | `fetch` |
 | `requirements` | `list[Requirement]` | `parse` |
 | `generated_tests` | `list[str]` (file paths) | `generate` |
-| `test_results` | `TestResult` | `execute` (enriched by regression/api/log nodes) |
+| `test_results` | `TestResult` | `execute` (enriched by `merge_results` from the parallel regression/api/log nodes) |
 | `coverage_inventory`, `coverage_gaps` | candidates / gaps | `discover`, `gap_analyze` |
 | `failure_analysis` | `str` | `analyze` |
 | `autofix_suggestions` | `list[AutofixSuggestion]` | `autofix` |
@@ -198,7 +209,7 @@ To add a new stage:
 1. Add any data models to `agents/common/models.py` and state fields to `orchestrator/state.py`.
 2. Implement the logic as an agent package under `agents/<name>/` (keep LLM and non-LLM paths separate, like the existing agents).
 3. Add a thin node wrapper in `orchestrator/nodes/<name>.py` that reads/writes `PipelineState` and honors a feature flag.
-4. Register the node and its edges in `orchestrator/graph.py`.
+4. Register the node and its edges in `orchestrator/graph.py`. If the new stage runs sequentially, returning `{**state, "your_key": value}` is fine (existing convention). If it runs **in parallel** with sibling nodes (see [the fan-out note above](#a-note-on-the-parallel-fan-out)), return only the key(s) you actually change — no `{**state, ...}` spread, and don't mutate shared mutable objects like `test_results` in place; do that in a downstream join node instead.
 5. Surface results in the report template (`templates/report.html.j2`) and/or `PipelineReport`.
 
 See [CONTRIBUTING.md](../CONTRIBUTING.md) for conventions.

@@ -23,7 +23,8 @@ from typing import List, Optional
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from agents.common.llm import content_to_text, get_llm
-from agents.common.models import AutofixSuggestion, TestResult
+from agents.common.models import AutofixSuggestion, TestCaseResult, TestResult
+from agents.skills.store import find_skill, load_skills
 
 
 def _extract_selector(error_message: str) -> Optional[str]:
@@ -98,15 +99,50 @@ def suggest_fixes_stub(test_results: TestResult) -> List[AutofixSuggestion]:
     return suggestions
 
 
+def _remembered_fix(case: TestCaseResult, skills) -> Optional[AutofixSuggestion]:
+    """Look up a previously-confirmed fix for this failure, if one exists."""
+    selector = _extract_selector(case.error_message or "") or "unknown"
+    skill = find_skill(skills, selector, case.title)
+    if not skill:
+        return None
+    explanation = f"{skill.explanation} [from remembered skill]".strip()
+    return AutofixSuggestion(
+        test_title=case.title,
+        original_selector=skill.original_selector,
+        suggested_selector=skill.suggested_selector,
+        confidence=skill.confidence,
+        explanation=explanation,
+    )
+
+
 def suggest_fixes_from_results(
     test_results: TestResult,
     failure_analysis: Optional[str] = None,
 ) -> List[AutofixSuggestion]:
-    """Generate autofix suggestions — LLM with stub fallback."""
+    """Generate autofix suggestions — remembered skills first, then LLM/stub."""
+    failed_cases = [c for c in test_results.cases if c.status != "passed"]
+    if not failed_cases:
+        return []
+
+    skills = load_skills()
+    remembered: List[AutofixSuggestion] = []
+    unresolved_cases: List[TestCaseResult] = []
+    for case in failed_cases:
+        fix = _remembered_fix(case, skills)
+        if fix:
+            remembered.append(fix)
+        else:
+            unresolved_cases.append(case)
+
+    if not unresolved_cases:
+        return remembered
+
+    remaining_results = test_results.model_copy(update={"cases": unresolved_cases})
     try:
-        return suggest_fixes_llm(test_results, failure_analysis)
+        fresh = suggest_fixes_llm(remaining_results, failure_analysis)
     except Exception:
-        return suggest_fixes_stub(test_results)
+        fresh = suggest_fixes_stub(remaining_results)
+    return remembered + fresh
 
 
 def suggest_fixes(failure_output: str) -> list[str]:

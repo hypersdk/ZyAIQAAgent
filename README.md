@@ -67,7 +67,7 @@ GitHub (specs, PRs, deploy events)
         ▼
 LangGraph Orchestrator (Python)
         │
-   fetch → parse → generate → execute → regression → api_validate → log_analyze
+   fetch → parse → generate → execute → {regression, api_validate, log_analyze} → report
         │
    ┌────┴──── pass → report → notify
    └──── fail → analyze → autofix → report → notify

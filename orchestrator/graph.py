@@ -29,7 +29,9 @@ from orchestrator.nodes.execute import execute_tests
 from orchestrator.nodes.fetch import fetch_requirements
 from orchestrator.nodes.gap_analyze import gap_analyze
 from orchestrator.nodes.generate import generate_tests
+from orchestrator.nodes.learn_skills import learn_skills_node
 from orchestrator.nodes.log_analyze import log_analyze
+from orchestrator.nodes.merge_results import merge_results
 from orchestrator.nodes.notify import notify_channels
 from orchestrator.nodes.parse import parse_requirements
 from orchestrator.nodes.regression import regression_check
@@ -99,9 +101,11 @@ def build_graph() -> StateGraph:
     graph.add_node("api_validate", api_validate)
     graph.add_node("log_analyze", log_analyze)
     graph.add_node("v8_coverage", collect_v8_coverage_node)
+    graph.add_node("merge_results", merge_results)
     graph.add_node("analyze", analyze_failures_node)
     graph.add_node("autofix", autofix_node)
     graph.add_node("apply_autofix", apply_autofix_node)
+    graph.add_node("learn_skills", learn_skills_node)
     graph.add_node("report", generate_report)
     graph.add_node("notify", notify_channels)
 
@@ -111,14 +115,23 @@ def build_graph() -> StateGraph:
     graph.add_edge("gap_analyze", "parse")
     graph.add_edge("parse", "generate")
     graph.add_edge("generate", "execute")
+    # regression/api_validate/log_analyze/v8_coverage each analyze a
+    # different, independent slice of the same completed test run
+    # (screenshots, HAR/network, console logs, JS coverage) — fan them out
+    # in parallel instead of chaining them, then join at merge_results
+    # before routing on the combined pass/fail state.
     graph.add_edge("execute", "regression")
-    graph.add_edge("regression", "api_validate")
-    graph.add_edge("api_validate", "log_analyze")
-    graph.add_edge("log_analyze", "v8_coverage")
+    graph.add_edge("execute", "api_validate")
+    graph.add_edge("execute", "log_analyze")
+    graph.add_edge("execute", "v8_coverage")
+    graph.add_edge("regression", "merge_results")
+    graph.add_edge("api_validate", "merge_results")
+    graph.add_edge("log_analyze", "merge_results")
+    graph.add_edge("v8_coverage", "merge_results")
     graph.add_conditional_edges(
-        "v8_coverage",
+        "merge_results",
         route_on_results,
-        {"pass": "report", "fail": "analyze"},
+        {"pass": "learn_skills", "fail": "analyze"},
     )
     graph.add_conditional_edges(
         "analyze",
@@ -129,8 +142,9 @@ def build_graph() -> StateGraph:
     graph.add_conditional_edges(
         "apply_autofix",
         route_after_apply_autofix,
-        {"execute": "execute", "report": "report"},
+        {"execute": "execute", "report": "learn_skills"},
     )
+    graph.add_edge("learn_skills", "report")
     graph.add_edge("report", "notify")
     graph.add_edge("notify", END)
 

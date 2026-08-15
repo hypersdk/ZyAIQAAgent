@@ -129,6 +129,21 @@ class AutofixSuggestion(BaseModel):
     explanation: str = ""
 
 
+class Skill(BaseModel):
+    """A confirmed-working autofix fix, remembered for reuse across runs."""
+
+    id: str
+    kind: str = "selector_repair"
+    original_selector: str
+    suggested_selector: str
+    test_title: Optional[str] = None
+    confidence: str = "medium"
+    explanation: str = ""
+    times_confirmed: int = 1
+    created_run: Optional[str] = None
+    last_confirmed_run: Optional[str] = None
+
+
 class CoverageCandidate(BaseModel):
     id: str
     kind: str  # route | page | doc | api | story

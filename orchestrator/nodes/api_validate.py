@@ -28,13 +28,19 @@ def _repo_root() -> Path:
 
 
 def api_validate(state: PipelineState) -> PipelineState:
-    """Validate API responses when ENABLE_API_VALIDATION=true."""
+    """Validate API responses when ENABLE_API_VALIDATION=true.
+
+    Runs in parallel with regression/log_analyze/v8_coverage (all read-only
+    on `test_results`), so it must return only the key it changes rather than
+    a full state spread — `merge_results` is the sole node that writes the
+    aggregated fields back onto `test_results` after the fan-in.
+    """
     if os.environ.get("ENABLE_API_VALIDATION", "false").lower() != "true":
-        return state
+        return {}
 
     test_results = state.get("test_results")
     if not test_results:
-        return state
+        return {}
 
     validations = validate_test_results(test_results)
 
@@ -42,5 +48,4 @@ def api_validate(state: PipelineState) -> PipelineState:
     for har in har_dir.glob("*.har"):
         validations.extend(load_har_validations(har))
 
-    test_results.api_validations = validations
-    return {**state, "test_results": test_results, "api_validations": validations}
+    return {"api_validations": validations}
