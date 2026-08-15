@@ -1,6 +1,6 @@
 .PHONY: install test generate run serve docker lint regression create rust \
         k8s-check k8s-validate k8s-validate-cluster k8s-apply k8s-delete \
-        desktop-dev desktop-build desktop-check
+        desktop-dev desktop-build desktop-build-signed desktop-check
 
 install:
 	pip install -e ".[dev]"
@@ -32,6 +32,16 @@ desktop-dev:
 	cd desktop && npm install && npm run tauri dev
 
 desktop-build:
+	cd desktop && npm install && npm run tauri build
+
+# Signed + notarized .app/.dmg. Tauri's bundler signs/notarizes automatically
+# during `tauri build` when these Apple credentials are present in the
+# environment — nothing else to configure. See desktop/README.md.
+desktop-build-signed:
+	@test -n "$(APPLE_SIGNING_IDENTITY)" || { echo "❌  APPLE_SIGNING_IDENTITY not set — see desktop/README.md#code-signing--notarization"; exit 1; }
+	@test -n "$(APPLE_ID)" || { echo "❌  APPLE_ID not set — see desktop/README.md#code-signing--notarization"; exit 1; }
+	@test -n "$(APPLE_PASSWORD)" || { echo "❌  APPLE_PASSWORD not set — see desktop/README.md#code-signing--notarization"; exit 1; }
+	@test -n "$(APPLE_TEAM_ID)" || { echo "❌  APPLE_TEAM_ID not set — see desktop/README.md#code-signing--notarization"; exit 1; }
 	cd desktop && npm install && npm run tauri build
 
 desktop-check:

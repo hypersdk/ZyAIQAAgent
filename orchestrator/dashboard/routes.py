@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any
 
@@ -148,7 +149,8 @@ async def api_logout() -> Response:
 async def dashboard_page() -> str:
     env = Environment(loader=FileSystemLoader(_repo_root() / "templates"), autoescape=True)
     template = env.get_template("dashboard.html.j2")
-    return template.render(refresh_interval_ms=REFRESH_INTERVAL_MS)
+    desktop_mode = os.environ.get("ZYVOR_DESKTOP_MODE", "false").lower() == "true"
+    return template.render(refresh_interval_ms=REFRESH_INTERVAL_MS, desktop_mode=desktop_mode)
 
 
 @router.get("/api/dashboard/overview")

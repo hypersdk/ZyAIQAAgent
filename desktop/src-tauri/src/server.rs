@@ -89,6 +89,11 @@ fn spawn_serve(bin_override: Option<&str>) -> Result<(Child, u16), String> {
         // them) resolve against whatever CWD the app happened to launch
         // with, not the repo the wrapped `zyvor-qa` actually belongs to.
         .current_dir(&working_dir)
+        // Tells the dashboard template it's running inside this desktop
+        // shell, not a normal browser tab — it hides the Kubernetes
+        // pods/workloads panel, which is always "cluster unavailable" here
+        // (see orchestrator/dashboard/routes.py, templates/dashboard.html.j2).
+        .env("ZYVOR_DESKTOP_MODE", "true")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
