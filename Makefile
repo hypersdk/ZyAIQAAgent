@@ -1,5 +1,6 @@
 .PHONY: install test generate run serve docker lint regression create rust \
-        k8s-check k8s-validate k8s-validate-cluster k8s-apply k8s-delete
+        k8s-check k8s-validate k8s-validate-cluster k8s-apply k8s-delete \
+        desktop-dev desktop-build desktop-check
 
 install:
 	pip install -e ".[dev]"
@@ -26,6 +27,15 @@ regression-update:
 
 serve:
 	zyvor-qa serve --port 8080
+
+desktop-dev:
+	cd desktop && npm install && npm run tauri dev
+
+desktop-build:
+	cd desktop && npm install && npm run tauri build
+
+desktop-check:
+	cd desktop && npm install && cd src-tauri && cargo check && cargo test
 
 rust:
 	cd rust && cargo build --release

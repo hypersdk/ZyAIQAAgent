@@ -1,0 +1,23 @@
+[package]
+name = "zyvor-qa-desktop"
+version = "0.1.0"
+description = "Zyvor QA Agent — native desktop shell around `zyvor-qa serve`"
+edition = "2021"
+
+[lib]
+name = "zyvor_qa_desktop_lib"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+dirs = "6"
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true

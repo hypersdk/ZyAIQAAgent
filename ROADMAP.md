@@ -64,6 +64,35 @@ run is still in flight), and the runbook is explicit that schedules are for
 human alerting, not a substitute for the CI gate. Cross-linked here so it
 doesn't get "discovered" again as a surprise.
 
+## Desktop app v2: single-binary freeze
+
+`desktop/` (Tauri 2 shell) ships a native macOS window around
+`zyvor-qa serve`, but v1 deliberately wraps an *existing* local install
+(the repo's own `.venv`, or `zyvor-qa` on `PATH`) rather than bundling a
+self-contained runtime — see `desktop/README.md` and the plan that shipped
+it. Two real blockers stand between that and a true single-binary/`.pkg`
+distribution someone could install without a dev checkout:
+
+- **`_repo_root()` isn't frozen-binary-aware.** `Path(__file__).resolve().
+  parents[N]`, used throughout `webhook.py`, `routes.py`, `jobs.py`,
+  `cli.py`, `nodes/*.py` to locate `templates/`, `prompts/`, `tests/`,
+  `reports/`, assumes a real filesystem checkout. A PyInstaller freeze (the
+  approach `hypercluster/cli/hypercluster.spec` uses for its own Python CLI)
+  would silently fail to find its own templates unless every one of those
+  call sites is taught to check `sys.frozen`/`sys._MEIPASS` first — a
+  repo-wide audit, not a packaging afterthought.
+- **Playwright's browser binaries aren't freezable.** They're downloaded
+  separately via `npx playwright install` (hundreds of MB per browser), so
+  even a fully frozen Python side would still need Node + Playwright
+  bundled alongside it — closer in size/complexity to the existing
+  `docker/Dockerfile` multi-stage build than to a lightweight desktop
+  installer.
+
+Also not done in v1, for the same "don't fake it" reason: code signing +
+notarization (needs an Apple Developer account) and a Windows/NSIS build
+(hypercluster's `desktop-pkg-windows` target is the template if this
+becomes worth doing).
+
 ## ~~CSRF~~ — done
 
 Was flagged, then reconsidered as low-value (`SameSite=Lax` + `HttpOnly`

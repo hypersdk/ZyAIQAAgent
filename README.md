@@ -150,6 +150,7 @@ See [**Writing Tests & GitHub Integration**](docs/test-authoring.md) for the ful
 | [**Configuration**](docs/configuration.md) | Complete environment variable reference with defaults |
 | [**Writing Tests & GitHub Integration**](docs/test-authoring.md) | Command reference; manual, spec-driven, and NL test creation |
 | [**Mission Control dashboard**](docs/tutorials/10-mission-control-dashboard.md) | The live console: 20+ QA actions, UX cues, audits, probes, schedules, reports |
+| [**Desktop app (macOS)**](docs/tutorials/17-desktop-app.md) | Native window around Mission Control — `npm run desktop` |
 | [**Test zyvor.dev (recording)**](docs/tutorials/13-test-zyvor-dev-recording.md) | Smoke + flow video + HAR against https://zyvor.dev |
 | [**Remote deployment**](docs/remote-deploy.md) | `deploy-remote.sh` — bare host, container, or k3s in one command |
 | [**Releases & container image**](docs/releases.md) | GHCR image (`v0.4.0` / `latest`), how to pull it, how to cut a release |
