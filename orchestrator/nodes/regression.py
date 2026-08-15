@@ -32,13 +32,19 @@ def _repo_root() -> Path:
 
 
 def regression_check(state: PipelineState) -> PipelineState:
-    """Compare screenshots against baselines when ENABLE_REGRESSION=true."""
+    """Compare screenshots against baselines when ENABLE_REGRESSION=true.
+
+    Runs in parallel with api_validate/log_analyze/v8_coverage (all read-only
+    on `test_results`), so it must return only the key it changes rather than
+    a full state spread — `merge_results` is the sole node that writes the
+    aggregated fields back onto `test_results` after the fan-in.
+    """
     if os.environ.get("ENABLE_REGRESSION", "false").lower() != "true":
-        return state
+        return {}
 
     test_results = state.get("test_results")
     if not test_results:
-        return state
+        return {}
 
     repo = _repo_root()
     baseline_dir = repo / "screenshots" / "baselines"
@@ -63,5 +69,4 @@ def regression_check(state: PipelineState) -> PipelineState:
         threshold=threshold,
     )
 
-    test_results.regression_diffs = diffs
-    return {**state, "test_results": test_results, "regression_diffs": diffs}
+    return {"regression_diffs": diffs}
