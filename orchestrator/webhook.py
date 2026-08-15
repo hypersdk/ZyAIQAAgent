@@ -211,4 +211,29 @@ def create_app() -> FastAPI:
             "error": result.get("error"),
         }
 
+    @app.post("/webhook/slack/command")
+    async def slack_command(
+        request: Request,
+        x_slack_signature: str = Header(None),
+        x_slack_request_timestamp: str = Header(None),
+    ) -> dict[str, Any]:
+        body = await request.body()
+        secret = os.environ.get("SLACK_SIGNING_SECRET", "")
+        from orchestrator.security.slack import SlackSecurityError, verify_slack_request
+
+        try:
+            verify_slack_request(body, x_slack_signature, x_slack_request_timestamp, secret)
+        except SlackSecurityError as exc:
+            raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+        from urllib.parse import parse_qsl
+
+        form = dict(parse_qsl(body.decode("utf-8")))
+        text = (form.get("text") or "").strip()
+        user = form.get("user_name") or "slack-user"
+
+        from orchestrator.slack_gateway import handle_slash_command
+
+        return handle_slash_command(text, requested_by=f"slack:{user}")
+
     return app

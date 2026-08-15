@@ -175,6 +175,7 @@ GitHub repo ──► download discovery files ──► extract candidates ─�
 |-------|------|---------|
 | CLI `zyvor-qa` | `orchestrator/cli.py` (Typer) | `run`, `test`, `generate`, `discover`, `create`, `regression`, `serve` |
 | Webhook server | `orchestrator/webhook.py` (FastAPI) | GitHub `push`, `pull_request`, `repository_dispatch: staging-deployed`; HMAC-verified via `GITHUB_WEBHOOK_SECRET`; `/health` for probes |
+| Slack slash command | `orchestrator/webhook.py` (`POST /webhook/slack/command`) | `/zyvor run <smoke\|full\|regression\|audit>` / `/zyvor status <job_id>` from chat, enqueued onto the same job queue as `POST /api/v2/jobs`. HMAC-verified via `SLACK_SIGNING_SECRET` (`orchestrator/security/slack.py`); dispatch logic in `orchestrator/slack_gateway.py`. One-way only — completion is still reported via the existing `SLACK_WEBHOOK_URL` notify channel, not a reply to the command. |
 | GitHub Actions | `.github/workflows/qa-smoke.yml`, `qa-post-deploy.yml` | push/PR/nightly smoke; full pipeline on staging deploy |
 | Kubernetes | `kubernetes/` | webhook Deployment + nightly smoke CronJob |
 | Docker | `docker/Dockerfile` | `zyvor-qa run --source local` by default |
