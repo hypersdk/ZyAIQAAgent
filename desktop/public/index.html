@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Zyvor QA Agent</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0b0f;
+      --fg: #e8e8ec;
+      --muted: #8a8a96;
+      --accent: #ff8a3d;
+      --err: #ff5a5a;
+    }
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    }
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .panel {
+      text-align: center;
+      max-width: 420px;
+      padding: 32px;
+    }
+    .spinner {
+      width: 36px;
+      height: 36px;
+      margin: 0 auto 20px;
+      border-radius: 50%;
+      border: 3px solid rgba(255, 138, 61, 0.25);
+      border-top-color: var(--accent);
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    h1 { font-size: 15px; font-weight: 600; margin: 0 0 6px; }
+    p { font-size: 13px; color: var(--muted); margin: 0; line-height: 1.5; }
+    .error { color: var(--err); }
+    code {
+      background: rgba(255,255,255,0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <div class="spinner" id="spinner"></div>
+    <h1 id="title">Starting Zyvor QA Agent…</h1>
+    <p id="detail">Launching the local Mission Control server.</p>
+  </div>
+
+  <script>
+    // No bundler/build step by design (see desktop plan) — Tauri's global
+    // `window.__TAURI__` API is enabled via `app.withGlobalTauri` in
+    // tauri.conf.json instead of pulling in @tauri-apps/api.
+    const titleEl = document.getElementById("title");
+    const detailEl = document.getElementById("detail");
+    const spinnerEl = document.getElementById("spinner");
+
+    const POLL_INTERVAL_MS = 400;
+    const MAX_ATTEMPTS = 75; // ~30s
+
+    function showError(message) {
+      spinnerEl.style.display = "none";
+      titleEl.textContent = "Couldn't start the local server";
+      titleEl.classList.add("error");
+      detailEl.innerHTML = message;
+    }
+
+    async function poll(attempt) {
+      if (!window.__TAURI__) {
+        showError("Tauri bridge unavailable — this page must be opened inside the desktop app.");
+        return;
+      }
+      try {
+        const url = await window.__TAURI__.core.invoke("dashboard_url");
+        if (url) {
+          detailEl.textContent = "Ready — opening Mission Control…";
+          window.location.replace(url);
+          return;
+        }
+      } catch (err) {
+        if (attempt >= MAX_ATTEMPTS) {
+          showError(
+            "<code>zyvor-qa serve</code> did not start in time.<br>" +
+            String(err || "unknown error")
+          );
+          return;
+        }
+      }
+      setTimeout(() => poll(attempt + 1), POLL_INTERVAL_MS);
+    }
+
+    poll(0);
+  </script>
+</body>
+</html>

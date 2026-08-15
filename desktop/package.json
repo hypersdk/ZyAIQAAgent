@@ -1,0 +1,25 @@
+{
+  "name": "zyvor-qa-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Zyvor QA Agent desktop UI — npm CLI launcher for the Tauri app",
+  "type": "module",
+  "bin": {
+    "zyvor-qa-desktop": "./bin/zyvor-qa-desktop"
+  },
+  "files": [
+    "bin",
+    "public",
+    "src-tauri",
+    "tauri.conf.json"
+  ],
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "tauri": "tauri",
+    "start": "zyvor-qa-desktop dev"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.2.0"
+  }
+}
