@@ -155,6 +155,7 @@ See [**Writing Tests & GitHub Integration**](docs/test-authoring.md) for the ful
 | [**Releases & container image**](docs/releases.md) | GHCR image (`v0.4.0` / `latest`), how to pull it, how to cut a release |
 | [**Troubleshooting**](docs/troubleshooting.md) | Common errors and fixes |
 | [**Contributing**](CONTRIBUTING.md) | Dev setup, conventions, how to add a pipeline stage |
+| [**Roadmap**](ROADMAP.md) | Known gaps and deliberate deferrals: test coverage, tracing, horizontal scale |
 | [`kubernetes/README.md`](kubernetes/README.md) | Kubernetes deployment |
 | [`rust/README.md`](rust/README.md) | Rust `zyvor-diff` screenshot processor |
 | [`prompts/examples/vm-create.md`](prompts/examples/vm-create.md) | Example requirement spec |

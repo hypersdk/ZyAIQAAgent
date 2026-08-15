@@ -1,5 +1,18 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- Persistent "skill" memory for the autofix loop (`agents/skills/`): a selector fix that's patched and confirmed passing is remembered and reused directly next run instead of re-derived by the LLM every time
+- Inbound Slack slash-command gateway (`POST /webhook/slack/command`): `/zyvor run <kind>` / `/zyvor status <job_id>` trigger and check on pipeline runs from chat, HMAC-verified via `SLACK_SIGNING_SECRET` (Tutorial 16)
+
+### Changed
+- `regression`/`api_validate`/`log_analyze`/`v8_coverage` now run in parallel off of `execute` instead of a forced sequential chain, joining at a new `merge_results` node — reduces pipeline wall-clock on every run and retry
+- Failure-analysis LLM context is now bounded: capped failed-case count, truncated per-case logs/error text, filtered to failing regression/API/log entries only (previously every entry, passing included, went into the prompt unfiltered)
+
+### Fixed
+- The failure-analysis prompt no longer globs every historical failure video out of the repo-wide `videos/` directory — only the current run's artifacts are included
+
 ## [0.4.0](https://github.com/hypersdk/ZyAIQAAgent/releases/tag/v0.4.0) — 2026-08-06
 
 ### Added

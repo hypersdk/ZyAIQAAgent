@@ -78,7 +78,10 @@ def get_llm() -> BaseChatModel:
 
     if provider == "ollama":
         try:
-            from langchain_community.chat_models import ChatOllama
+            # Optional dependency, deliberately not in pyproject's hard requires —
+            # mypy can't see its stubs without installing it, which would defeat
+            # the point of the try/except below.
+            from langchain_community.chat_models import ChatOllama  # type: ignore[import-not-found]
         except ImportError as exc:
             raise LLMConfigError(
                 "langchain-community is required for ollama. "

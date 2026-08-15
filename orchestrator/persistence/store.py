@@ -36,6 +36,12 @@ from orchestrator.security.secrets import assert_persistable
 
 _SCHEMA_VERSION = 1
 
+DEFAULT_MAX_JOB_ATTEMPTS = 3
+
+
+def _max_job_attempts() -> int:
+    return max(1, int(os.environ.get("ZYVOR_JOB_MAX_ATTEMPTS", DEFAULT_MAX_JOB_ATTEMPTS)))
+
 
 def _iso(timestamp: float | None = None) -> str:
     return datetime.fromtimestamp(timestamp or time.time(), timezone.utc).isoformat()
@@ -266,15 +272,26 @@ class MissionControlStore:
                 (_iso(), job_id),
             )
 
-    def recover_stale_jobs(self, stale_after_s: int = 300) -> int:
+    def recover_stale_jobs(self, stale_after_s: int = 300) -> dict[str, int]:
+        """Requeue jobs stuck past a heartbeat timeout — unless they've already
+        exhausted their attempt budget, in which case dead-letter them (mark
+        `failed`) instead of requeuing forever."""
         cutoff = _iso(time.time() - stale_after_s)
+        max_attempts = _max_job_attempts()
         with self.connect() as conn:
-            return conn.execute(
+            dead_lettered = conn.execute(
+                """UPDATE jobs SET status='failed', finished_at=?, heartbeat_at=?,
+                error='dead-lettered: exceeded ' || ? || ' attempts (stale worker heartbeat)'
+                WHERE status='running' AND attempt>=? AND COALESCE(heartbeat_at, started_at) < ?""",
+                (_iso(), _iso(), max_attempts, max_attempts, cutoff),
+            ).rowcount
+            requeued = conn.execute(
                 """UPDATE jobs SET status='queued', started_at=NULL, heartbeat_at=NULL,
                 error='recovered after stale worker heartbeat'
-                WHERE status='running' AND COALESCE(heartbeat_at, started_at) < ?""",
-                (cutoff,),
+                WHERE status='running' AND attempt<? AND COALESCE(heartbeat_at, started_at) < ?""",
+                (max_attempts, cutoff),
             ).rowcount
+        return {"requeued": requeued, "dead_lettered": dead_lettered}
 
     def get_job(self, job_id: str, *, reveal_params: bool = False) -> dict[str, Any] | None:
         with self.connect() as conn:

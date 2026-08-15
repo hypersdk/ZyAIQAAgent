@@ -12,7 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import time
+from datetime import datetime, timezone
+
 from orchestrator.persistence.store import MissionControlStore
+
+
+def _backdate_heartbeat(store: MissionControlStore, job_id: str, seconds_ago: float) -> None:
+    stale = datetime.fromtimestamp(time.time() - seconds_ago, timezone.utc).isoformat()
+    with store.connect() as conn:
+        conn.execute("UPDATE jobs SET heartbeat_at=? WHERE id=?", (stale, job_id))
 
 
 def test_job_lifecycle(tmp_path):
@@ -68,3 +77,33 @@ def test_persisted_job_rejects_raw_token(tmp_path):
     store = MissionControlStore(tmp_path / "state.db")
     with pytest.raises(SecretReferenceError):
         store.enqueue_job("realtime", {"token": "raw-secret"})
+
+
+def test_recover_stale_jobs_requeues_under_attempt_cap(tmp_path):
+    store = MissionControlStore(tmp_path / "state.db")
+    job = store.enqueue_job("smoke", {})
+    store.claim_job()  # attempt -> 1
+    _backdate_heartbeat(store, job["id"], 400)
+
+    result = store.recover_stale_jobs(stale_after_s=300)
+
+    assert result == {"requeued": 1, "dead_lettered": 0}
+    refreshed = store.get_job(job["id"])
+    assert refreshed and refreshed["status"] == "queued"
+
+
+def test_recover_stale_jobs_dead_letters_at_attempt_cap(tmp_path, monkeypatch):
+    monkeypatch.setenv("ZYVOR_JOB_MAX_ATTEMPTS", "2")
+    store = MissionControlStore(tmp_path / "state.db")
+    job = store.enqueue_job("smoke", {})
+    store.claim_job()  # attempt -> 1
+    store.requeue_job(job["id"])  # simulate a crashed worker, back to queued
+    store.claim_job()  # attempt -> 2, at the cap
+    _backdate_heartbeat(store, job["id"], 400)
+
+    result = store.recover_stale_jobs(stale_after_s=300)
+
+    assert result == {"requeued": 0, "dead_lettered": 1}
+    dead = store.get_job(job["id"])
+    assert dead and dead["status"] == "failed"
+    assert "dead-lettered" in dead["error"]
