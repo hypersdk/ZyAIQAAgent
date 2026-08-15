@@ -119,6 +119,29 @@ def create_app() -> FastAPI:
             return RedirectResponse(f"/login?next={quote(path)}", status_code=302)
         return await call_next(request)
 
+    @app.middleware("http")
+    async def rate_limit_middleware(request: Request, call_next):
+        # Registered after auth_middleware so it wraps outside it and runs
+        # first — throttling happens before an (possibly failing) auth check.
+        path = request.url.path
+        if path.startswith("/api/dashboard") or path.startswith("/api/v2"):
+            from orchestrator.security import rate_limit
+
+            forwarded = request.headers.get("x-forwarded-for", "")
+            client_ip = (
+                forwarded.split(",")[0].strip()
+                if forwarded
+                else (request.client.host if request.client else "unknown")
+            )
+            wait = rate_limit.check(client_ip)
+            if wait:
+                return JSONResponse(
+                    {"detail": "rate limit exceeded"},
+                    status_code=429,
+                    headers={"Retry-After": str(wait)},
+                )
+        return await call_next(request)
+
     repo_root = Path(__file__).resolve().parents[1]
     for mount, directory in (("/reports", "reports"), ("/screenshots", "screenshots")):
         target = repo_root / directory

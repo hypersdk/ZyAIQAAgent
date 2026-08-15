@@ -23,7 +23,7 @@ from pathlib import Path
 try:
     import yaml
 except ImportError:  # pragma: no cover - optional dependency
-    yaml = None
+    yaml = None  # type: ignore[assignment]
 
 from agents.common.models import CoverageCandidate
 

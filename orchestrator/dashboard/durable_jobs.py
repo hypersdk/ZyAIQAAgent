@@ -44,9 +44,11 @@ class DurableJobService:
             if self._started:
                 return
             self._started = True
-            recovered = self.store.recover_stale_jobs()
-            if recovered:
-                inc("zyvor_qa_jobs_recovered_total", recovered)
+            recovery = self.store.recover_stale_jobs()
+            if recovery["requeued"]:
+                inc("zyvor_qa_jobs_recovered_total", recovery["requeued"])
+            if recovery["dead_lettered"]:
+                inc("zyvor_qa_jobs_dead_lettered_total", recovery["dead_lettered"])
             for name, target in (("zyvor-job-worker", self._worker_loop), ("zyvor-scheduler", self._scheduler_loop)):
                 thread = threading.Thread(target=target, name=name, daemon=True)
                 thread.start()
