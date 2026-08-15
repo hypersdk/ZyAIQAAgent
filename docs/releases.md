@@ -2,15 +2,20 @@
 
 Tagged releases are published automatically by [`.github/workflows/release.yml`](../.github/workflows/release.yml).
 
-**Current release:** [v0.4.0](https://github.com/hypersdk/ZyAIQAAgent/releases/tag/v0.4.0)
+**Current release:** [v0.5.0](https://github.com/hypersdk/ZyAIQAAgent/releases/tag/v0.5.0)
 
 ## What happens on a release
 
-Pushing a tag matching `v*.*.*` (e.g. `v0.4.0`) to the `hypersdk/ZyAIQAAgent` repo:
+Pushing a tag matching `v*.*.*` (e.g. `v0.5.0`) to the `hypersdk/ZyAIQAAgent` repo:
 
 1. Builds the container image from [`docker/Dockerfile`](../docker/Dockerfile).
 2. Pushes it to GHCR as `ghcr.io/hypersdk/zyaiqaagent:<tag>` and `:latest`.
-3. Creates a GitHub Release on the tag with auto-generated notes.
+3. Builds the macOS desktop app (`desktop/`, on a `macos-latest` runner) and attaches the unsigned `.dmg` to the release.
+4. Creates a GitHub Release on the tag with auto-generated notes.
+
+## Desktop app
+
+Download the `.dmg` from the [latest release](https://github.com/hypersdk/ZyAIQAAgent/releases/latest), unless you want to build it yourself (see [Tutorial 17](tutorials/17-desktop-app.md)). It's **unsigned** — macOS Gatekeeper will warn on first launch (right-click → Open). It also needs a `zyvor-qa` install to actually wrap: either `zyvor-qa` on your `PATH`, or point it at a local checkout's `.venv/bin/zyvor-qa` via the app's Settings (⌘,) — the release build has no local checkout of its own to auto-detect, unlike a `make desktop-build` you run yourself inside this repo. See `desktop/README.md` for what it does and doesn't bundle.
 
 ## Pulling the image
 
@@ -40,10 +45,10 @@ GHCR packages inherit repo visibility by default — if the repo is private, `do
 
 ```bash
 # bump pyproject.toml / package.json first, then:
-git tag v0.3.1
-git push hypersdk v0.3.1
+git tag v0.5.1
+git push hypersdk v0.5.1
 # or, to also create the GitHub Release explicitly:
-gh release create v0.3.1 --repo hypersdk/ZyAIQAAgent --generate-notes
+gh release create v0.5.1 --repo hypersdk/ZyAIQAAgent --generate-notes
 ```
 
-Either the tag push or the `gh release create` triggers the workflow (it also accepts `workflow_dispatch` with an existing tag, for re-publishing an image without cutting a new release). Version numbers follow `pyproject.toml` / `package.json` (currently `0.3.0`); bump those alongside the tag. See [CHANGELOG.md](../CHANGELOG.md).
+Either the tag push or the `gh release create` triggers the workflow (it also accepts `workflow_dispatch` with an existing tag, for re-publishing an image without cutting a new release). Version numbers follow `pyproject.toml` / `package.json` (currently `0.5.0`); bump those alongside the tag. See [CHANGELOG.md](../CHANGELOG.md).
