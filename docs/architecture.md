@@ -62,7 +62,7 @@ Defined in [`orchestrator/graph.py`](../orchestrator/graph.py) as a LangGraph `S
 | `log_analyze` | `nodes/log_analyze.py` | Flags console errors and network failures from test sidecar logs (always on; noise like favicon/analytics is filtered). Runs in parallel. |
 | `v8_coverage` | `nodes/v8_coverage.py` | When `ENABLE_V8_COVERAGE=true`, aggregates V8 JS coverage JSON written by the Playwright fixture. Runs in parallel. |
 | `merge_results` | `nodes/merge_results.py` | Join point for the four parallel nodes above. Copies their outputs onto the shared `test_results` object once, sequentially, so no two parallel nodes ever write the same state key in one step. |
-| `analyze` | `nodes/analyze.py` | On failure: LLM root-cause analysis with full artifact context (screenshots, traces, videos), stub summary as fallback. |
+| `analyze` | `nodes/analyze.py` | On failure: LLM root-cause analysis with bounded artifact context (screenshots, traces, videos) — capped failed-case count, per-case log/error truncation, filtered to failing entries only (`agents/analyzer/agent.py`'s `MAX_*` constants); stub summary as fallback. |
 | `autofix` | `nodes/autofix.py` | When `ENABLE_AUTOFIX=true`: checks the [skill store](../agents/autofix/README.md) for a previously-confirmed fix per failed case first, then falls back to an LLM suggestion (`AutofixSuggestion`) for unmatched cases. |
 | `apply_autofix` | `nodes/apply_autofix.py` | When `ENABLE_AUTOFIX_APPLY=true`: patches spec files in place and loops back to `execute` (bounded by `AUTOFIX_MAX_RETRIES`). |
 | `learn_skills` | `nodes/learn_skills.py` | If a patched retry passed, records the applied fix(es) into the skill store (`agents/skills/store.py`) for reuse in future runs. No-op otherwise. |
