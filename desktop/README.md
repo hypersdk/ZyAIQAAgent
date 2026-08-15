@@ -103,9 +103,16 @@ make desktop-build-signed   # fails fast with a clear message if any of these ar
 
 ## Icons
 
-`src-tauri/icons/icon-source.png` is a **placeholder** (no real Zyvor
-branding assets exist in this repo yet). Replace it with real artwork and
-regenerate the platform set:
+`src-tauri/icons/icon-source.png` is the real Zyvor mark — rendered at
+1024×1024 from the canonical favicon SVG
+(`hypercluster/desktop/public/brand/zavor-favicon.svg`, also the source
+for zyvor.dev's own favicon; found via `hypercluster/.local-deploy/
+hypersdk-web/context/build/img/zavor-favicon.svg` across every locale
+build, confirming it's the live production asset, not a draft). This repo
+has no brand assets of its own — `../hypercluster` is the actual source of
+truth for Zyvor branding.
+
+To regenerate the platform icon set after changing the source:
 
 ```bash
 cd desktop && npx tauri icon src-tauri/icons/icon-source.png -o src-tauri/icons
