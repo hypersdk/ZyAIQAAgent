@@ -158,7 +158,7 @@ def is_authenticated(request: Any) -> bool:
 def requires_auth(path: str) -> bool:
     if not enabled():
         return False
-    if path.rstrip("/") in OPEN_PATHS or path == "/webhook/github":
+    if path.rstrip("/") in OPEN_PATHS or path in {"/webhook/github", "/webhook/slack/command"}:
         return False
     return any(path == p or path.startswith(p + "/") or path.startswith(p + "?") or path.startswith(p)
                for p in PROTECTED_PREFIXES)
