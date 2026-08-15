@@ -55,8 +55,81 @@ jobs:
           docker run --rm --entrypoint sh "${{ env.IMAGE }}:${{ steps.ref.outputs.tag }}" \
             -c "test -x /action-entrypoint.sh && echo action-entrypoint.sh OK"
 
-  github-release:
+  build-desktop-macos:
+    runs-on: macos-latest
+    timeout-minutes: 30
     needs: publish-image
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      # Not required for the desktop app to build or run — Rust is the only
+      # runtime dependency of the shell itself — but gives the artifact a
+      # .venv it can find via the same dev-checkout auto-detection a local
+      # `make desktop-build` would use, so this exact build is smoke-tested
+      # end to end (spawns a real `zyvor-qa serve` and hits /health) rather
+      # than only compiled.
+      - name: Install zyvor-qa into a .venv
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install -e .
+
+      - name: Install desktop dependencies
+        run: cd desktop && npm install
+
+      - name: Build desktop app
+        run: cd desktop && npm run tauri build
+
+      - name: Smoke-test the built app spawns zyvor-qa serve
+        run: |
+          set -euo pipefail
+          BIN="desktop/src-tauri/target/release/zyvor-qa-desktop"
+          test -x "$BIN"
+          "$BIN" > /tmp/desktop-app.log 2>&1 &
+          APP_PID=$!
+
+          PORT=""
+          for i in $(seq 1 30); do
+            PORT=$(grep -oE 'Uvicorn running on http://127\.0\.0\.1:[0-9]+' /tmp/desktop-app.log 2>/dev/null \
+              | grep -oE '[0-9]+$' | head -1 || true)
+            [ -n "$PORT" ] && break
+            sleep 1
+          done
+
+          if [ -z "$PORT" ] || ! curl -sf "http://127.0.0.1:$PORT/health" >/dev/null; then
+            echo "::error::desktop app never brought up a healthy zyvor-qa serve"
+            cat /tmp/desktop-app.log
+            kill "$APP_PID" 2>/dev/null || true
+            exit 1
+          fi
+
+          echo "zyvor-qa serve is up on port $PORT"
+          kill "$APP_PID"
+
+      - name: Rename dmg with version
+        run: |
+          mkdir -p dist
+          cp desktop/src-tauri/target/release/bundle/dmg/*.dmg \
+            "dist/ZyvorQAAgent-${{ needs.publish-image.outputs.tag }}-macos-arm64.dmg"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-macos-dmg
+          path: dist/*.dmg
+
+  github-release:
+    needs: [publish-image, build-desktop-macos]
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
     permissions:
@@ -64,13 +137,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: desktop-macos-dmg
+          path: dist
+
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.publish-image.outputs.tag }}
           generate_release_notes: true
+          files: dist/*.dmg
           body: |
             Image: `ghcr.io/hypersdk/zyaiqaagent:${{ needs.publish-image.outputs.tag }}`
 
             ```bash
             docker pull ghcr.io/hypersdk/zyaiqaagent:${{ needs.publish-image.outputs.tag }}
             ```
+
+            macOS desktop app: download the `.dmg` below (unsigned — right-click → Open on first launch). See [Tutorial 17](https://github.com/hypersdk/ZyAIQAAgent/blob/main/docs/tutorials/17-desktop-app.md) and `desktop/README.md`.

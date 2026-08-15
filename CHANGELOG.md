@@ -1,8 +1,9 @@
 # Changelog
 
-## [Unreleased]
+## [0.5.0](https://github.com/hypersdk/ZyAIQAAgent/releases/tag/v0.5.0) — 2026-08-15
 
 ### Added
+- Native macOS desktop app (`desktop/`, Tauri 2): a thin shell around `zyvor-qa serve` — spawns it bound to `127.0.0.1`, points a native window at its dashboard, kills it on quit. No reimplementation; every dashboard action goes through the same server, job queue, CSRF, and rate limiting as `zyvor-qa serve` normally. Settings UI (⌘,) to override the resolved binary path. See Tutorial 17 and `desktop/README.md`
 - Persistent "skill" memory for the autofix loop (`agents/skills/`): a selector fix that's patched and confirmed passing is remembered and reused directly next run instead of re-derived by the LLM every time
 - Inbound Slack slash-command gateway (`POST /webhook/slack/command`): `/zyvor run <kind>` / `/zyvor status <job_id>` trigger and check on pipeline runs from chat, HMAC-verified via `SLACK_SIGNING_SECRET` (Tutorial 16)
 - Per-IP rate limiting on `/api/dashboard/*` and `/api/v2/*` (`orchestrator/security/rate_limit.py`), 429 + `Retry-After` once `ZYVOR_API_RATE_LIMIT` is exceeded — previously only the login endpoint had any throttling
