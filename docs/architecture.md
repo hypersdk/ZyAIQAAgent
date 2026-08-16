@@ -186,14 +186,15 @@ GitHub repo ──► download discovery files ──► extract candidates ─�
 ## Security testing
 
 Beyond the 10 read-only network/security probes and the `audit` site grade,
-three job kinds do deeper, potentially-invasive security testing and are
+four job kinds do deeper, potentially-invasive security testing and are
 gated behind an authorized **security engagement**:
 
-| Job kind | What it does |
-|----------|--------------|
-| `misconfig_scan` | Tech/version fingerprinting, wordlist-driven path discovery (`agents/probes/data/misconfig_paths.txt`), security-header *value* grading, DNS hygiene (SPF/DMARC/CAA) — `agents/probes/misconfig_scan.py` |
-| `cve_lookup` | Read-only: fingerprints tech/versions, checks them against OSV.dev — `agents/probes/cve_lookup.py`. No PoC is generated or run |
-| `llm_redteam` | Attacker→judge loop against Ask Zyvor (curated battery, `agents/redteam/`) — prompt injection, system-prompt exfiltration, excessive agency, jailbreaks, PII/secret exfiltration |
+| Job kind | Tier | What it does |
+|----------|------|--------------|
+| `misconfig_scan` | `active_recon` | Tech/version fingerprinting, wordlist-driven path discovery (`agents/probes/data/misconfig_paths.txt`), security-header *value* grading, DNS hygiene (SPF/DMARC/CAA) — `agents/probes/misconfig_scan.py` |
+| `cve_lookup` | `active_recon` | Read-only: fingerprints tech/versions, checks them against OSV.dev — `agents/probes/cve_lookup.py`. No PoC is generated or run |
+| `llm_redteam` | `active_recon` | Attacker→judge loop against Ask Zyvor (curated battery, `agents/redteam/`) — prompt injection, system-prompt exfiltration, excessive agency, jailbreaks, PII/secret exfiltration |
+| `exploit_poc` | `exploit` | Generates a non-destructive verification script via LLM for a described finding and runs it in a sandboxed Kubernetes Job (`orchestrator/security/sandbox.py`, `kubernetes/sandbox.yaml`) — never in-process. Also requires `ZYVOR_EXPLOIT_EXECUTION_ENABLED=true` |
 
 **Engagement gating** (`orchestrator/security/engagement_policy.py`): an
 admin creates a target-scoped, tier-ranked attestation via
@@ -208,9 +209,19 @@ production shape rather than inventing a new one; `ZYVOR_ENGAGEMENT_ENFORCEMENT
 =disabled` is refused at startup when `ZYVOR_ENV=production`
 (`orchestrator/security/config.py`).
 
-Full design rationale — including what's deliberately *not* built (PoC
-generation/execution, attack chaining, credentialed host/cloud pentesting)
-and why — lives in `ROADMAP.md`.
+**`exploit_poc`'s sandbox** (`orchestrator/security/sandbox.py`) is a real
+containment boundary, not a convenience wrapper: PoC code runs as a
+short-lived Job in a dedicated namespace with dropped capabilities, non-root,
+read-only rootfs, no ServiceAccount token, resource limits, and a hard
+timeout — `sandbox.available()` must be true (a configured
+`ZYVOR_SANDBOX_NAMESPACE` + a reachable cluster) or the job refuses to run
+rather than falling back to unsandboxed execution. Per-Job network-egress
+restriction is attempted but best-effort — only enforced on
+NetworkPolicy-capable CNIs; see `kubernetes/sandbox.yaml`'s CNI caveat.
+
+Full design rationale — including what's still deliberately *not* built
+(attack chaining, credentialed host/cloud pentesting) and why — lives in
+`ROADMAP.md`.
 
 ---
 
