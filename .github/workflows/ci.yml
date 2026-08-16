@@ -37,3 +37,36 @@ jobs:
           for f in playwright/scripts/*.mjs; do
             node --check "$f"
           done
+
+  docs-and-manifests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Validate Kubernetes manifests
+        run: python3 scripts/validate_k8s_manifests.py
+
+      - name: Customer docs are up to date with routes.json/page-purposes.json
+        run: |
+          npm run docs:guides
+          git diff --exit-code -- docs/customer/ || {
+            echo "::error::docs/customer/ is stale — run 'npm run docs:guides' and commit the result."
+            exit 1
+          }
+
+      - name: Check customer docs for broken relative links
+        run: npm run docs:links
