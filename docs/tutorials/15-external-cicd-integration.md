@@ -133,7 +133,7 @@ jq -r '.failed' reports/summary.json
 | `reports/summary.json` | This tutorial's stable CI contract (§4) |
 | `reports/results.json` | Raw Playwright reporter output |
 | `reports/qa-summary.html` / `.pdf` | Human-readable pipeline report |
-| `reports/jobs/<job-id>/report.{html,csv,pdf}` | Per-command report bundle (`flow`, `route-sweep`, `vitals`, etc.) |
+| `reports/jobs/<job-id>/report.{html,csv,md,pdf}` | Per-command report bundle (`flow`, `route-sweep`, `vitals`, etc.) — `.md` pastes cleanly into a PR comment |
 | `test-results/` | Playwright traces/screenshots/videos for failed tests |
 | `screenshots/{baselines,current,diffs}` | Visual regression assets |
 

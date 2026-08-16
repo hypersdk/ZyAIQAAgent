@@ -1,6 +1,6 @@
 # Tutorial 10 — Mission Control Dashboard
 
-A live, self-refreshing operations console served by the webhook server. It shows Kubernetes pod health and logs, QA run history with trends, and a full **Actions** panel that runs 20+ QA capabilities — every CLI command plus a whole suite of web-quality, security, and performance checks — with live-streamed output and downloadable CSV/HTML/PDF reports.
+A live, self-refreshing operations console served by the webhook server. It shows Kubernetes pod health and logs, QA run history with trends, and a full **Actions** panel that runs 20+ QA capabilities — every CLI command plus a whole suite of web-quality, security, and performance checks — with live-streamed output and downloadable HTML/PDF/Markdown/CSV reports.
 
 **UX:** full-bleed layout, glass sticky topbar/footer, boot splash, live signal-field constellation, primary Smoke CTA, card motion, ⌘K palette, NOC wall mode (double-click brand), and warp flash (`` ` `` / type `zyvor`). Reduced-motion aware.
 
@@ -98,7 +98,7 @@ The **Actions** panel is the heart of the console. Click any card to start a job
 
 - streaming Playwright/probe output, **per-test ✓/✗ chips** and a running pass/fail tally
 - an elapsed timer, a **⏹ Stop** button that kills the run mid-flight, and copy-log / download-`.txt`
-- when it finishes: a full result table with error text, a **💡 likely-cause hint** per failure, 🎬 video and 🔍 trace links, and a **Download CSV · HTML · PDF** row
+- when it finishes: a full result table with error text, a **💡 likely-cause hint** per failure, 🎬 video and 🔍 trace links, and a **Download HTML · PDF · Markdown · CSV** row — Markdown also gets a one-click **⧉ Copy MD** button that puts the report straight on your clipboard, ready to paste into a GitHub issue/PR or Slack message
 
 A green run pops confetti and a rising sound cue (both mutable / reduced-motion aware). Press **⌘K** (Ctrl-K) for a command palette that launches any action.
 
@@ -144,7 +144,7 @@ Two input styles (auto-detected):
   ```
   Verbs: `goto`/`go to`/`open`/`navigate`, `click`, `fill|type|enter <field> = <value>`, `press`, `wait [for] <sel|ms>`, `assert|verify|expect|check`.
 
-Steps stream live (`✓ step 3: click "Products"`) into the job panel with a running pass/fail tally. The result is a **step table** (order · action · pass/fail · per-step screenshot) with the **journey video embedded inline** and the CSV/HTML/PDF download row. Login user/pass and self-signed TLS are supported; toggle **record video** off for a faster headless pass. A step only "passes" if no runtime error (`ReferenceError`, `Something went wrong`, `page.on('pageerror')`) fired during it.
+Steps stream live (`✓ step 3: click "Products"`) into the job panel with a running pass/fail tally. The result is a **step table** (order · action · pass/fail · per-step screenshot) with the **journey video embedded inline** and the HTML/PDF/Markdown/CSV download row. Login user/pass and self-signed TLS are supported; toggle **record video** off for a faster headless pass. A step only "passes" if no runtime error (`ReferenceError`, `Something went wrong`, `page.on('pageerror')`) fired during it.
 
 ### 🗺 Route sweep — screenshot many routes, diff vs baselines
 
@@ -177,7 +177,7 @@ Local `spec` and any URL parameters are validated; local paths are restricted to
 
 ## 7. Reports, videos & test health
 
-- Every executed job writes a **CSV / HTML / PDF bundle** to `reports/jobs/<ts>-<kind>/` (PVC-backed on K8s) and exposes it in the result panel.
+- Every executed job writes an **HTML / PDF / Markdown / CSV bundle** to `reports/jobs/<ts>-<kind>/` (PVC-backed on K8s) and exposes it in the result panel — Markdown needs no external renderer, so it's always produced even with `ENABLE_PDF_REPORT=false`.
 - **🎬 videos** panel lists every recorded test video; **⬇ all videos (zip)** downloads them in one shot.
 - **Test health** panel ranks the worst-offender tests (fail count, fail %, flaky badge) from a per-test index every run appends to.
 - **QA Runs** shows the pass-rate sparkline, expandable run rows, and **⬇ export** (runs as JSON).

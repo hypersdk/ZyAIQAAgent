@@ -63,7 +63,7 @@ This is the customer-facing onboarding guide — how to access the product, your
 - **Operate live from Mission Control**
   1. Start the console: `zyvor-qa serve --port 8080` and open `http://localhost:8080/dashboard` (add `--tls` for HTTPS beyond localhost).
   1. Expect the **boot splash**, full-bleed glass topbar, and **signal-field** constellation behind the hero; ⌘K opens the palette; double-click the brand for **NOC** wall mode; `` ` `` warps.
-  1. Run any capability from a card; watch per-test ✓/✗ chips stream live, with a ⏹ Stop button and CSV/HTML/PDF download row.
+  1. Run any capability from a card; watch per-test ✓/✗ chips stream live, with a ⏹ Stop button and HTML/PDF/Markdown/CSV download row.
   1. Practice on the public site: watch the [YouTube Mission Control demo](https://youtu.be/ys7SvKKqf9w) (or the [journey .webm](assets/zyvor-dev-mission-control-demo.webm)), then re-run — [Test zyvor.dev](customer/test-zyvor-dev.md) / [Tutorial 13](tutorials/13-test-zyvor-dev-recording.md).
   1. Generate run history for the trends sparkline: `zyvor-qa run --source local` (each run appends to `reports/history/`).
   1. Turn any job into a recurring monitor from the Schedules panel (5 min – 6 h) — e.g. smoke every 15 min, TLS check daily.
@@ -162,8 +162,8 @@ _Every run ends in an explanation a human can act on and a bundle they can share
   - **How:** Config in `.env`: `ENABLE_LLM_ANALYSIS=true` (default). Runs automatically on the fail branch of `zyvor-qa run`, building root cause, affected area, and flake assessment from error messages, console/network logs, and artifact paths; a stub fallback runs without a key.
 - **Plain-English Summaries** — Generates a human-readable run summary suitable for posting as a PR comment. — _Reviewers see what changed and what broke without reading raw logs._
   - **How:** Config in `.env`: `ENABLE_LLM_REPORT=true` (default). The summary appears in the report and, when you add `--pr-number 42` to a `zyvor-qa run --source github`, is posted as the PR comment; a stub fallback runs without a key.
-- **CSV / HTML / PDF Reports** — Writes a downloadable report bundle for every executed job, with per-failure likely-cause hints. — _Share results in the format each audience actually wants._
-  - **How:** Every executed job writes a bundle to `reports/jobs/-/`; download it from the dashboard result panel's Download CSV · HTML · PDF row or via `GET /api/dashboard/jobs/report.{csv,html,pdf}`. PDF rendering is toggled by `ENABLE_PDF_REPORT` in `.env`.
+- **CSV / HTML / Markdown / PDF Reports** — Writes a downloadable report bundle for every executed job, with per-failure likely-cause hints. — _Share results in the format each audience actually wants._
+  - **How:** Every executed job writes a bundle to `reports/jobs/-/`; download it from the dashboard result panel's Download HTML · PDF · Markdown · CSV row (plus a one-click **⧉ Copy MD** to clipboard) or via `GET /api/dashboard/jobs/report.{csv,html,md,pdf}`. PDF rendering is toggled by `ENABLE_PDF_REPORT` in `.env`; Markdown needs no external tool and is always available.
 - **Video, Trace & Screenshot Artifacts** — Captures journey videos, Playwright traces, and per-step screenshots, persisted under `reports/` and downloadable in bulk. — _See exactly what the agent saw when something went wrong._
   - **How:** On by flow `--video` (or `ZYVOR_VIDEO=on` in `.env`); the Playwright trace is on by default (`--no-trace` to skip). Browse the 🎬 videos panel and `⬇ all videos (zip)` in Mission Control; open a `trace.zip` at trace.playwright.dev. All persist under `reports/` (PVC-backed on Kubernetes).
 - **Test Health & Trends** — Ranks worst-offender tests by fail count and flake rate and tracks a pass-rate sparkline over the last 30 runs. — _Spot the tests and trends that need attention over time._

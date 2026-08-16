@@ -85,7 +85,7 @@ Track quarantine in the same sprint board as the bug. Expired quarantine = P2.
 
 - Open **Findings** / **QA Runs** / live job panel.  
 - **Stop** stuck jobs (don’t stack schedules).  
-- Download CSV/HTML/PDF from the job.  
+- Download CSV/HTML/Markdown/PDF from the job.  
 - If dashboard itself is down: `curl /health`, systemd/container status, disk full (Playwright leftovers).
 
 ```bash
