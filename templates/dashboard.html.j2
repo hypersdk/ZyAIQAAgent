@@ -2633,11 +2633,13 @@ function renderJobResult(st) {
   };
 
   const downloadRow = (rep) => {
-    if (!rep || (!rep.csv && !rep.html && !rep.pdf)) return "";
+    if (!rep || (!rep.csv && !rep.html && !rep.md && !rep.pdf)) return "";
     return '<div class="dl-row">Download: '
-      + (rep.csv ? '<a class="dl-btn" href="/api/dashboard/jobs/report.csv">⬇ CSV</a>' : "")
-      + (rep.html ? '<a class="dl-btn" href="' + esc(rep.html) + '" target="_blank">⬇ HTML</a>' : "")
-      + (rep.pdf ? '<a class="dl-btn" href="/api/dashboard/jobs/report.pdf">⬇ PDF</a>' : "")
+      + (rep.html ? '<a class="dl-btn" href="' + esc(rep.html) + '" target="_blank" title="Open the full formatted report">⬇ HTML</a>' : "")
+      + (rep.pdf ? '<a class="dl-btn" href="/api/dashboard/jobs/report.pdf" title="Print-ready PDF for sharing">⬇ PDF</a>' : "")
+      + (rep.md ? '<a class="dl-btn" href="/api/dashboard/jobs/report.md" title="Markdown — pastes cleanly into a GitHub issue, PR, or Slack message">⬇ Markdown</a>'
+        + '<button class="dl-btn" id="btn-copy-md" title="Copy the Markdown report straight to your clipboard">⧉ Copy MD</button>' : "")
+      + (rep.csv ? '<a class="dl-btn" href="/api/dashboard/jobs/report.csv" title="Raw rows for a spreadsheet">⬇ CSV</a>' : "")
       + '<button class="dl-btn" id="btn-rerun">⟳ Rerun</button></div>';
   };
 
@@ -2942,6 +2944,16 @@ function renderJobResult(st) {
     if (res.status === 409) { toast("rerun", false, "a job is already running"); return; }
     $("job-result").style.display = "none";
     sync();
+  });
+  const copyMd = document.getElementById("btn-copy-md");
+  if (copyMd) copyMd.addEventListener("click", async () => {
+    try {
+      const md = await fetch("/api/dashboard/jobs/report.md").then((res) => res.text());
+      await navigator.clipboard.writeText(md);
+      toast("report", true, "Markdown copied — paste into a GitHub issue, PR, or Slack message");
+    } catch (err) {
+      toast("report", false, "Clipboard unavailable");
+    }
   });
 }
 

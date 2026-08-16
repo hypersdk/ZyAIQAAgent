@@ -358,9 +358,9 @@ async def rerun_job() -> Response:
 
 @router.get("/api/dashboard/jobs/report.{fmt}")
 async def job_report(fmt: str) -> Response:
-    """Download the most recent job's report (csv | html | pdf)."""
-    if fmt not in {"csv", "html", "pdf"}:
-        raise HTTPException(status_code=404, detail="format must be csv, html, or pdf")
+    """Download the most recent job's report (csv | html | md | pdf)."""
+    if fmt not in {"csv", "html", "md", "pdf"}:
+        raise HTTPException(status_code=404, detail="format must be csv, html, md, or pdf")
     state = jobs.status()
     result = state.get("result") or {}
     href = (result.get("report") or {}).get(fmt)
@@ -369,7 +369,7 @@ async def job_report(fmt: str) -> Response:
     path = _repo_root() / href.lstrip("/")
     if not path.is_file():
         raise HTTPException(status_code=404, detail="report file missing")
-    media = {"csv": "text/csv", "html": "text/html", "pdf": "application/pdf"}[fmt]
+    media = {"csv": "text/csv", "html": "text/html", "md": "text/markdown", "pdf": "application/pdf"}[fmt]
     return Response(
         content=path.read_bytes(),
         media_type=media,
