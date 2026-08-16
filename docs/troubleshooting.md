@@ -28,7 +28,22 @@ npx playwright install --with-deps chromium
 npx playwright install --with-deps
 ```
 
-### Python version errors on install
+### `Package 'zyvor-qa-agent' requires a different Python: 3.9.6 not in '>=3.10'`
+
+macOS ships Python 3.9.6 (Xcode CLT). Bare `pip` often points at that interpreter even when `python3 --version` is 3.10+. `make install` creates a repo-root `.venv` with the first working Python ≥ 3.10 it finds (or `uv` if present).
+
+```bash
+make install
+# or pin an interpreter:
+make install PYTHON=python3.12
+```
+
+If Homebrew `python3` itself fails (`ensurepip` / `Symbol not found: _XML_SetAllocTrackerActivationThreshold`), it is linked against a newer `libexpat` than `/usr/lib/libexpat.1.dylib`. Use a standalone CPython instead:
+
+```bash
+uv python install 3.12
+make install PYTHON=python3.12
+```
 
 Requires Python ≥ 3.10 (3.11+ recommended — `ruff` targets py310). Check with `python3 --version`.
 
