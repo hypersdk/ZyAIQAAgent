@@ -33,4 +33,5 @@ Reference documentation lives alongside these tutorials:
 - [Configuration](../configuration.md) — every environment variable
 - [Writing Tests & GitHub Integration](../test-authoring.md) — full command reference
 - [Troubleshooting](../troubleshooting.md) — common errors and fixes
+- [MCP server (chat-ops)](../mcp-server.md) — trigger and poll QA jobs from any MCP-capable chat agent (e.g. Hermes Agent)
 - [DevOps runbooks](../devops/README.md) — CI gates, target policy, on-call triage
