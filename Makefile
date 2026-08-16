@@ -2,8 +2,37 @@
         k8s-check k8s-validate k8s-validate-cluster k8s-apply k8s-delete \
         desktop-dev desktop-build desktop-build-signed desktop-check
 
+# Bare `pip` on macOS is often the Xcode CLT interpreter (3.9.6), which
+# fails requires-python = ">=3.10". Prefer PYTHON=..., else the first
+# 3.10+ on PATH whose stdlib works (Homebrew CPythons can fail ensurepip
+# with a libexpat symbol error). If none, fall back to `uv`.
+ifndef PYTHON
+PYTHON := $(shell \
+	for c in python3.12 python3.13 python3.11 python3.10 python3; do \
+		command -v $$c >/dev/null 2>&1 || continue; \
+		$$c -c 'import sys; from xml.parsers import expat; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)' \
+			2>/dev/null && echo $$c && break; \
+	done)
+endif
+VENV ?= .venv
+
 install:
-	pip install -e ".[dev]"
+	@set -e; \
+	if [ -n "$(PYTHON)" ]; then \
+		echo "Creating $(VENV) with $(PYTHON) ($$($(PYTHON) --version 2>&1))"; \
+		$(PYTHON) -m venv $(VENV); \
+		$(VENV)/bin/pip install -e ".[dev]"; \
+	elif command -v uv >/dev/null 2>&1; then \
+		echo "No working system Python >= 3.10; creating $(VENV) with uv (3.12)"; \
+		uv venv $(VENV) --python 3.12; \
+		uv pip install -e ".[dev]" --python $(VENV)/bin/python; \
+	else \
+		echo "ERROR: No working Python >= 3.10 found."; \
+		echo "  macOS system python is 3.9.6; Homebrew pythons may be broken (libexpat)."; \
+		echo "  Install one:  uv python install 3.12   or   brew install python@3.12"; \
+		echo "  then:         make install PYTHON=python3.12"; \
+		exit 1; \
+	fi
 	npm install
 	npx playwright install --with-deps chromium
 
