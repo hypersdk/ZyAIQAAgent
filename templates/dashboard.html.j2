@@ -840,6 +840,61 @@
         <button class="run-btn act-btn" data-kind="crawl_test">🌐 Crawl &amp; test all pages</button>
       </div>
     </div>
+    <div class="glass card act" style="grid-column: 1 / -1">
+      <div class="act-title">🔏 Security engagements — authorize misconfig/CVE/LLM red-team testing</div>
+      <div class="d" style="margin-bottom:8px">Admin-issued, target-scoped authorization required before running the three cards below — see <code>docs/enterprise-v2.md</code>.</div>
+      <div class="act-row">
+        <input class="inp grow" id="eng-pattern" placeholder="target pattern, e.g. *.example.com or *">
+        <input class="inp grow" id="eng-scope" placeholder="scope statement — why is this authorized?">
+        <button class="dl-btn" id="eng-create" style="margin-left:auto">🔏 Create engagement</button>
+      </div>
+      <div id="engagements" style="margin-top:10px"><span class="d">No engagements yet — create one above to unlock the cards below.</span></div>
+    </div>
+    <div class="glass card act" style="grid-column: 1 / -1">
+      <div class="act-title">🕵️ Misconfig scan — tech fingerprint, exposed paths, header grading, DNS hygiene</div>
+      <div class="act-row">
+        <input class="inp grow" id="ms-url" placeholder="https://your-app.example.com">
+        <input class="inp" id="ms-paths" type="number" value="60" min="1" max="300" style="width:90px" title="max paths">
+        <label class="chk"><input type="checkbox" id="ms-insecure"> self-signed TLS</label>
+      </div>
+      <div class="act-row">
+        <select class="inp grow eng-select" id="ms-eng"><option value="">— select an authorized engagement —</option></select>
+        <button class="run-btn act-btn" data-kind="misconfig_scan" style="margin-left:auto">🕵️ Scan</button>
+      </div>
+    </div>
+    <div class="glass card act" style="grid-column: 1 / -1">
+      <div class="act-title">🧬 CVE lookup — read-only, fingerprints versions and checks OSV.dev (no PoC)</div>
+      <div class="act-row">
+        <input class="inp grow" id="cve-url" placeholder="https://your-app.example.com">
+        <label class="chk"><input type="checkbox" id="cve-insecure"> self-signed TLS</label>
+      </div>
+      <div class="act-row">
+        <select class="inp grow eng-select" id="cve-eng"><option value="">— select an authorized engagement —</option></select>
+        <button class="run-btn act-btn" data-kind="cve_lookup" style="margin-left:auto">🧬 Lookup</button>
+      </div>
+    </div>
+    <div class="glass card act" style="grid-column: 1 / -1">
+      <div class="act-title">🎭 LLM red-team — attacker/judge battery against Ask Zyvor</div>
+      <div class="act-row">
+        <select class="inp" id="lr-target">
+          <option value="dashboard_ask">Ask Zyvor (in-process)</option>
+          <option value="v1_qa">external /v1/qa endpoint</option>
+        </select>
+        <input class="inp grow" id="lr-baseurl" placeholder="base URL (target=external only)">
+        <input class="inp grow" id="lr-apikey" type="password" placeholder="API key (target=external only)" autocomplete="off">
+      </div>
+      <div class="act-row" id="lr-categories" style="gap:10px;flex-wrap:wrap">
+        <label class="chk"><input type="checkbox" value="prompt_injection" checked> prompt injection</label>
+        <label class="chk"><input type="checkbox" value="system_prompt_exfiltration" checked> system-prompt leak</label>
+        <label class="chk"><input type="checkbox" value="excessive_agency" checked> excessive agency</label>
+        <label class="chk"><input type="checkbox" value="jailbreak" checked> jailbreak</label>
+        <label class="chk"><input type="checkbox" value="pii_secret_exfiltration" checked> PII/secret leak</label>
+      </div>
+      <div class="act-row">
+        <select class="inp grow eng-select" id="lr-eng"><option value="">— select an authorized engagement —</option></select>
+        <button class="run-btn act-btn" data-kind="llm_redteam" style="margin-left:auto">🎭 Run battery</button>
+      </div>
+    </div>
   </div>
   <div class="glass card" id="job-result" style="display:none;margin-top:14px"></div>
 
@@ -1351,6 +1406,59 @@ $("find-clear").addEventListener("click", async () => {
   loadFindings();
 });
 
+async function loadEngagements() {
+  try {
+    const data = await fetch("/api/v2/engagements").then((r) => r.json());
+    const list = data.engagements || [];
+    const el = $("engagements");
+    if (!list.length) {
+      el.innerHTML = '<span class="d">No engagements yet — create one above to unlock the cards below.</span>';
+    } else {
+      el.innerHTML = '<div style="overflow-x:auto"><table class="runs-table"><tbody>'
+        + "<tr><th>target</th><th>tier</th><th>scope</th><th>status</th><th></th></tr>"
+        + list.map((e) => "<tr><td><code>" + esc(e.target_pattern) + "</code></td><td class=\"d\">" + esc(e.tier) + "</td>"
+          + '<td class="d" style="max-width:260px">' + esc(e.scope_statement) + "</td>"
+          + "<td>" + (e.revoked_at ? '<span class="chip fail">revoked</span>' : '<span class="chip pass">active</span>') + "</td>"
+          + "<td>" + (e.revoked_at ? "" : '<button class="dl-btn eng-revoke" data-id="' + esc(e.id) + '">revoke</button>') + "</td></tr>").join("")
+        + "</tbody></table></div>";
+      for (const btn of el.querySelectorAll(".eng-revoke")) {
+        btn.addEventListener("click", async () => {
+          if (!confirm("Revoke this engagement? Jobs citing it will be rejected.")) return;
+          await fetch("/api/v2/engagements/" + encodeURIComponent(btn.dataset.id), { method: "DELETE" });
+          loadEngagements();
+        });
+      }
+    }
+    const active = list.filter((e) => !e.revoked_at);
+    const options = '<option value="">— select an authorized engagement —</option>'
+      + active.map((e) => '<option value="' + esc(e.id) + '">' + esc(e.target_pattern) + " (" + esc(e.tier) + ")</option>").join("");
+    for (const sel of document.querySelectorAll(".eng-select")) {
+      const prev = sel.value;
+      sel.innerHTML = options;
+      if (active.some((e) => e.id === prev)) sel.value = prev;
+    }
+  } catch (e) { /* offline */ }
+}
+$("eng-create").addEventListener("click", async () => {
+  const target_pattern = $("eng-pattern").value.trim();
+  const scope_statement = $("eng-scope").value.trim();
+  if (!target_pattern || !scope_statement) { toast("engagement", false, "target pattern and scope statement are required"); return; }
+  const res = await fetch("/api/v2/engagements", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ target_pattern, scope_statement, tier: "active_recon" }),
+  });
+  if (!res.ok) {
+    const d = await res.json().catch(() => ({}));
+    toast("engagement", false, String(d.detail || "failed to create engagement"));
+    return;
+  }
+  $("eng-pattern").value = "";
+  $("eng-scope").value = "";
+  toast("engagement", true, "engagement created");
+  loadEngagements();
+});
+
 /* Forge preset — fill the API-contract card with Forge's defaults (port 24631, key Admin@321) */
 {
   const fp = document.getElementById("api-preset-forge");
@@ -1609,6 +1717,9 @@ const PALETTE_CMDS = [
   { label: "Discover coverage", kind: "discover" },
   { label: "Visual regression", kind: "regression" },
   { label: "Crawl & test any site", kind: "crawl_test" },
+  { label: "Misconfig scan (needs an engagement)", kind: "misconfig_scan" },
+  { label: "CVE lookup (needs an engagement)", kind: "cve_lookup" },
+  { label: "LLM red-team Ask Zyvor (needs an engagement)", kind: "llm_redteam" },
   { label: "Refresh dashboard", action: () => sync() },
   { label: "Show cluster events", action: () => { if (!eventsOpen) $("events-toggle").click(); } },
   { label: "Show recorded videos", action: () => { if (!videosOpen) $("videos-toggle").click(); } },
@@ -2193,6 +2304,24 @@ function jobParams(kind) {
     run: $("cg-run").checked,
     insecure: $("cg-insecure").checked,
   };
+  if (kind === "misconfig_scan") return {
+    url: $("ms-url").value.trim(),
+    max_paths: parseInt($("ms-paths").value, 10) || 60,
+    insecure: $("ms-insecure").checked,
+    engagement_id: $("ms-eng").value,
+  };
+  if (kind === "cve_lookup") return {
+    url: $("cve-url").value.trim(),
+    insecure: $("cve-insecure").checked,
+    engagement_id: $("cve-eng").value,
+  };
+  if (kind === "llm_redteam") return {
+    target: $("lr-target").value,
+    base_url: $("lr-baseurl").value.trim(),
+    api_key: $("lr-apikey").value,
+    categories: Array.from(document.querySelectorAll("#lr-categories input:checked")).map((c) => c.value),
+    engagement_id: $("lr-eng").value,
+  };
   const PROBES = ["redirects","headers","cookies","robots","security_paths","api_check","sitemap_test","dns_records","cors","transport"];
   if (PROBES.includes(kind)) {
     const t = $("pr-target").value.trim();
@@ -2253,7 +2382,8 @@ const KIND_LABELS = { smoke: "smoke tests", full: "full pipeline", generate: "ge
   security_paths: "exposed paths", api_check: "API check", sitemap_test: "sitemap URLs", dns_records: "DNS records",
   cors: "CORS check", transport: "compression", flow: "flow test", route_sweep: "route sweep",
   api_contract: "API contract", auth_test: "auth & session", realtime: "live data", vitals: "web vitals", ai_flow: "AI test",
-  har_replay: "HAR record/replay", import_codegen: "import codegen" };
+  har_replay: "HAR record/replay", import_codegen: "import codegen",
+  misconfig_scan: "misconfig scan", cve_lookup: "CVE lookup", llm_redteam: "LLM red-team" };
 
 let lastToastKey = "";
 function renderRunStatus(st) {
@@ -2619,6 +2749,39 @@ function renderJobResult(st) {
           + (d.diff_href ? '<a class="rlink" href="' + esc(d.diff_href) + '" target="_blank">diff image</a>' : esc(d.message || "")) + "</td></tr>").join("")
         + "</tbody></table>";
     }
+  } else if (st.kind === "misconfig_scan") {
+    const gc = r.grade === "A" ? "var(--status-ok)" : (r.grade === "F" || r.grade === "D") ? "var(--status-error)" : "var(--status-warn)";
+    html += '<div style="display:flex;align-items:center;gap:14px;margin-bottom:6px">'
+      + '<div style="font-size:44px;font-weight:800;line-height:1;color:' + gc + '">' + esc(r.grade || "?") + "</div>"
+      + '<div><div style="font-weight:600">Score ' + (r.score != null ? r.score + "/100" : "") + "</div>"
+      + '<div class="d">' + esc(r.url) + " — " + ((r.paths && r.paths.exposed) || []).length + " exposed path(s) · headers "
+      + esc((r.headers && r.headers.status) || "?") + "</div></div></div>";
+    if (r.tech && ((r.tech.signatures && r.tech.signatures.length) || (r.tech.versions && r.tech.versions.length))) {
+      html += '<div class="d" style="margin-bottom:6px">detected: ' + esc((r.tech.signatures || []).join(", "))
+        + " " + (r.tech.versions || []).map((v) => esc(v.product + " " + v.version)).join(", ") + "</div>";
+    }
+    html += '<div class="d">findings, if any, appear in the 🐞 Findings panel below.</div>';
+  } else if (st.kind === "cve_lookup") {
+    html += '<div class="d">' + esc(r.url) + " — <b class=\"" + (r.total_matches ? "fail" : "pass") + '">'
+      + r.total_matches + " known advisory match(es)</b> across " + (r.identified || []).length + " identified component(s)</div>";
+    html += '<table class="runs-table" style="margin-top:8px"><tbody>'
+      + "<tr><th>product</th><th>version</th><th>matches</th></tr>"
+      + (r.results || []).map((x) => "<tr><td>" + esc(x.product) + "</td><td>" + esc(x.version) + "</td><td>"
+        + ((x.matches && x.matches.length)
+            ? x.matches.map((m) => '<span class="chip fail">' + esc(m.id) + "</span>").join(" ")
+            : ('<span class="d">' + esc(x.note || (x.error ? "lookup error" : "none")) + "</span>")) + "</td></tr>").join("")
+      + "</tbody></table>";
+  } else if (st.kind === "llm_redteam") {
+    const gc = r.grade === "A" ? "var(--status-ok)" : (r.grade === "F" || r.grade === "D") ? "var(--status-error)" : "var(--status-warn)";
+    html += '<div style="display:flex;align-items:center;gap:14px;margin-bottom:6px">'
+      + '<div style="font-size:44px;font-weight:800;line-height:1;color:' + gc + '">' + esc(r.grade || "?") + "</div>"
+      + '<div><div style="font-weight:600">' + r.resisted + "/" + r.total + " prompts resisted</div>"
+      + '<div class="d">target: ' + esc(r.target) + "</div></div></div>";
+    html += '<table class="runs-table" style="margin-top:8px"><tbody>'
+      + "<tr><th>attack</th><th>category</th><th>result</th></tr>"
+      + (r.results || []).map((x) => "<tr><td><code>" + esc(x.id) + "</code></td><td class=\"d\">" + esc(x.category) + "</td><td>"
+        + (x.resisted == null ? '<span class="chip">error</span>' : '<span class="chip ' + (x.resisted ? "pass" : "fail") + '">' + (x.resisted ? "resisted" : "COMPROMISED") + "</span>") + "</td></tr>").join("")
+      + "</tbody></table>";
   } else {
     html += '<div class="d">' + r.passed + "/" + r.total + " passed"
       + (r.report ? ' · <a class="rlink" href="' + esc(r.report) + '" target="_blank">📄 open report</a>' : "") + "</div>";
@@ -2725,8 +2888,10 @@ sync();
 loadTestHealth();
 loadSchedules();
 loadFindings();
+loadEngagements();
 setInterval(loadSchedules, 15000);
 setInterval(loadFindings, 15000);
+setInterval(loadEngagements, 30000);
 setRefreshRate(parseInt($("refresh-rate").value, 10) || REFRESH);
 
 

@@ -2,7 +2,7 @@
 
 Every Mission Control surface and action card.
 
-_Generated: 2026-07-29 · 34 routes_
+_Generated: 2026-08-16 · 38 routes_
 
 Regenerate: `node scripts/customer-docs/generate-page-index.mjs`
 
@@ -70,6 +70,15 @@ Regenerate: `node scripts/customer-docs/generate-page-index.mjs`
 | API contract | `/dashboard/actions/api-contract` | Validate REST endpoints against an OpenAPI schema (Forge preset available). | [Open](pages/api/dashboard-actions-api-contract.md) |
 | Live data | `/dashboard/actions/realtime` | Assert WebSocket / SSE streams and optional live-region updates. | [Open](pages/api/dashboard-actions-realtime.md) |
 | Auth & session | `/dashboard/actions/auth` | Login → reusable session file → logout / expiry / negative auth checks. | [Open](pages/api/dashboard-actions-auth.md) |
+
+## Security
+
+| Page | Route | Purpose | Guide |
+|------|-------|---------|-------|
+| Security engagements | `/dashboard/actions/security-engagements` | Create/revoke the admin-issued, target-scoped authorization required before running misconfig scan, CVE lookup, or LLM red-team. | [Open](pages/security/dashboard-actions-security-engagements.md) |
+| Misconfig scan | `/dashboard/actions/misconfig-scan` | Tech/version fingerprinting, wordlist-driven path discovery, security-header value grading, and DNS hygiene checks — requires a security engagement. | [Open](pages/security/dashboard-actions-misconfig-scan.md) |
+| CVE lookup | `/dashboard/actions/cve-lookup` | Read-only: fingerprints tech/versions and checks them against OSV.dev. No PoC is generated or run — requires a security engagement. | [Open](pages/security/dashboard-actions-cve-lookup.md) |
+| LLM red-team | `/dashboard/actions/llm-redteam` | Attacker/judge adversarial-prompt battery against Ask Zyvor — prompt injection, system-prompt leak, excessive agency, jailbreak, PII/secret leak — requires a security engagement. | [Open](pages/security/dashboard-actions-llm-redteam.md) |
 
 ## Operations
 

@@ -69,6 +69,15 @@ Every route is also listed in the [complete page index](../PAGE_INDEX.md).
 | [Flaky check](quality/dashboard-actions-flaky.md) | Re-run the suite N times and surface unstable tests. |
 | [Web Vitals](quality/dashboard-actions-vitals.md) | Measure Core Web Vitals (LCP / CLS / INP) with optional device and network throttle. |
 
+## Security
+
+| Page | What it covers |
+|------|----------------|
+| [CVE lookup](security/dashboard-actions-cve-lookup.md) | Read-only: fingerprints tech/versions and checks them against OSV.dev. No PoC is generated or run — requires a security engagement. |
+| [LLM red-team](security/dashboard-actions-llm-redteam.md) | Attacker/judge adversarial-prompt battery against Ask Zyvor — prompt injection, system-prompt leak, excessive agency, jailbreak, PII/secret leak — requires a security engagement. |
+| [Misconfig scan](security/dashboard-actions-misconfig-scan.md) | Tech/version fingerprinting, wordlist-driven path discovery, security-header value grading, and DNS hygiene checks — requires a security engagement. |
+| [Security engagements](security/dashboard-actions-security-engagements.md) | Create/revoke the admin-issued, target-scoped authorization required before running misconfig scan, CVE lookup, or LLM red-team. |
+
 ## Visual
 
 | Page | What it covers |
@@ -80,4 +89,4 @@ Every route is also listed in the [complete page index](../PAGE_INDEX.md).
 
 ---
 
-34 guides. Regenerate: `node scripts/customer-docs/generate-guide-index.mjs`.
+38 guides. Regenerate: `node scripts/customer-docs/generate-guide-index.mjs`.
