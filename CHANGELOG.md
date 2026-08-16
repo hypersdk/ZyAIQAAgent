@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- MCP server (`integrations/mcp/`, optional `zyvor-qa-mcp` / `[mcp]` extra) exposing an allowlisted subset of `/api/v2` jobs as MCP tools (`run_job`, `run_smoke_test`, `run_site_audit`, `run_crawl_test`, `get_job_status`, `cancel_job`) so any MCP-capable chat agent (e.g. Hermes Agent) can trigger and poll QA jobs from Telegram/Discord/Slack/CLI. Thin HTTP client of the existing `/api/v2` API — no `orchestrator.*` imports — reuses the existing Bearer-token RBAC scopes with no security-layer changes. Bounded server-side polling (default 20s, cap 90s) resolves fast jobs (smoke/ping/probes) in a single chat turn; slower jobs hand back a job id to poll later. See `docs/mcp-server.md`
+- `ZYVOR_API_TOKENS_FILE` is now actually mountable in Kubernetes: `kubernetes/deployment.yaml` and `kubernetes/enterprise/secure-deployment.yaml` mount a `zyvor-qa-secrets` key (`api-tokens.json`) at `/app/secrets/api-tokens.json` — previously the env var was documented and read by `orchestrator/security/rbac.py` but never wired into any manifest, so Bearer-token auth was a dead end in the production (`ZYVOR_ENV=production`) deployment
+
 ## [0.5.1](https://github.com/hypersdk/ZyAIQAAgent/releases/tag/v0.5.1) — 2026-08-15
 
 ### Fixed
