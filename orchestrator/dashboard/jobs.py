@@ -44,7 +44,7 @@ VALID_KINDS = {
     "loadtest", "tls", "flow", "route_sweep",
     "api_contract", "auth_test", "realtime", "vitals", "ai_flow",
     "har_replay", "import_codegen",
-    "misconfig_scan", "cve_lookup", "llm_redteam", "exploit_poc",
+    "misconfig_scan", "cve_lookup", "llm_redteam", "exploit_poc", "attack_chain",
 } | PROBE_KINDS
 
 # Job kinds gated behind an authorized security engagement
@@ -56,6 +56,7 @@ ELEVATED_RISK_KINDS: dict[str, str] = {
     "cve_lookup": "active_recon",
     "llm_redteam": "active_recon",
     "exploit_poc": "exploit",
+    "attack_chain": "exploit",
 }
 
 _lock = threading.Lock()
@@ -477,6 +478,21 @@ def _validate(kind: str, params: dict[str, Any]) -> dict[str, Any]:
         if not description:
             raise ValueError("finding_description is required — describe what to verify")
         clean["finding_description"] = description[:2000]
+        clean["timeout_s"] = max(5, min(int(params.get("timeout_s") or 60), 300))
+    if kind == "attack_chain":
+        # Same fail-closed opt-in as exploit_poc — chaining is at least as
+        # sensitive (it's just exploit_poc run in a loop with an LLM planner).
+        if os.environ.get("ZYVOR_EXPLOIT_EXECUTION_ENABLED", "false").strip().lower() not in {"1", "true", "yes", "on"}:
+            raise ValueError("attack_chain is disabled — set ZYVOR_EXPLOIT_EXECUTION_ENABLED=true to enable it")
+        url = (params.get("url") or "").strip()
+        if not url.startswith(("http://", "https://")):
+            raise ValueError("url must start with http:// or https://")
+        clean["url"] = url[:500]
+        objective = (params.get("objective") or "").strip()
+        if not objective:
+            raise ValueError("objective is required — describe the escalation goal")
+        clean["objective"] = objective[:1000]
+        clean["max_steps"] = max(1, min(int(params.get("max_steps") or 5), 5))
         clean["timeout_s"] = max(5, min(int(params.get("timeout_s") or 60), 300))
     if kind in PROBE_KINDS:
         target = (params.get("url") or params.get("host") or "").strip()
@@ -2486,6 +2502,123 @@ def _job_exploit_poc(params: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _job_attack_chain(params: dict[str, Any]) -> dict[str, Any]:
+    """Attack chaining: repeatedly plan-and-verify one escalation step at a
+    time (LLM planner -> PoC generator -> sandboxed execution), stopping the
+    moment a step fails to verify or the planner signals STOP. Each step
+    reuses exploit_poc's exact sandbox/provenance machinery — not a separate
+    execution path."""
+    import hashlib
+    import time as _time
+    import uuid as _uuid
+    from urllib.parse import urlparse
+
+    from agents.common.models import PipelineReport
+    from agents.exploit.poc_generator import generate_verification_poc, plan_next_chain_step
+    from orchestrator.dashboard import findings, history
+    from orchestrator.persistence.store import get_store
+    from orchestrator.security import sandbox
+
+    t0 = _time.time()
+    url = params["url"]
+    objective = params["objective"]
+    max_steps = params["max_steps"]
+
+    if not sandbox.available():
+        raise RuntimeError(
+            "exploit sandbox unavailable — set ZYVOR_SANDBOX_NAMESPACE and ensure "
+            "the cluster is reachable (see kubernetes/sandbox.yaml)"
+        )
+
+    host = urlparse(url).hostname or url
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    chain_dir = _repo_root() / "reports" / "pocs" / f"{stamp}-chain-{_uuid.uuid4().hex[:8]}"
+    chain_dir.mkdir(parents=True, exist_ok=True)
+
+    steps: list[dict[str, Any]] = []
+    stop_reason = "max_steps reached"
+    log_progress(f"attack_chain: planning against {url} — objective: {objective}")
+    for i in range(max_steps):
+        _check_cancel()
+        plan = plan_next_chain_step(objective, url, [s["description"] for s in steps])
+        if plan.description is None:
+            stop_reason = "planner signalled stop"
+            break
+
+        log_progress(f"attack_chain: step {i + 1} — {plan.description}")
+        generated = generate_verification_poc(plan.description, url)
+        code_hash = hashlib.sha256(generated.code.encode("utf-8")).hexdigest()
+        step_dir = chain_dir / f"step-{i + 1}"
+        step_dir.mkdir(parents=True, exist_ok=True)
+        (step_dir / "poc.py").write_text(generated.code, encoding="utf-8")
+        get_store().audit(
+            "attack_chain.step_generate", resource_type="poc", resource_id=code_hash,
+            detail={"url": url, "step": i + 1, "sha256": code_hash, "path": str(step_dir / "poc.py")},
+        )
+
+        result = sandbox.run_python(generated.code, timeout_s=params["timeout_s"], egress_hosts=[host])
+        _check_cancel()
+
+        verified = False
+        reason = ""
+        for line in (result.stdout or "").splitlines():
+            stripped = line.strip()
+            if stripped.startswith("VERIFIED:"):
+                rest = stripped[len("VERIFIED:"):].strip()
+                verified = rest.lower().startswith("true")
+                reason = rest.split("-", 1)[1].strip() if "-" in rest else rest
+                break
+
+        steps.append({
+            "step": i + 1, "description": plan.description, "verified": verified,
+            "reason": reason, "poc_path": str(step_dir / "poc.py"), "code_sha256": code_hash,
+            "timed_out": result.timed_out,
+        })
+        log_progress(
+            f"attack_chain: step {i + 1} {'VERIFIED' if verified else 'not verified'}"
+            + (f" — {reason}" if reason else "")
+        )
+        if not verified:
+            stop_reason = f"step {i + 1} did not verify"
+            break
+
+    confirmed = [s for s in steps if s["verified"]]
+    raised: list[dict[str, Any]] = []
+    for s in confirmed:
+        title = f"attack_chain step {s['step']} confirmed: {s['description'][:100]}"
+        findings.add(
+            "attack_chain", "high", title, detail=s["reason"], url=url,
+            where=f"step-{s['step']}", category="confirmed-vulnerability",
+        )
+        raised.append({
+            "severity": "high", "title": title, "detail": s["reason"],
+            "where": f"step-{s['step']}", "category": "confirmed-vulnerability",
+        })
+
+    if len(confirmed) > 1:
+        chain_title = f"attack_chain: {len(confirmed)}-step escalation confirmed — {objective[:100]}"
+        chain_detail = " → ".join(s["description"] for s in confirmed)
+        findings.add(
+            "attack_chain", "critical", chain_title, detail=chain_detail, url=url,
+            where=chain_dir.name, category="confirmed-attack-chain",
+        )
+        raised.append({
+            "severity": "critical", "title": chain_title, "detail": chain_detail,
+            "where": chain_dir.name, "category": "confirmed-attack-chain",
+        })
+
+    hist = PipelineReport(
+        summary=f"attack_chain for {url}: {len(confirmed)}/{len(steps)} step(s) confirmed ({stop_reason})",
+        passed=len(confirmed), failed=len(steps) - len(confirmed), total=len(steps) or 1,
+    )
+    history.append_run(hist, source="dashboard-attack-chain", duration_s=_time.time() - t0)
+
+    return {
+        "url": url, "objective": objective, "steps": steps, "confirmed_count": len(confirmed),
+        "stop_reason": stop_reason, "chain_dir": str(chain_dir), "findings": raised,
+    }
+
+
 _JOBS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "smoke": _job_smoke,
     "flow": _job_flow,
@@ -2514,6 +2647,7 @@ _JOBS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "cve_lookup": _job_cve_lookup,
     "llm_redteam": _job_llm_redteam,
     "exploit_poc": _job_exploit_poc,
+    "attack_chain": _job_attack_chain,
 }
 
 

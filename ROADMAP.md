@@ -137,21 +137,51 @@ so on a plain k3s cluster this specific layer is a no-op and the pod
 security hardening above is what's actually holding. See
 `kubernetes/sandbox.yaml`'s comments for the full caveat.
 
-Not yet live-verified end-to-end against a real cluster with a real
-vulnerable target (unit-tested against a mocked Kubernetes client instead —
-see `tests/unit/test_sandbox.py`, `tests/unit/test_exploit_poc_job.py`).
+**Live-verified** against a real k3s cluster (not just the mocked-client
+unit tests in `tests/unit/test_sandbox.py`/`test_exploit_poc_job.py`):
+`sandbox.run_python()` genuinely creates a Job, runs code under the
+hardened `securityContext`, retrieves its output, and tears everything down
+— confirmed zero leftover Jobs/Pods/ConfigMaps across repeated runs. This
+live pass also caught and fixed a real bug: the Kubernetes client
+occasionally returns a pod's log as the `str()` of a `bytes` object rather
+than a decoded string (the exact quirk `orchestrator/dashboard/k8s.py`
+already works around for the dashboard's own log viewer —
+`_normalize_log_text`, now reused by `sandbox.py` too). The LLM-generation
+side (`poc_generator.py`) is unit-tested with a mocked model only; it
+wasn't live-exercised against a real LLM provider in this pass.
 
-### Still not built: attack chaining, credentialed host/AD/cloud pentesting
+### ~~Attack chaining~~ — done
 
-Multi-stage attack chaining (SQLi→RCE, upload→LFI→RCE→LPE, etc.) and
-credentialed host/AD/cloud penetration testing remain out of scope. Chaining
-can build directly on `exploit_poc`'s sandbox once there's a track record of
-it behaving safely; host/AD/cloud pentesting additionally needs a
+`attack_chain` (`orchestrator/dashboard/jobs.py::_job_attack_chain`,
+`agents/exploit/poc_generator.py::plan_next_chain_step`) repeatedly
+plan-and-verifies one escalation step at a time — an LLM planner proposes
+the next step given every step already confirmed, `poc_generator.py`
+generates its verification script exactly as `exploit_poc` does, and it
+runs through the identical sandboxed executor. The chain stops the moment a
+step fails to verify or the planner has nothing safe left to propose
+(capped at 5 steps either way) — it does not blindly retry or brute-force
+past a failed step. Same two-gate authorization as `exploit_poc`
+(`exploit`-tier engagement + `ZYVOR_EXPLOIT_EXECUTION_ENABLED`). A confirmed
+multi-step chain raises an additional `critical`-severity finding
+summarizing the full escalation path, on top of one `high`-severity finding
+per individual confirmed step.
+
+The sequential-execution mechanic (multiple `sandbox.run_python()` calls in
+a row, each with its own Job/ConfigMap lifecycle) was live-verified against
+the same k3s cluster — three consecutive runs, zero leftover resources, no
+naming collisions. The LLM planning loop itself
+(`plan_next_chain_step`/`generate_verification_poc` deciding what to
+verify next) is unit-tested with a mocked model only, same caveat as above.
+
+### Still not built: credentialed host/AD/cloud pentesting
+
+The last piece from the original NeuroSploit-inspired scope. Needs a
 credential-handling story (reusing `orchestrator/security/secrets.py`'s
 `{"$secret": "env:..."}` reference pattern rather than ever accepting raw
 creds in a job param) and either SSH/WinRM libraries or shelling out to the
-`aws`/`gcloud`/`az` CLIs from inside the sandbox image, not new SDK
-dependencies in the main application.
+`aws`/`gcloud`/`az` CLIs from inside the sandbox image (extending
+`orchestrator/security/sandbox.py`'s image rather than adding new SDK
+dependencies to the main application).
 
 ## ~~CSRF~~ — done
 

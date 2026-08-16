@@ -937,6 +937,89 @@ def llm_redteam(
         raise typer.Exit(code=1)
 
 
+@app.command(name="exploit-poc")
+def exploit_poc(
+    url: str = typer.Argument(..., help="Target URL"),
+    finding_description: str = typer.Option(..., "--finding", help="Describe what to verify"),
+    engagement_id: str = typer.Option(..., "--engagement-id", help="Must be an 'exploit'-tier engagement"),
+    timeout_s: int = typer.Option(60, "--timeout", help="Sandbox execution timeout in seconds (capped at 300)"),
+    fail_on: str = typer.Option("high", "--fail-on", help="Exit 1 if any finding is at/above this severity"),
+) -> None:
+    """Generate a non-destructive verification PoC via LLM and run it sandboxed in Kubernetes.
+
+    Requires ZYVOR_EXPLOIT_EXECUTION_ENABLED=true and a live sandbox backend
+    (kubernetes/sandbox.yaml, ZYVOR_SANDBOX_NAMESPACE) in addition to the
+    exploit-tier engagement — see docs/enterprise-v2.md.
+    """
+    _load_env()
+    t0 = time.time()
+    started_at = datetime.fromtimestamp(t0, tz=timezone.utc).isoformat()
+    from agents.reporter.summary import write_ci_summary
+    from orchestrator.dashboard.jobs import _job_exploit_poc, _validate
+
+    params = _validate("exploit_poc", {
+        "url": url, "finding_description": finding_description,
+        "timeout_s": timeout_s, "engagement_id": engagement_id,
+    })
+    result = _job_exploit_poc(params)
+    typer.echo(f"{'VERIFIED' if result['verified'] else 'not verified'}" + (f" — {result['reason']}" if result['reason'] else ""))
+    typer.echo(f"PoC: {result['poc_path']} (sha256 {result['code_sha256'][:12]}…)")
+    counts, max_severity = _findings_severity_summary(result.get("findings") or [])
+    gate = _exceeds_fail_on(max_severity, fail_on)
+    write_ci_summary(
+        command="exploit-poc", target_url=url,
+        passed=0 if result["verified"] else 1, failed=1 if result["verified"] else 0, total=1,
+        exit_code=1 if gate else 0, started_at=started_at, duration_s=time.time() - t0,
+        findings_by_severity=counts, max_severity=max_severity,
+        extra={"verified": result["verified"]},
+    )
+    if gate:
+        raise typer.Exit(code=1)
+
+
+@app.command(name="attack-chain")
+def attack_chain(
+    url: str = typer.Argument(..., help="Target URL"),
+    objective: str = typer.Option(..., "--objective", help="Describe the escalation goal, e.g. 'escalate SQLi to RCE'"),
+    engagement_id: str = typer.Option(..., "--engagement-id", help="Must be an 'exploit'-tier engagement"),
+    max_steps: int = typer.Option(5, "--max-steps", help="Max chain steps (capped at 5)"),
+    timeout_s: int = typer.Option(60, "--timeout", help="Sandbox execution timeout per step (capped at 300)"),
+    fail_on: str = typer.Option("high", "--fail-on", help="Exit 1 if any finding is at/above this severity"),
+) -> None:
+    """Plan-and-verify a multi-step attack chain, one non-destructive sandboxed step at a time.
+
+    Same gates as exploit-poc (exploit-tier engagement + ZYVOR_EXPLOIT_EXECUTION_ENABLED
+    + a live sandbox backend) — this is exploit_poc run in a loop with an LLM planner,
+    stopping the moment a step fails to verify or the planner has nothing safe left to propose.
+    """
+    _load_env()
+    t0 = time.time()
+    started_at = datetime.fromtimestamp(t0, tz=timezone.utc).isoformat()
+    from agents.reporter.summary import write_ci_summary
+    from orchestrator.dashboard.jobs import _job_attack_chain, _validate
+
+    params = _validate("attack_chain", {
+        "url": url, "objective": objective, "max_steps": max_steps,
+        "timeout_s": timeout_s, "engagement_id": engagement_id,
+    })
+    result = _job_attack_chain(params)
+    typer.echo(f"{result['confirmed_count']}/{len(result['steps'])} step(s) confirmed ({result['stop_reason']})")
+    for step in result["steps"]:
+        typer.echo(f"  step {step['step']}: {'✓' if step['verified'] else '✗'} {step['description']}")
+    counts, max_severity = _findings_severity_summary(result.get("findings") or [])
+    gate = _exceeds_fail_on(max_severity, fail_on)
+    write_ci_summary(
+        command="attack-chain", target_url=url,
+        passed=result["confirmed_count"], failed=len(result["steps"]) - result["confirmed_count"],
+        total=len(result["steps"]) or 1,
+        exit_code=1 if gate else 0, started_at=started_at, duration_s=time.time() - t0,
+        findings_by_severity=counts, max_severity=max_severity,
+        extra={"stop_reason": result["stop_reason"]},
+    )
+    if gate:
+        raise typer.Exit(code=1)
+
+
 @app.command(name="pr-gate")
 def pr_gate(
     repo: str = typer.Argument(..., help="owner/repo"),
