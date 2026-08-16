@@ -2,7 +2,7 @@
 
 Every Mission Control surface and action card.
 
-_Generated: 2026-08-16 · 38 routes_
+_Generated: 2026-08-16 · 42 routes_
 
 Regenerate: `node scripts/customer-docs/generate-page-index.mjs`
 
@@ -75,10 +75,14 @@ Regenerate: `node scripts/customer-docs/generate-page-index.mjs`
 
 | Page | Route | Purpose | Guide |
 |------|-------|---------|-------|
-| Security engagements | `/dashboard/actions/security-engagements` | Create/revoke the admin-issued, target-scoped authorization required before running misconfig scan, CVE lookup, or LLM red-team. | [Open](pages/security/dashboard-actions-security-engagements.md) |
+| Security engagements | `/dashboard/actions/security-engagements` | Create/revoke the admin-issued, target-scoped authorization required before running any deeper security testing job. | [Open](pages/security/dashboard-actions-security-engagements.md) |
 | Misconfig scan | `/dashboard/actions/misconfig-scan` | Tech/version fingerprinting, wordlist-driven path discovery, security-header value grading, and DNS hygiene checks — requires a security engagement. | [Open](pages/security/dashboard-actions-misconfig-scan.md) |
 | CVE lookup | `/dashboard/actions/cve-lookup` | Read-only: fingerprints tech/versions and checks them against OSV.dev. No PoC is generated or run — requires a security engagement. | [Open](pages/security/dashboard-actions-cve-lookup.md) |
 | LLM red-team | `/dashboard/actions/llm-redteam` | Attacker/judge adversarial-prompt battery against Ask Zyvor — prompt injection, system-prompt leak, excessive agency, jailbreak, PII/secret leak — requires a security engagement. | [Open](pages/security/dashboard-actions-llm-redteam.md) |
+| Exploit PoC | `/dashboard/actions/exploit-poc` | LLM-generated, non-destructive verification of a described finding, executed in a locked-down Kubernetes sandbox — requires an exploit-tier engagement and an execution opt-in. | [Open](pages/security/dashboard-actions-exploit-poc.md) |
+| Attack chain | `/dashboard/actions/attack-chain` | Chains exploit-PoC steps via an LLM planner to confirm a multi-step escalation path — same sandbox and opt-ins as Exploit PoC. | [Open](pages/security/dashboard-actions-attack-chain.md) |
+| Host pentest | `/dashboard/actions/host-pentest` | Credentialed SSH enumeration of a described finding via paramiko in the sandbox — needs a third, independent credentialed-pentest opt-in; credentials are always env-var references, never raw values. | [Open](pages/security/dashboard-actions-host-pentest.md) |
+| Cloud pentest | `/dashboard/actions/cloud-pentest` | Credentialed AWS/GCP/Azure CLI enumeration of a described finding in the sandbox — same opt-ins and credential-reference rules as Host pentest. | [Open](pages/security/dashboard-actions-cloud-pentest.md) |
 
 ## Operations
 
