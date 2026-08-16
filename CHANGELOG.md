@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.6.0](https://github.com/hypersdk/ZyAIQAAgent/releases/tag/v0.6.0) — 2026-08-16
+
 ### Added
 - CI now catches classes of regression it previously didn't: `.github/workflows/ci.yml` gained a `docs-and-manifests` job that validates every Kubernetes manifest offline (`scripts/validate_k8s_manifests.py`), fails if `docs/customer/` has drifted from `routes.json`/`page-purposes.json` (`npm run docs:guides` must produce no diff), and checks every customer-doc relative link (`npm run docs:links`) — found and fixed a real broken-link regression from this exact gap before adding the check. New `.github/workflows/codeql.yml` (GitHub CodeQL, Python + JS/TS, on push/PR/weekly) and `.github/dependabot.yml` (weekly PRs for pip, npm root + `desktop/`, cargo `desktop/src-tauri/`, Docker, and GitHub Actions — each runs through the full existing CI before merge)
 - MCP server (`integrations/mcp/`, optional `zyvor-qa-mcp` / `[mcp]` extra) exposing an allowlisted subset of `/api/v2` jobs as MCP tools (`run_job`, `run_smoke_test`, `run_site_audit`, `run_crawl_test`, `get_job_status`, `cancel_job`) so any MCP-capable chat agent (e.g. Hermes Agent) can trigger and poll QA jobs from Telegram/Discord/Slack/CLI. Thin HTTP client of the existing `/api/v2` API — no `orchestrator.*` imports — reuses the existing Bearer-token RBAC scopes with no security-layer changes. Bounded server-side polling (default 20s, cap 90s) resolves fast jobs (smoke/ping/probes) in a single chat turn; slower jobs hand back a job id to poll later. See `docs/mcp-server.md`
@@ -23,6 +25,9 @@
 ### Changed
 - CI's unit-test coverage gate raised from 36% to 40% (`.github/workflows/security.yml`) after the security-testing feature pass added its own coverage (~39% → ~42% actual, 389 tests)
 - `kubernetes/ingress.yaml`'s webhook hostname is no longer hardcoded to `qa-webhook.zyvor.dev` — it's now a `qa-webhook.example.com` placeholder with a `# CHANGE ME` comment, so the manifest doesn't silently point at Zyvor's own domain when someone deploys it to their own cluster
+
+### Fixed
+- `container-scan` CI job: `agents/redteam/prompts/llm_redteam_battery.yaml`'s `pii-02` adversarial prompt used a synthetic token that structurally matched GitHub's real PAT format exactly (`ghp_` + 36 chars), which Trivy's secret scanner correctly flagged as CRITICAL once baked into the built image — even though it was never a real credential. Replaced with a placeholder that no longer matches the pattern; the red-team test's intent is unaffected
 
 ## [0.5.1](https://github.com/hypersdk/ZyAIQAAgent/releases/tag/v0.5.1) — 2026-08-15
 
