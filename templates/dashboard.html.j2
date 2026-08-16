@@ -895,6 +895,74 @@
         <button class="run-btn act-btn" data-kind="llm_redteam" style="margin-left:auto">🎭 Run battery</button>
       </div>
     </div>
+    <div class="glass card act" style="grid-column: 1 / -1">
+      <div class="act-title">💣 Exploit PoC — LLM-generated, sandboxed, non-destructive verification</div>
+      <div class="d" style="margin-bottom:8px">Requires an <b>exploit</b>-tier engagement and <code>ZYVOR_EXPLOIT_EXECUTION_ENABLED=true</code> on the server — see <code>docs/enterprise-v2.md</code>.</div>
+      <div class="act-row">
+        <input class="inp grow" id="ep-url" placeholder="https://your-app.example.com">
+        <input class="inp" id="ep-timeout" type="number" value="60" min="5" max="300" style="width:90px" title="sandbox timeout (s)">
+      </div>
+      <div class="act-row"><textarea class="inp grow" id="ep-finding" rows="2" placeholder="describe what to verify, e.g. 'SQL injection in ?id= reflects unescaped input'"></textarea></div>
+      <div class="act-row">
+        <select class="inp grow eng-select" id="ep-eng"><option value="">— select an authorized engagement —</option></select>
+        <button class="run-btn act-btn" data-kind="exploit_poc" style="margin-left:auto">💣 Generate &amp; verify</button>
+      </div>
+    </div>
+    <div class="glass card act" style="grid-column: 1 / -1">
+      <div class="act-title">⛓ Attack chain — plan-and-verify a multi-step escalation</div>
+      <div class="d" style="margin-bottom:8px">Same gates as Exploit PoC — this is Exploit PoC run in a loop with an LLM planner (max 5 steps, stops the moment a step fails to verify).</div>
+      <div class="act-row">
+        <input class="inp grow" id="ac-url" placeholder="https://your-app.example.com">
+        <input class="inp" id="ac-steps" type="number" value="5" min="1" max="5" style="width:80px" title="max steps">
+        <input class="inp" id="ac-timeout" type="number" value="60" min="5" max="300" style="width:90px" title="sandbox timeout per step (s)">
+      </div>
+      <div class="act-row"><input class="inp grow" id="ac-objective" placeholder="escalation goal, e.g. 'escalate SQLi to RCE'"></div>
+      <div class="act-row">
+        <select class="inp grow eng-select" id="ac-eng"><option value="">— select an authorized engagement —</option></select>
+        <button class="run-btn act-btn" data-kind="attack_chain" style="margin-left:auto">⛓ Run chain</button>
+      </div>
+    </div>
+    <div class="glass card act" style="grid-column: 1 / -1">
+      <div class="act-title">🖥 Host pentest — credentialed, sandboxed SSH enumeration</div>
+      <div class="d" style="margin-bottom:8px">Needs a third gate — <code>ZYVOR_CREDENTIALED_PENTEST_ENABLED=true</code> — and <code>ZYVOR_SANDBOX_HOST_IMAGE</code> (paramiko) configured server-side. <b>Creds must reference server-side env vars — the values below are never sent</b>, only the env var <i>names</i> the server already has set.</div>
+      <div class="act-row">
+        <input class="inp grow" id="hp-host" placeholder="hostname or IP">
+        <input class="inp" id="hp-port" type="number" value="22" min="1" max="65535" style="width:80px" title="SSH port">
+        <input class="inp" id="hp-timeout" type="number" value="60" min="5" max="300" style="width:90px" title="sandbox timeout (s)">
+      </div>
+      <div class="act-row"><textarea class="inp grow" id="hp-finding" rows="2" placeholder="describe what to verify, e.g. 'SSH allows password auth with a weak default credential'"></textarea></div>
+      <div class="act-row" style="gap:10px">
+        <input class="inp" id="hp-user" placeholder="username" style="max-width:180px">
+        <select class="inp" id="hp-authmethod" style="max-width:150px">
+          <option value="password">password</option>
+          <option value="private_key">private key</option>
+        </select>
+        <input class="inp grow" id="hp-secretenv" placeholder="server env var name holding it, e.g. TARGET_SSH_PASSWORD">
+      </div>
+      <div class="act-row">
+        <select class="inp grow eng-select" id="hp-eng"><option value="">— select an authorized engagement —</option></select>
+        <button class="run-btn act-btn" data-kind="host_pentest" style="margin-left:auto">🖥 Generate &amp; verify</button>
+      </div>
+    </div>
+    <div class="glass card act" style="grid-column: 1 / -1">
+      <div class="act-title">☁️ Cloud pentest — credentialed, sandboxed aws/gcloud/az enumeration</div>
+      <div class="d" style="margin-bottom:8px">Same third gate as Host pentest, plus <code>ZYVOR_SANDBOX_CLOUD_IMAGE</code> (aws/gcloud/az CLIs) configured server-side. Creds are a raw JSON object of secret-ref fields — <b>values must be <code>{"$secret":"env:NAME"}</code> refs</b>, never plaintext.</div>
+      <div class="act-row">
+        <select class="inp" id="cp-provider" style="max-width:120px">
+          <option value="aws">aws</option>
+          <option value="gcp">gcp</option>
+          <option value="azure">azure</option>
+        </select>
+        <input class="inp grow" id="cp-target" placeholder="account/project identifier, e.g. aws-prod-123456789012">
+        <input class="inp" id="cp-timeout" type="number" value="60" min="5" max="300" style="width:90px" title="sandbox timeout (s)">
+      </div>
+      <div class="act-row"><textarea class="inp grow" id="cp-finding" rows="2" placeholder="describe what to verify, e.g. 'S3 bucket policy allows public write'"></textarea></div>
+      <div class="act-row"><textarea class="inp grow" id="cp-creds" rows="2" placeholder='{"access_key_id":"AKIA...","secret_access_key":{"$secret":"env:AWS_SECRET"}}'></textarea></div>
+      <div class="act-row">
+        <select class="inp grow eng-select" id="cp-eng"><option value="">— select an authorized engagement —</option></select>
+        <button class="run-btn act-btn" data-kind="cloud_pentest" style="margin-left:auto">☁️ Generate &amp; verify</button>
+      </div>
+    </div>
   </div>
   <div class="glass card" id="job-result" style="display:none;margin-top:14px"></div>
 
@@ -1720,6 +1788,10 @@ const PALETTE_CMDS = [
   { label: "Misconfig scan (needs an engagement)", kind: "misconfig_scan" },
   { label: "CVE lookup (needs an engagement)", kind: "cve_lookup" },
   { label: "LLM red-team Ask Zyvor (needs an engagement)", kind: "llm_redteam" },
+  { label: "Exploit PoC — sandboxed verification (needs exploit-tier engagement)", kind: "exploit_poc" },
+  { label: "Attack chain — multi-step escalation (needs exploit-tier engagement)", kind: "attack_chain" },
+  { label: "Host pentest — SSH enumeration (needs credentialed-pentest opt-in)", kind: "host_pentest" },
+  { label: "Cloud pentest — aws/gcloud/az enumeration (needs credentialed-pentest opt-in)", kind: "cloud_pentest" },
   { label: "Refresh dashboard", action: () => sync() },
   { label: "Show cluster events", action: () => { if (!eventsOpen) $("events-toggle").click(); } },
   { label: "Show recorded videos", action: () => { if (!videosOpen) $("videos-toggle").click(); } },
@@ -2322,6 +2394,48 @@ function jobParams(kind) {
     categories: Array.from(document.querySelectorAll("#lr-categories input:checked")).map((c) => c.value),
     engagement_id: $("lr-eng").value,
   };
+  if (kind === "exploit_poc") return {
+    url: $("ep-url").value.trim(),
+    finding_description: $("ep-finding").value.trim(),
+    timeout_s: parseInt($("ep-timeout").value, 10) || 60,
+    engagement_id: $("ep-eng").value,
+  };
+  if (kind === "attack_chain") return {
+    url: $("ac-url").value.trim(),
+    objective: $("ac-objective").value.trim(),
+    max_steps: parseInt($("ac-steps").value, 10) || 5,
+    timeout_s: parseInt($("ac-timeout").value, 10) || 60,
+    engagement_id: $("ac-eng").value,
+  };
+  if (kind === "host_pentest") {
+    const envVar = $("hp-secretenv").value.trim();
+    const creds = { username: $("hp-user").value.trim() };
+    creds[$("hp-authmethod").value] = { "$secret": "env:" + envVar };
+    return {
+      host: $("hp-host").value.trim(),
+      port: parseInt($("hp-port").value, 10) || 22,
+      finding_description: $("hp-finding").value.trim(),
+      creds,
+      timeout_s: parseInt($("hp-timeout").value, 10) || 60,
+      engagement_id: $("hp-eng").value,
+    };
+  }
+  if (kind === "cloud_pentest") {
+    let creds = {};
+    const raw = $("cp-creds").value.trim();
+    if (raw) {
+      try { creds = JSON.parse(raw); }
+      catch (e) { toast("cloud_pentest", false, "creds is not valid JSON"); throw e; }
+    }
+    return {
+      provider: $("cp-provider").value,
+      target: $("cp-target").value.trim(),
+      finding_description: $("cp-finding").value.trim(),
+      creds,
+      timeout_s: parseInt($("cp-timeout").value, 10) || 60,
+      engagement_id: $("cp-eng").value,
+    };
+  }
   const PROBES = ["redirects","headers","cookies","robots","security_paths","api_check","sitemap_test","dns_records","cors","transport"];
   if (PROBES.includes(kind)) {
     const t = $("pr-target").value.trim();
@@ -2383,7 +2497,8 @@ const KIND_LABELS = { smoke: "smoke tests", full: "full pipeline", generate: "ge
   cors: "CORS check", transport: "compression", flow: "flow test", route_sweep: "route sweep",
   api_contract: "API contract", auth_test: "auth & session", realtime: "live data", vitals: "web vitals", ai_flow: "AI test",
   har_replay: "HAR record/replay", import_codegen: "import codegen",
-  misconfig_scan: "misconfig scan", cve_lookup: "CVE lookup", llm_redteam: "LLM red-team" };
+  misconfig_scan: "misconfig scan", cve_lookup: "CVE lookup", llm_redteam: "LLM red-team",
+  exploit_poc: "exploit PoC", attack_chain: "attack chain", host_pentest: "host pentest", cloud_pentest: "cloud pentest" };
 
 let lastToastKey = "";
 function renderRunStatus(st) {
@@ -2781,6 +2896,20 @@ function renderJobResult(st) {
       + "<tr><th>attack</th><th>category</th><th>result</th></tr>"
       + (r.results || []).map((x) => "<tr><td><code>" + esc(x.id) + "</code></td><td class=\"d\">" + esc(x.category) + "</td><td>"
         + (x.resisted == null ? '<span class="chip">error</span>' : '<span class="chip ' + (x.resisted ? "pass" : "fail") + '">' + (x.resisted ? "resisted" : "COMPROMISED") + "</span>") + "</td></tr>").join("")
+      + "</tbody></table>";
+  } else if (st.kind === "exploit_poc" || st.kind === "host_pentest" || st.kind === "cloud_pentest") {
+    const label = st.kind === "exploit_poc" ? esc(r.url) : st.kind === "host_pentest" ? esc(r.host) : esc(r.provider) + ":" + esc(r.target);
+    html += '<div class="d"><span class="chip ' + (r.verified ? "fail" : "pass") + '">' + (r.verified ? "VERIFIED" : "not verified") + "</span> "
+      + label + (r.timed_out ? ' · <span style="color:var(--status-warn)">timed out</span>' : "") + "</div>";
+    if (r.reason) html += '<div class="d" style="margin-top:6px">' + esc(r.reason) + "</div>";
+    html += '<div class="d" style="margin-top:8px">PoC: <code>' + esc(r.poc_path || "") + "</code> (sha256 " + esc((r.code_sha256 || "").slice(0, 12)) + "…)</div>";
+    if (r.stdout) html += '<pre style="margin-top:8px;max-height:220px;overflow:auto;font-size:.8rem">' + esc(r.stdout) + "</pre>";
+  } else if (st.kind === "attack_chain") {
+    html += '<div class="d">' + r.confirmed_count + "/" + (r.steps || []).length + " step(s) confirmed — " + esc(r.stop_reason) + "</div>";
+    html += '<table class="runs-table" style="margin-top:8px"><tbody>'
+      + "<tr><th>step</th><th>description</th><th>result</th></tr>"
+      + (r.steps || []).map((s) => "<tr><td>" + s.step + "</td><td>" + esc(s.description) + "</td><td>"
+        + '<span class="chip ' + (s.verified ? "fail" : "pass") + '">' + (s.verified ? "VERIFIED" : "not verified") + "</span></td></tr>").join("")
       + "</tbody></table>";
   } else {
     html += '<div class="d">' + r.passed + "/" + r.total + " passed"
