@@ -7,7 +7,7 @@ The earlier tutorials test **web pages** (crawl, audit, flow, route-sweep). But 
 3. **Live data** — assert WebSocket / SSE streams are actually live, not just that the page loads.
 4. **Web quality** — Core Web Vitals, device + network emulation, cross-browser.
 
-All four are in the dashboard (their own cards), the CLI, and the ⌘K palette, and each writes a CSV/HTML/PDF report.
+All four are in the dashboard (their own cards), the CLI, and the ⌘K palette, and each writes an HTML/PDF/Markdown/CSV report.
 
 ---
 

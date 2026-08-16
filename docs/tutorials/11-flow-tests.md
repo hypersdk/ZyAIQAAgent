@@ -118,7 +118,7 @@ Steps stream live into the job panel (`✓ step 3: click "Products"`) with a run
 
 - a **step table** — order, action, pass/fail, and each step's screenshot,
 - the **journey video embedded inline** (plays right in the page),
-- the **CSV / HTML / PDF** report download row (bundle under `reports/jobs/<ts>-flow/`),
+- the **HTML / PDF / Markdown / CSV** report download row (bundle under `reports/jobs/<ts>-flow/`) — Markdown also has a one-click **⧉ Copy MD** for pasting into a GitHub PR or Slack,
 - **Rerun** to run the same journey again.
 
 On Kubernetes the video and report persist on the PVC-backed `reports/`, so they survive pod restarts and show up in the **🎬 videos** panel and **⬇ all videos (zip)**.
@@ -143,7 +143,7 @@ zyvor-qa route-sweep https://zyvor.dev --routes "/,/products,/pricing" --update-
 zyvor-qa route-sweep https://zyvor.dev --auto --max-pages 20 --mobile
 ```
 
-Tick **auto-discover (crawl)** in the 🗺 card to do the same from the dashboard. Every sweep also writes a downloadable **CSV / HTML / PDF** report (route × viewport matrix with thumbnails), same as flow tests.
+Tick **auto-discover (crawl)** in the 🗺 card to do the same from the dashboard. Every sweep also writes a downloadable **HTML / PDF / Markdown / CSV** report (route × viewport matrix with thumbnails), same as flow tests.
 
 - Desktop is **1440×900**, mobile is **375×812**.
 - Dynamic content that flakes pixel diffs — `canvas`, charts (`.recharts-*`), clocks, timestamps, skeletons — is **masked**, and CSS animations are disabled.

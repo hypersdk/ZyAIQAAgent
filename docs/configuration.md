@@ -228,7 +228,7 @@ The **🎬 Flow test** action (`flow` job / `zyvor-qa flow`) drives a multi-step
 
 Four **product-testing** actions go beyond the page (see [Tutorial 12](tutorials/12-api-auth-realtime.md)): **🔌 API contract** (`api_contract` / `zyvor-qa api-test`) validates REST endpoints against their OpenAPI schema and runs multi-step API workflows; **🔐 Auth & session** (`auth_test` / `zyvor-qa auth-test`) logs in, saves a reusable session under `reports/artifacts/auth/`, and asserts logout/expiry/negative-auth — the saved session can be reused by `flow`/`realtime` via their `session` param; **📡 Live data** (`realtime` / `zyvor-qa realtime`) asserts WebSocket/SSE streams are live (Bearer / `Sec-WebSocket-Protocol` / one-time ticket auth); **📊 Web Vitals** (`vitals` / `zyvor-qa vitals`) grades LCP/CLS/INP with device + network throttle.
 
-The dashboard's audit, probe, screenshot, compare, ping, load-test, TLS, flaky, and schedule actions are entirely UI/API-driven — no extra environment variables. They persist artifacts (videos, screenshots, diff images, and CSV/HTML/PDF report bundles) under `reports/` (PVC-backed on Kubernetes).
+The dashboard's audit, probe, screenshot, compare, ping, load-test, TLS, flaky, and schedule actions are entirely UI/API-driven — no extra environment variables. They persist artifacts (videos, screenshots, diff images, and HTML/PDF/Markdown/CSV report bundles) under `reports/` (PVC-backed on Kubernetes).
 
 The dashboard is served by `zyvor-qa serve` at `/dashboard`. Cluster access resolves in-cluster config first, then local kubeconfig; with neither, the pod panels show an offline state and QA run history still works. See [Tutorial 10](tutorials/10-mission-control-dashboard.md).
 
