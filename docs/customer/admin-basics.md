@@ -37,7 +37,7 @@ curl -s http://175.110.122.71:30080/health
 | `ENABLE_AUTOFIX` / `ENABLE_AUTOFIX_APPLY` | Self-healing suggestions / apply |
 | `GITHUB_WEBHOOK_SECRET` | HMAC for `POST /webhook/github` |
 
-Canonical list: repo [`.env.example`](../../.env.example) and [`docs/configuration.md`](../configuration.md).
+Canonical list: repo [`.env.example`](https://github.com/hypersdk/ZyAIQAAgent/blob/main/.env.example) and [`docs/configuration.md`](https://github.com/hypersdk/ZyAIQAAgent/blob/main/docs/configuration.md).
 
 ## Deploy sketch
 
