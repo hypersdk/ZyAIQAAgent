@@ -97,47 +97,61 @@ the template if this becomes worth doing).
 
 ## Active exploitation (PoC generation/execution, attack chaining, host/cloud pentesting)
 
-Scoped deliberately during a security-testing feature pass rather than
-built as a first pass. What shipped: a general-purpose security-engagement
+Scoped in three stages during a security-testing feature pass rather than
+built all at once. Foundation: a general-purpose security-engagement
 authorization primitive (`orchestrator/security/engagement_policy.py`,
 `orchestrator/persistence/store.py`'s `engagements` table,
-`POST/GET/DELETE /api/v2/engagements`) that
-gates elevated-risk job kinds behind an admin-issued, target-scoped,
-tier-ranked attestation — mirroring `orchestrator/security/agent_policy.py`'s
-mode/approved-risks/fail-closed-in-production shape; three job kinds gated at
-its `active_recon` tier (`misconfig_scan`, `cve_lookup`, `llm_redteam`, see
-`orchestrator/dashboard/jobs.py`); and `cve_lookup` itself as the narrow,
-read-only first increment — fingerprints a target's tech/versions
-(`agents/probes/misconfig_scan.py::fingerprint_tech`) and checks them against
-OSV.dev. No PoC is written or run.
+`POST/GET/DELETE /api/v2/engagements`) that gates elevated-risk job kinds
+behind an admin-issued, target-scoped, tier-ranked attestation — mirroring
+`orchestrator/security/agent_policy.py`'s mode/approved-risks/fail-closed-
+in-production shape. Four job kinds sit behind it today: `misconfig_scan`,
+`cve_lookup`, `llm_redteam` at the `active_recon` tier, and `exploit_poc`
+(below) at the `exploit` tier.
 
-**Deliberately not built**: PoC generation/execution, multi-stage attack
-chaining (SQLi→RCE, upload→LFI→RCE→LPE, etc.), and credentialed host/AD/cloud
-penetration testing. The engagement schema already reserves an `'exploit'`
-tier (`TIER_RANK` in `engagement_policy.py`) as the hook point, but nothing
-requests it yet, because this repo has no execution sandbox for running
-arbitrary LLM-generated code against a live target — bolting that onto the
-existing trusted-first-party-function job runner would silently change the
-threat model for every job kind, not just a new one. Building it properly
-needs, at minimum:
+### ~~PoC generation/execution~~ — done, verification-only
 
-- A containerized, ephemeral, one-shot-per-attempt execution sandbox (Docker
-  with dropped capabilities/read-only rootfs at minimum; gVisor/Firecracker
-  preferred), torn down after each attempt.
-- Network egress locked to the engagement's `target_pattern` at the
-  container network-namespace/firewall level — not just today's app-level
-  `TargetPolicy` URL check, which validates destinations but doesn't contain
-  what a running exploit could reach.
-- A non-destructive-first default: exploit attempts confirm via
-  timing/response-diff oracles unless the engagement record is explicitly
-  `'exploit'` tier — extending `AgentPolicy`'s `allow_destructive` concept
-  into this domain.
-- PoC source + hash provenance tied to the authorizing `audit_events` row,
-  and a documented revert/cleanup story per finding class.
+`exploit_poc` (`orchestrator/dashboard/jobs.py`, `agents/exploit/
+poc_generator.py`, `orchestrator/security/sandbox.py`) generates a
+non-destructive verification script via LLM for a described finding, then
+runs it — never in the job-runner process — as a short-lived Kubernetes Job
+in a dedicated namespace (`kubernetes/sandbox.yaml`): dropped capabilities,
+non-root, read-only rootfs, no ServiceAccount token, resource limits, a hard
+wall-clock timeout. Gated by two independent things, not one: the citing
+engagement must be `tier=exploit` (`active_recon` is rejected), *and*
+`ZYVOR_EXPLOIT_EXECUTION_ENABLED=true` must be set — mirroring
+`AgentPolicy`'s `allow_destructive` pattern, so an admin creating an
+`exploit`-tier engagement alone can't turn this on by accident. If no
+sandbox namespace is configured or the cluster is unreachable,
+`sandbox.available()` returns false and the job refuses to run rather than
+falling back to unsandboxed execution. The generated script's system prompt
+constrains it to read-only requests, no floods/DoS, and a single
+`VERIFIED: true/false - reason` output line grounded in a timing/response/
+status-code difference — not a destructive payload. PoC source is written to
+`reports/pocs/<run>/poc.py` with its SHA-256 logged to `audit_events`.
 
-Worth doing once there's real usage data from the `active_recon` tier
-(misconfig scanning, CVE lookup, LLM red-teaming) showing the authorization
-model holds up in practice.
+Network-egress restriction is attempted (a per-Job NetworkPolicy scoped to
+the target's resolved IPs) but is explicitly best-effort: it only has real
+effect on NetworkPolicy-enforcing CNIs (Calico, Cilium, EKS/GKE/AKS default
+addons) — k3s's default Flannel CNI does not enforce NetworkPolicy at all,
+so on a plain k3s cluster this specific layer is a no-op and the pod
+security hardening above is what's actually holding. See
+`kubernetes/sandbox.yaml`'s comments for the full caveat.
+
+Not yet live-verified end-to-end against a real cluster with a real
+vulnerable target (unit-tested against a mocked Kubernetes client instead —
+see `tests/unit/test_sandbox.py`, `tests/unit/test_exploit_poc_job.py`).
+
+### Still not built: attack chaining, credentialed host/AD/cloud pentesting
+
+Multi-stage attack chaining (SQLi→RCE, upload→LFI→RCE→LPE, etc.) and
+credentialed host/AD/cloud penetration testing remain out of scope. Chaining
+can build directly on `exploit_poc`'s sandbox once there's a track record of
+it behaving safely; host/AD/cloud pentesting additionally needs a
+credential-handling story (reusing `orchestrator/security/secrets.py`'s
+`{"$secret": "env:..."}` reference pattern rather than ever accepting raw
+creds in a job param) and either SSH/WinRM libraries or shelling out to the
+`aws`/`gcloud`/`az` CLIs from inside the sandbox image, not new SDK
+dependencies in the main application.
 
 ## ~~CSRF~~ — done
 

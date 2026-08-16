@@ -44,18 +44,18 @@ VALID_KINDS = {
     "loadtest", "tls", "flow", "route_sweep",
     "api_contract", "auth_test", "realtime", "vitals", "ai_flow",
     "har_replay", "import_codegen",
-    "misconfig_scan", "cve_lookup", "llm_redteam",
+    "misconfig_scan", "cve_lookup", "llm_redteam", "exploit_poc",
 } | PROBE_KINDS
 
 # Job kinds gated behind an authorized security engagement
 # (orchestrator/security/engagement_policy.py) — see the enforcement call
 # near the end of _validate(). Values are the minimum engagement tier
-# required; 'exploit' is reserved for the not-yet-built PoC-execution phase
-# (see ROADMAP.md), so every kind here uses 'active_recon' today.
+# required.
 ELEVATED_RISK_KINDS: dict[str, str] = {
     "misconfig_scan": "active_recon",
     "cve_lookup": "active_recon",
     "llm_redteam": "active_recon",
+    "exploit_poc": "exploit",
 }
 
 _lock = threading.Lock()
@@ -463,6 +463,21 @@ def _validate(kind: str, params: dict[str, Any]) -> dict[str, Any]:
         selected = params.get("categories") or sorted(VALID_CATEGORIES)
         clean["categories"] = [c for c in selected if c in VALID_CATEGORIES] or sorted(VALID_CATEGORIES)
         clean["max_prompts"] = max(1, min(int(params.get("max_prompts") or 40), 40))
+    if kind == "exploit_poc":
+        # Fail closed: this kind requires an explicit, separate opt-in even
+        # beyond the exploit-tier engagement check below — mirrors
+        # ZYVOR_AGENT_ALLOW_DESTRUCTIVE's pattern in agent_policy.py.
+        if os.environ.get("ZYVOR_EXPLOIT_EXECUTION_ENABLED", "false").strip().lower() not in {"1", "true", "yes", "on"}:
+            raise ValueError("exploit_poc is disabled — set ZYVOR_EXPLOIT_EXECUTION_ENABLED=true to enable it")
+        url = (params.get("url") or "").strip()
+        if not url.startswith(("http://", "https://")):
+            raise ValueError("url must start with http:// or https://")
+        clean["url"] = url[:500]
+        description = (params.get("finding_description") or "").strip()
+        if not description:
+            raise ValueError("finding_description is required — describe what to verify")
+        clean["finding_description"] = description[:2000]
+        clean["timeout_s"] = max(5, min(int(params.get("timeout_s") or 60), 300))
     if kind in PROBE_KINDS:
         target = (params.get("url") or params.get("host") or "").strip()
         if kind == "dns_records":
@@ -2382,6 +2397,95 @@ def _job_llm_redteam(params: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _job_exploit_poc(params: dict[str, Any]) -> dict[str, Any]:
+    """Generate a non-destructive verification PoC via LLM and run it inside
+    the Kubernetes sandbox (orchestrator/security/sandbox.py) — never in
+    this process. Requires an engagement at the 'exploit' tier plus the
+    separate ZYVOR_EXPLOIT_EXECUTION_ENABLED opt-in (checked in _validate)."""
+    import hashlib
+    import time as _time
+    import uuid as _uuid
+    from urllib.parse import urlparse
+
+    from agents.common.models import PipelineReport
+    from agents.exploit.poc_generator import generate_verification_poc
+    from orchestrator.dashboard import findings, history
+    from orchestrator.persistence.store import get_store
+    from orchestrator.security import sandbox
+
+    t0 = _time.time()
+    url = params["url"]
+    description = params["finding_description"]
+
+    if not sandbox.available():
+        raise RuntimeError(
+            "exploit sandbox unavailable — set ZYVOR_SANDBOX_NAMESPACE and ensure "
+            "the cluster is reachable (see kubernetes/sandbox.yaml)"
+        )
+
+    log_progress(f"exploit_poc: generating verification script for {url}")
+    generated = generate_verification_poc(description, url)
+    code_hash = hashlib.sha256(generated.code.encode("utf-8")).hexdigest()
+
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    poc_dir = _repo_root() / "reports" / "pocs" / f"{stamp}-{_uuid.uuid4().hex[:8]}"
+    poc_dir.mkdir(parents=True, exist_ok=True)
+    (poc_dir / "poc.py").write_text(generated.code, encoding="utf-8")
+
+    get_store().audit(
+        "exploit_poc.generate", resource_type="poc", resource_id=code_hash,
+        detail={"url": url, "sha256": code_hash, "path": str(poc_dir / "poc.py")},
+    )
+    log_progress(f"exploit_poc: PoC written to {poc_dir / 'poc.py'} (sha256 {code_hash[:12]}…)")
+
+    host = urlparse(url).hostname or url
+    log_progress(f"exploit_poc: running in sandbox (timeout {params['timeout_s']}s)…")
+    result = sandbox.run_python(generated.code, timeout_s=params["timeout_s"], egress_hosts=[host])
+    _check_cancel()
+
+    verified = False
+    reason = ""
+    for line in (result.stdout or "").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("VERIFIED:"):
+            rest = stripped[len("VERIFIED:"):].strip()
+            verified = rest.lower().startswith("true")
+            reason = rest.split("-", 1)[1].strip() if "-" in rest else rest
+            break
+
+    log_progress(
+        f"exploit_poc: {'VERIFIED' if verified else 'not verified'}"
+        + (f" — {reason}" if reason else "")
+        + (" (timed out)" if result.timed_out else "")
+    )
+
+    raised: list[dict[str, Any]] = []
+    if verified:
+        title = f"exploit_poc confirmed: {description[:120]}"
+        findings.add(
+            "exploit_poc", "critical", title, detail=reason, url=url,
+            where=poc_dir.name, category="confirmed-vulnerability",
+        )
+        raised.append({
+            "severity": "critical", "title": title, "detail": reason,
+            "where": poc_dir.name, "category": "confirmed-vulnerability",
+        })
+
+    hist = PipelineReport(
+        summary=f"exploit_poc for {url}: {'verified' if verified else 'not verified'}",
+        passed=0 if verified else 1, failed=1 if verified else 0, total=1,
+    )
+    history.append_run(hist, source="dashboard-exploit-poc", duration_s=_time.time() - t0)
+
+    return {
+        "url": url, "verified": verified, "reason": reason,
+        "timed_out": result.timed_out, "exit_code": result.exit_code,
+        "stdout": (result.stdout or "")[:4000], "code_sha256": code_hash,
+        "poc_path": str(poc_dir / "poc.py"), "network_policy_applied": result.network_policy_applied,
+        "findings": raised,
+    }
+
+
 _JOBS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "smoke": _job_smoke,
     "flow": _job_flow,
@@ -2409,6 +2513,7 @@ _JOBS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "misconfig_scan": _job_misconfig_scan,
     "cve_lookup": _job_cve_lookup,
     "llm_redteam": _job_llm_redteam,
+    "exploit_poc": _job_exploit_poc,
 }
 
 

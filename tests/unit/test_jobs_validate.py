@@ -562,3 +562,63 @@ def test_llm_redteam_max_prompts_capped(monkeypatch):
     _allow_engagement(monkeypatch, target_pattern="dashboard_ask")
     clean = _validate("llm_redteam", {"max_prompts": 9999, "engagement_id": "eng-1"})
     assert clean["max_prompts"] == 40
+
+
+# --- exploit_poc: gated at the 'exploit' engagement tier PLUS a separate,
+# independent ZYVOR_EXPLOIT_EXECUTION_ENABLED opt-in (fail-closed default).
+
+def test_exploit_poc_registered():
+    assert "exploit_poc" in VALID_KINDS
+
+
+def test_exploit_poc_disabled_by_default(monkeypatch):
+    monkeypatch.delenv("ZYVOR_EXPLOIT_EXECUTION_ENABLED", raising=False)
+    _allow_engagement(monkeypatch, tier="exploit")
+    with pytest.raises(ValueError, match="ZYVOR_EXPLOIT_EXECUTION_ENABLED"):
+        _validate(
+            "exploit_poc",
+            {"url": "https://x.io", "finding_description": "SQLi in ?id=", "engagement_id": "eng-1"},
+        )
+
+
+def test_exploit_poc_rejects_active_recon_tier_engagement(monkeypatch):
+    monkeypatch.setenv("ZYVOR_EXPLOIT_EXECUTION_ENABLED", "true")
+    _allow_engagement(monkeypatch, tier="active_recon")
+    with pytest.raises(ValueError, match="insufficient"):
+        _validate(
+            "exploit_poc",
+            {"url": "https://x.io", "finding_description": "SQLi in ?id=", "engagement_id": "eng-1"},
+        )
+    monkeypatch.delenv("ZYVOR_EXPLOIT_EXECUTION_ENABLED", raising=False)
+
+
+def test_exploit_poc_requires_finding_description(monkeypatch):
+    monkeypatch.setenv("ZYVOR_EXPLOIT_EXECUTION_ENABLED", "true")
+    _allow_engagement(monkeypatch, tier="exploit")
+    with pytest.raises(ValueError, match="finding_description"):
+        _validate("exploit_poc", {"url": "https://x.io", "engagement_id": "eng-1"})
+    monkeypatch.delenv("ZYVOR_EXPLOIT_EXECUTION_ENABLED", raising=False)
+
+
+def test_exploit_poc_requires_url_scheme(monkeypatch):
+    monkeypatch.setenv("ZYVOR_EXPLOIT_EXECUTION_ENABLED", "true")
+    _allow_engagement(monkeypatch, tier="exploit")
+    with pytest.raises(ValueError, match="http"):
+        _validate("exploit_poc", {"url": "not-a-url", "finding_description": "x", "engagement_id": "eng-1"})
+    monkeypatch.delenv("ZYVOR_EXPLOIT_EXECUTION_ENABLED", raising=False)
+
+
+def test_exploit_poc_happy_path_with_exploit_tier_engagement(monkeypatch):
+    monkeypatch.setenv("ZYVOR_EXPLOIT_EXECUTION_ENABLED", "true")
+    _allow_engagement(monkeypatch, tier="exploit")
+    clean = _validate(
+        "exploit_poc",
+        {
+            "url": "https://x.io", "finding_description": "SQLi in ?id=",
+            "engagement_id": "eng-1", "timeout_s": 99999,
+        },
+    )
+    assert clean["url"].startswith("https://x.io")
+    assert clean["finding_description"] == "SQLi in ?id="
+    assert clean["timeout_s"] == 300  # capped
+    monkeypatch.delenv("ZYVOR_EXPLOIT_EXECUTION_ENABLED", raising=False)

@@ -1,0 +1,98 @@
+# PoC-execution sandbox for the `exploit_poc` job kind
+# (orchestrator/security/sandbox.py). A dedicated namespace, deliberately
+# separate from wherever `zyvor-qa` itself runs: the orchestrator's own
+# ServiceAccount (`zyvor-qa`, see rbac.yaml) is granted cross-namespace
+# permission to create/delete short-lived Jobs *here*, but the Jobs
+# themselves run under a zero-permission ServiceAccount that can't reach
+# back into the app's own namespace.
+#
+# IMPORTANT — CNI caveat: the NetworkPolicy below is only enforced by
+# NetworkPolicy-capable CNIs (Calico, Cilium, and the default addons on
+# EKS/GKE/AKS). k3s's default CNI (Flannel) does NOT enforce NetworkPolicy
+# at all — on a plain k3s install this resource is created but has zero
+# actual effect. The Job's PodSecurityContext hardening (dropped
+# capabilities, non-root, read-only rootfs, no token automount) in
+# `sandbox.py` is the containment that holds regardless of CNI; treat the
+# NetworkPolicy as defense-in-depth, not the primary boundary, until you've
+# confirmed your CNI enforces it (`kubectl get networkpolicy -n
+# zyvor-qa-sandbox` existing is not proof of enforcement).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: zyvor-qa-sandbox
+  labels:
+    app: zyvor-qa-agent
+    component: sandbox
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: zyvor-qa-sandbox
+  namespace: zyvor-qa-sandbox
+  labels:
+    app: zyvor-qa-agent
+# No Role is ever bound to this ServiceAccount — PoC pods run with it and
+# get zero Kubernetes API permissions. automountServiceAccountToken is also
+# set false at the Pod level in sandbox.py as a second, redundant guard.
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: zyvor-qa-sandbox-operator
+  namespace: zyvor-qa-sandbox
+  labels:
+    app: zyvor-qa-agent
+rules:
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["create", "delete", "get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["create", "delete", "get"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["networkpolicies"]
+    verbs: ["create", "delete", "get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: zyvor-qa-sandbox-operator
+  namespace: zyvor-qa-sandbox
+  labels:
+    app: zyvor-qa-agent
+subjects:
+  # The orchestrator's own ServiceAccount (rbac.yaml), granted permission
+  # here — in the sandbox namespace only — to spawn/tear down PoC Jobs.
+  # Update `namespace:` below if zyvor-qa itself is deployed outside `default`.
+  - kind: ServiceAccount
+    name: zyvor-qa
+    namespace: default
+roleRef:
+  kind: Role
+  name: zyvor-qa-sandbox-operator
+  apiGroup: rbac.authorization.k8s.io
+---
+# Default-deny egress + DNS-only baseline for the sandbox namespace. Per-Job
+# NetworkPolicies (created/deleted by sandbox.py) add narrow allow rules on
+# top of this for the specific engagement target. Subject to the CNI caveat
+# above.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: zyvor-qa-sandbox-default-deny
+  namespace: zyvor-qa-sandbox
+spec:
+  podSelector: {}
+  policyTypes: ["Egress"]
+  egress:
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
