@@ -7,20 +7,24 @@ detail already lives.
 
 ## Test coverage — in progress
 
-Overall unit-test coverage moved from ~33% to ~39% by targeting the two
-worst-covered files:
+Overall unit-test coverage moved from ~33% to ~42% (389 tests) across two
+passes: the validation/state-layer pass below, then the security-testing
+feature pass (`engagement_policy.py` 100%, `sandbox.py` 77%, `jobs.py`'s new
+`exploit_poc`/`attack_chain`/`host_pentest`/`cloud_pentest`/`misconfig_scan`/
+`cve_lookup`/`llm_redteam` validation and state paths) adding its own tests
+on top without moving the needle down.
 
-- `orchestrator/dashboard/jobs.py` — 19% → 33%. `_validate()` (all ~25 job
+- `orchestrator/dashboard/jobs.py` — 19% → 46%. `_validate()` (all job
   kinds, not just a handful) plus the state/dispatch layer (`log_progress`,
   `_stream_line*`, `cancel`/`status`, `trigger`/`_run`, `_brief`, `_slug`,
   `_explain_failure`, `_cases_payload`, `_env_overrides`,
   `_safe_local_spec` — including a real path-traversal-rejection test) are
   now covered (`tests/unit/test_jobs_validate.py`,
-  `tests/unit/test_jobs_state.py`).
-- `orchestrator/cli.py` — 0% → 19%. `_initial_state`, `_load_env`,
+  `tests/unit/test_jobs_state.py`, plus the new security-job test files).
+- `orchestrator/cli.py` — 0% → 17%. `_initial_state`, `_load_env`,
   `_ensure_tls_cert` covered (`tests/unit/test_cli_helpers.py`).
 
-**Deliberately still uncovered** in both files: the ~30 `_job_*` /
+**Deliberately still uncovered** in both files: most of the `_job_*` /
 `@app.command()` functions themselves. They're thin wrappers that
 immediately delegate to real subprocess/network calls (Playwright, crawl
 scripts, TLS probes, HTTP probes) — meaningfully unit-testing them means
@@ -29,11 +33,12 @@ ratio, versus the validation/state layer above where bugs actually bite
 (input validation, path safety, dispatch correctness) and where coverage is
 now real. That's still the next slice if coverage needs to go further.
 
-The CI gate (`.github/workflows/security.yml`) currently enforces
-`--cov-fail-under=28` — quietly relaxed down from an original 70% target
-that was never actually met, with an inline `TODO` rather than a plan to
-close the gap. Worth raising the gate to reflect the ~39% floor now that
-it's real, and continuing to close the gap from there.
+The CI gate (`.github/workflows/security.yml`) enforces
+`--cov-fail-under=40` (raised from 36, itself raised from an original,
+never-actually-met 70% target) — still a deliberate few points below the
+measured ~42% floor to leave headroom for minor cross-Python-version
+coverage variance, with an inline `TODO` to keep raising it as coverage
+grows rather than a plan to close the whole gap at once.
 
 ## Observability: tracing
 

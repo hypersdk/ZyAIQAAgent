@@ -1,6 +1,6 @@
 # ZyAIQAAgent customer PDFs
 
-Generated: 2026-07-29
+Generated: 2026-08-16
 
 Rebuild: `node scripts/customer-docs/build-customer-pdfs.mjs`
 
