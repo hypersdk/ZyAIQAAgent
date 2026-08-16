@@ -29,7 +29,8 @@ make k8s-apply
 Do not put shell comments on the same line as `make` — `make k8s-apply # comment` is parsed as multiple targets and will fail.
 
 ```bash
-# Edit secret.yaml with your API keys first
+# Edit secret.yaml with your API keys, and ingress.yaml's host with your
+# own domain, first
 kubectl apply -f kubernetes/configmap.yaml
 kubectl apply -f kubernetes/secret.yaml
 kubectl apply -f kubernetes/deployment.yaml
@@ -59,9 +60,9 @@ make k8s-apply
 
 ## GitHub Webhook
 
-Point your GitHub webhook to:
+Point your GitHub webhook to the host you set in `ingress.yaml`:
 ```
-https://qa-webhook.zyvor.dev/webhook/github
+https://qa-webhook.example.com/webhook/github
 ```
 
 Events: `push`, `pull_request`, `repository_dispatch`
@@ -91,7 +92,7 @@ metadata:
     nginx.ingress.kubernetes.io/auth-secret: zyvor-qa-dashboard-auth
 spec:
   rules:
-    - host: qa-webhook.zyvor.dev
+    - host: qa-webhook.example.com
       http:
         paths:
           - path: /dashboard

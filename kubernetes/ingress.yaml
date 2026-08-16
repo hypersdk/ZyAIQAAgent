@@ -9,7 +9,8 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: qa-webhook.zyvor.dev
+    # CHANGE ME: replace with your own ingress hostname before applying.
+    - host: qa-webhook.example.com
       http:
         paths:
           - path: /webhook/github

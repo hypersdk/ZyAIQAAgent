@@ -90,10 +90,10 @@ make k8s-delete
 
 Local cluster for testing: `kind create cluster --name zyvor-qa` or `minikube start`, then `kubectl cluster-info` to confirm.
 
-Point the GitHub webhook at the ingress host (default manifest uses `qa-webhook.zyvor.dev`):
+Point the GitHub webhook at the ingress host you set in `kubernetes/ingress.yaml` (default manifest placeholder is `qa-webhook.example.com`):
 
 ```
-https://qa-webhook.zyvor.dev/webhook/github
+https://qa-webhook.example.com/webhook/github
 ```
 
 with the same `GITHUB_WEBHOOK_SECRET` as in `secret.yaml`.
