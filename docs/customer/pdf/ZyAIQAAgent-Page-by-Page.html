@@ -24,7 +24,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <section class="cover"><div class="kicker">ZyvorAI Labs · Customer Documentation</div>
 <h1>ZyAI<span>QA</span>Agent</h1>
 <div class="sub">Page-by-Page Product Manual</div>
-<div class="badge">2026-07-29</div>
+<div class="badge">2026-08-16</div>
 <div class="foot">zyvor.dev · Confidential — for licensed customers</div></section>
 <main><h2>Page-by-page guides</h2>
 <p>Each guide follows: Purpose → When to use it → How to get there → What you can do → Related pages.</p>
@@ -212,6 +212,47 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <td>Measure Core Web Vitals (LCP / CLS / INP) with optional device and network throttle.</td>
 </tr>
 </tbody></table>
+<h3>Security</h3>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>What it covers</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="security/dashboard-actions-attack-chain.md">Attack chain</a></td>
+<td>Chains exploit-PoC steps via an LLM planner to confirm a multi-step escalation path — same sandbox and opt-ins as Exploit PoC.</td>
+</tr>
+<tr>
+<td><a href="security/dashboard-actions-cloud-pentest.md">Cloud pentest</a></td>
+<td>Credentialed AWS/GCP/Azure CLI enumeration of a described finding in the sandbox — same opt-ins and credential-reference rules as Host pentest.</td>
+</tr>
+<tr>
+<td><a href="security/dashboard-actions-cve-lookup.md">CVE lookup</a></td>
+<td>Read-only: fingerprints tech/versions and checks them against OSV.dev. No PoC is generated or run — requires a security engagement.</td>
+</tr>
+<tr>
+<td><a href="security/dashboard-actions-exploit-poc.md">Exploit PoC</a></td>
+<td>LLM-generated, non-destructive verification of a described finding, executed in a locked-down Kubernetes sandbox — requires an exploit-tier engagement and an execution opt-in.</td>
+</tr>
+<tr>
+<td><a href="security/dashboard-actions-host-pentest.md">Host pentest</a></td>
+<td>Credentialed SSH enumeration of a described finding via paramiko in the sandbox — needs a third, independent credentialed-pentest opt-in; credentials are always env-var references, never raw values.</td>
+</tr>
+<tr>
+<td><a href="security/dashboard-actions-llm-redteam.md">LLM red-team</a></td>
+<td>Attacker/judge adversarial-prompt battery against Ask Zyvor — prompt injection, system-prompt leak, excessive agency, jailbreak, PII/secret leak — requires a security engagement.</td>
+</tr>
+<tr>
+<td><a href="security/dashboard-actions-misconfig-scan.md">Misconfig scan</a></td>
+<td>Tech/version fingerprinting, wordlist-driven path discovery, security-header value grading, and DNS hygiene checks — requires a security engagement.</td>
+</tr>
+<tr>
+<td><a href="security/dashboard-actions-security-engagements.md">Security engagements</a></td>
+<td>Create/revoke the admin-issued, target-scoped authorization required before running misconfig scan, CVE lookup, or LLM red-team.</td>
+</tr>
+</tbody></table>
 <h3>Visual</h3>
 <table>
 <thead>
@@ -238,7 +279,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 </tr>
 </tbody></table>
 <hr>
-<p>34 guides. Regenerate: <code>node scripts/customer-docs/generate-guide-index.mjs</code>.</p>
+<p>42 guides. Regenerate: <code>node scripts/customer-docs/generate-guide-index.mjs</code>.</p>
 <hr>
 <h2>API contract</h2>
 <h3>Purpose</h3>
@@ -1140,6 +1181,246 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li><a href="../../PAGE_INDEX.md">Page index</a></li>
 </ul>
 <hr>
+<h2>Attack chain</h2>
+<h3>Purpose</h3>
+<p>Chains exploit-PoC steps via an LLM planner to confirm a multi-step escalation path — same sandbox and opt-ins as Exploit PoC.</p>
+<h3>When to use it</h3>
+<ul>
+<li>Open this card when the job matches the purpose above</li>
+<li>Prefer <strong>Mission Control</strong> (<code>/dashboard</code>) and the <strong>⌘K</strong> command palette if you are unsure where to start</li>
+<li>Confirm <code>ZYVOR_BASE_URL</code>, dashboard auth, and that Playwright browsers are installed if runs fail immediately</li>
+</ul>
+<h3>How to get there</h3>
+<ul>
+<li>Surface: <code>/dashboard/actions/attack-chain</code></li>
+<li>UI: Mission Control → <strong>Security</strong> → <strong>Attack chain</strong> (scroll the Actions grid, or search with ⌘K / Ctrl-K)</li>
+</ul>
+<h3>What you can do</h3>
+<ol>
+<li>Open <code>/dashboard</code> (sign in at <code>/login</code> when <code>DASHBOARD_PASSWORD</code> is set).</li>
+<li>Fill the card fields for <strong>Attack chain</strong>, then start the action and watch the live job panel (✓/✗ chips, Stop, download log).</li>
+<li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
+<li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
+</ol>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<h3>Related pages</h3>
+<ul>
+<li><a href="../../getting-started.md">Getting Started</a></li>
+<li><a href="../../using-the-dashboard.md">Using the Dashboard</a></li>
+<li><a href="../overview/dashboard.md">Mission Control</a></li>
+<li><a href="../../PAGE_INDEX.md">Page index</a></li>
+</ul>
+<hr>
+<h2>Cloud pentest</h2>
+<h3>Purpose</h3>
+<p>Credentialed AWS/GCP/Azure CLI enumeration of a described finding in the sandbox — same opt-ins and credential-reference rules as Host pentest.</p>
+<h3>When to use it</h3>
+<ul>
+<li>Open this card when the job matches the purpose above</li>
+<li>Prefer <strong>Mission Control</strong> (<code>/dashboard</code>) and the <strong>⌘K</strong> command palette if you are unsure where to start</li>
+<li>Confirm <code>ZYVOR_BASE_URL</code>, dashboard auth, and that Playwright browsers are installed if runs fail immediately</li>
+</ul>
+<h3>How to get there</h3>
+<ul>
+<li>Surface: <code>/dashboard/actions/cloud-pentest</code></li>
+<li>UI: Mission Control → <strong>Security</strong> → <strong>Cloud pentest</strong> (scroll the Actions grid, or search with ⌘K / Ctrl-K)</li>
+</ul>
+<h3>What you can do</h3>
+<ol>
+<li>Open <code>/dashboard</code> (sign in at <code>/login</code> when <code>DASHBOARD_PASSWORD</code> is set).</li>
+<li>Fill the card fields for <strong>Cloud pentest</strong>, then start the action and watch the live job panel (✓/✗ chips, Stop, download log).</li>
+<li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
+<li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
+</ol>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<h3>Related pages</h3>
+<ul>
+<li><a href="../../getting-started.md">Getting Started</a></li>
+<li><a href="../../using-the-dashboard.md">Using the Dashboard</a></li>
+<li><a href="../overview/dashboard.md">Mission Control</a></li>
+<li><a href="../../PAGE_INDEX.md">Page index</a></li>
+</ul>
+<hr>
+<h2>CVE lookup</h2>
+<h3>Purpose</h3>
+<p>Read-only: fingerprints tech/versions and checks them against OSV.dev. No PoC is generated or run — requires a security engagement.</p>
+<h3>When to use it</h3>
+<ul>
+<li>Open this card when the job matches the purpose above</li>
+<li>Prefer <strong>Mission Control</strong> (<code>/dashboard</code>) and the <strong>⌘K</strong> command palette if you are unsure where to start</li>
+<li>Confirm <code>ZYVOR_BASE_URL</code>, dashboard auth, and that Playwright browsers are installed if runs fail immediately</li>
+</ul>
+<h3>How to get there</h3>
+<ul>
+<li>Surface: <code>/dashboard/actions/cve-lookup</code></li>
+<li>UI: Mission Control → <strong>Security</strong> → <strong>CVE lookup</strong> (scroll the Actions grid, or search with ⌘K / Ctrl-K)</li>
+</ul>
+<h3>What you can do</h3>
+<ol>
+<li>Open <code>/dashboard</code> (sign in at <code>/login</code> when <code>DASHBOARD_PASSWORD</code> is set).</li>
+<li>Fill the card fields for <strong>CVE lookup</strong>, then start the action and watch the live job panel (✓/✗ chips, Stop, download log).</li>
+<li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
+<li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
+</ol>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<h3>Related pages</h3>
+<ul>
+<li><a href="../../getting-started.md">Getting Started</a></li>
+<li><a href="../../using-the-dashboard.md">Using the Dashboard</a></li>
+<li><a href="../overview/dashboard.md">Mission Control</a></li>
+<li><a href="../../PAGE_INDEX.md">Page index</a></li>
+</ul>
+<hr>
+<h2>Exploit PoC</h2>
+<h3>Purpose</h3>
+<p>LLM-generated, non-destructive verification of a described finding, executed in a locked-down Kubernetes sandbox — requires an exploit-tier engagement and an execution opt-in.</p>
+<h3>When to use it</h3>
+<ul>
+<li>Open this card when the job matches the purpose above</li>
+<li>Prefer <strong>Mission Control</strong> (<code>/dashboard</code>) and the <strong>⌘K</strong> command palette if you are unsure where to start</li>
+<li>Confirm <code>ZYVOR_BASE_URL</code>, dashboard auth, and that Playwright browsers are installed if runs fail immediately</li>
+</ul>
+<h3>How to get there</h3>
+<ul>
+<li>Surface: <code>/dashboard/actions/exploit-poc</code></li>
+<li>UI: Mission Control → <strong>Security</strong> → <strong>Exploit PoC</strong> (scroll the Actions grid, or search with ⌘K / Ctrl-K)</li>
+</ul>
+<h3>What you can do</h3>
+<ol>
+<li>Open <code>/dashboard</code> (sign in at <code>/login</code> when <code>DASHBOARD_PASSWORD</code> is set).</li>
+<li>Fill the card fields for <strong>Exploit PoC</strong>, then start the action and watch the live job panel (✓/✗ chips, Stop, download log).</li>
+<li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
+<li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
+</ol>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<h3>Related pages</h3>
+<ul>
+<li><a href="../../getting-started.md">Getting Started</a></li>
+<li><a href="../../using-the-dashboard.md">Using the Dashboard</a></li>
+<li><a href="../overview/dashboard.md">Mission Control</a></li>
+<li><a href="../../PAGE_INDEX.md">Page index</a></li>
+</ul>
+<hr>
+<h2>Host pentest</h2>
+<h3>Purpose</h3>
+<p>Credentialed SSH enumeration of a described finding via paramiko in the sandbox — needs a third, independent credentialed-pentest opt-in; credentials are always env-var references, never raw values.</p>
+<h3>When to use it</h3>
+<ul>
+<li>Open this card when the job matches the purpose above</li>
+<li>Prefer <strong>Mission Control</strong> (<code>/dashboard</code>) and the <strong>⌘K</strong> command palette if you are unsure where to start</li>
+<li>Confirm <code>ZYVOR_BASE_URL</code>, dashboard auth, and that Playwright browsers are installed if runs fail immediately</li>
+</ul>
+<h3>How to get there</h3>
+<ul>
+<li>Surface: <code>/dashboard/actions/host-pentest</code></li>
+<li>UI: Mission Control → <strong>Security</strong> → <strong>Host pentest</strong> (scroll the Actions grid, or search with ⌘K / Ctrl-K)</li>
+</ul>
+<h3>What you can do</h3>
+<ol>
+<li>Open <code>/dashboard</code> (sign in at <code>/login</code> when <code>DASHBOARD_PASSWORD</code> is set).</li>
+<li>Fill the card fields for <strong>Host pentest</strong>, then start the action and watch the live job panel (✓/✗ chips, Stop, download log).</li>
+<li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
+<li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
+</ol>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<h3>Related pages</h3>
+<ul>
+<li><a href="../../getting-started.md">Getting Started</a></li>
+<li><a href="../../using-the-dashboard.md">Using the Dashboard</a></li>
+<li><a href="../overview/dashboard.md">Mission Control</a></li>
+<li><a href="../../PAGE_INDEX.md">Page index</a></li>
+</ul>
+<hr>
+<h2>LLM red-team</h2>
+<h3>Purpose</h3>
+<p>Attacker/judge adversarial-prompt battery against Ask Zyvor — prompt injection, system-prompt leak, excessive agency, jailbreak, PII/secret leak — requires a security engagement.</p>
+<h3>When to use it</h3>
+<ul>
+<li>Open this card when the job matches the purpose above</li>
+<li>Prefer <strong>Mission Control</strong> (<code>/dashboard</code>) and the <strong>⌘K</strong> command palette if you are unsure where to start</li>
+<li>Confirm <code>ZYVOR_BASE_URL</code>, dashboard auth, and that Playwright browsers are installed if runs fail immediately</li>
+</ul>
+<h3>How to get there</h3>
+<ul>
+<li>Surface: <code>/dashboard/actions/llm-redteam</code></li>
+<li>UI: Mission Control → <strong>Security</strong> → <strong>LLM red-team</strong> (scroll the Actions grid, or search with ⌘K / Ctrl-K)</li>
+</ul>
+<h3>What you can do</h3>
+<ol>
+<li>Open <code>/dashboard</code> (sign in at <code>/login</code> when <code>DASHBOARD_PASSWORD</code> is set).</li>
+<li>Fill the card fields for <strong>LLM red-team</strong>, then start the action and watch the live job panel (✓/✗ chips, Stop, download log).</li>
+<li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
+<li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
+</ol>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<h3>Related pages</h3>
+<ul>
+<li><a href="../../getting-started.md">Getting Started</a></li>
+<li><a href="../../using-the-dashboard.md">Using the Dashboard</a></li>
+<li><a href="../overview/dashboard.md">Mission Control</a></li>
+<li><a href="../../PAGE_INDEX.md">Page index</a></li>
+</ul>
+<hr>
+<h2>Misconfig scan</h2>
+<h3>Purpose</h3>
+<p>Tech/version fingerprinting, wordlist-driven path discovery, security-header value grading, and DNS hygiene checks — requires a security engagement.</p>
+<h3>When to use it</h3>
+<ul>
+<li>Open this card when the job matches the purpose above</li>
+<li>Prefer <strong>Mission Control</strong> (<code>/dashboard</code>) and the <strong>⌘K</strong> command palette if you are unsure where to start</li>
+<li>Confirm <code>ZYVOR_BASE_URL</code>, dashboard auth, and that Playwright browsers are installed if runs fail immediately</li>
+</ul>
+<h3>How to get there</h3>
+<ul>
+<li>Surface: <code>/dashboard/actions/misconfig-scan</code></li>
+<li>UI: Mission Control → <strong>Security</strong> → <strong>Misconfig scan</strong> (scroll the Actions grid, or search with ⌘K / Ctrl-K)</li>
+</ul>
+<h3>What you can do</h3>
+<ol>
+<li>Open <code>/dashboard</code> (sign in at <code>/login</code> when <code>DASHBOARD_PASSWORD</code> is set).</li>
+<li>Fill the card fields for <strong>Misconfig scan</strong>, then start the action and watch the live job panel (✓/✗ chips, Stop, download log).</li>
+<li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
+<li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
+</ol>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<h3>Related pages</h3>
+<ul>
+<li><a href="../../getting-started.md">Getting Started</a></li>
+<li><a href="../../using-the-dashboard.md">Using the Dashboard</a></li>
+<li><a href="../overview/dashboard.md">Mission Control</a></li>
+<li><a href="../../PAGE_INDEX.md">Page index</a></li>
+</ul>
+<hr>
+<h2>Security engagements</h2>
+<h3>Purpose</h3>
+<p>Create/revoke the admin-issued, target-scoped authorization required before running misconfig scan, CVE lookup, or LLM red-team.</p>
+<h3>When to use it</h3>
+<ul>
+<li>Open this card when the job matches the purpose above</li>
+<li>Prefer <strong>Mission Control</strong> (<code>/dashboard</code>) and the <strong>⌘K</strong> command palette if you are unsure where to start</li>
+<li>Confirm <code>ZYVOR_BASE_URL</code>, dashboard auth, and that Playwright browsers are installed if runs fail immediately</li>
+</ul>
+<h3>How to get there</h3>
+<ul>
+<li>Surface: <code>/dashboard/actions/security-engagements</code></li>
+<li>UI: Mission Control → <strong>Security</strong> → <strong>Security engagements</strong> (scroll the Actions grid, or search with ⌘K / Ctrl-K)</li>
+</ul>
+<h3>What you can do</h3>
+<ol>
+<li>Open <code>/dashboard</code> (sign in at <code>/login</code> when <code>DASHBOARD_PASSWORD</code> is set).</li>
+<li>Fill the card fields for <strong>Security engagements</strong>, then start the action and watch the live job panel (✓/✗ chips, Stop, download log).</li>
+<li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
+<li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
+</ol>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<h3>Related pages</h3>
+<ul>
+<li><a href="../../getting-started.md">Getting Started</a></li>
+<li><a href="../../using-the-dashboard.md">Using the Dashboard</a></li>
+<li><a href="../overview/dashboard.md">Mission Control</a></li>
+<li><a href="../../PAGE_INDEX.md">Page index</a></li>
+</ul>
+<hr>
 <h2>Compare URLs</h2>
 <h3>Purpose</h3>
 <p>Side-by-side visual diff of two URLs (e.g. staging vs production).</p>
@@ -1262,7 +1543,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <hr>
 <h2>ZyAIQAAgent — Complete page index</h2>
 <p>Every Mission Control surface and action card.</p>
-<p><em>Generated: 2026-07-29 · 34 routes</em></p>
+<p><em>Generated: 2026-08-16 · 42 routes</em></p>
 <p>Regenerate: <code>node scripts/customer-docs/generate-page-index.mjs</code></p>
 <h3>Overview</h3>
 <table>
@@ -1519,6 +1800,65 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <td><code>/dashboard/actions/auth</code></td>
 <td>Login → reusable session file → logout / expiry / negative auth checks.</td>
 <td><a href="pages/api/dashboard-actions-auth.md">Open</a></td>
+</tr>
+</tbody></table>
+<h3>Security</h3>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Route</th>
+<th>Purpose</th>
+<th>Guide</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Security engagements</td>
+<td><code>/dashboard/actions/security-engagements</code></td>
+<td>Create/revoke the admin-issued, target-scoped authorization required before running any deeper security testing job.</td>
+<td><a href="pages/security/dashboard-actions-security-engagements.md">Open</a></td>
+</tr>
+<tr>
+<td>Misconfig scan</td>
+<td><code>/dashboard/actions/misconfig-scan</code></td>
+<td>Tech/version fingerprinting, wordlist-driven path discovery, security-header value grading, and DNS hygiene checks — requires a security engagement.</td>
+<td><a href="pages/security/dashboard-actions-misconfig-scan.md">Open</a></td>
+</tr>
+<tr>
+<td>CVE lookup</td>
+<td><code>/dashboard/actions/cve-lookup</code></td>
+<td>Read-only: fingerprints tech/versions and checks them against OSV.dev. No PoC is generated or run — requires a security engagement.</td>
+<td><a href="pages/security/dashboard-actions-cve-lookup.md">Open</a></td>
+</tr>
+<tr>
+<td>LLM red-team</td>
+<td><code>/dashboard/actions/llm-redteam</code></td>
+<td>Attacker/judge adversarial-prompt battery against Ask Zyvor — prompt injection, system-prompt leak, excessive agency, jailbreak, PII/secret leak — requires a security engagement.</td>
+<td><a href="pages/security/dashboard-actions-llm-redteam.md">Open</a></td>
+</tr>
+<tr>
+<td>Exploit PoC</td>
+<td><code>/dashboard/actions/exploit-poc</code></td>
+<td>LLM-generated, non-destructive verification of a described finding, executed in a locked-down Kubernetes sandbox — requires an exploit-tier engagement and an execution opt-in.</td>
+<td><a href="pages/security/dashboard-actions-exploit-poc.md">Open</a></td>
+</tr>
+<tr>
+<td>Attack chain</td>
+<td><code>/dashboard/actions/attack-chain</code></td>
+<td>Chains exploit-PoC steps via an LLM planner to confirm a multi-step escalation path — same sandbox and opt-ins as Exploit PoC.</td>
+<td><a href="pages/security/dashboard-actions-attack-chain.md">Open</a></td>
+</tr>
+<tr>
+<td>Host pentest</td>
+<td><code>/dashboard/actions/host-pentest</code></td>
+<td>Credentialed SSH enumeration of a described finding via paramiko in the sandbox — needs a third, independent credentialed-pentest opt-in; credentials are always env-var references, never raw values.</td>
+<td><a href="pages/security/dashboard-actions-host-pentest.md">Open</a></td>
+</tr>
+<tr>
+<td>Cloud pentest</td>
+<td><code>/dashboard/actions/cloud-pentest</code></td>
+<td>Credentialed AWS/GCP/Azure CLI enumeration of a described finding in the sandbox — same opt-ins and credential-reference rules as Host pentest.</td>
+<td><a href="pages/security/dashboard-actions-cloud-pentest.md">Open</a></td>
 </tr>
 </tbody></table>
 <h3>Operations</h3>

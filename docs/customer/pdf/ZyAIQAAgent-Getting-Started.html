@@ -24,7 +24,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <section class="cover"><div class="kicker">ZyvorAI Labs · Customer Documentation</div>
 <h1>ZyAI<span>QA</span>Agent</h1>
 <div class="sub">Getting Started</div>
-<div class="badge">2026-07-29</div>
+<div class="badge">2026-08-16</div>
 <div class="foot">zyvor.dev · Confidential — for licensed customers</div></section>
 <main><h2>What you need</h2>
 <table>
@@ -68,23 +68,29 @@ make install           # zyvor-qa CLI + Playwright browsers
 <p>When <code>DASHBOARD_PASSWORD</code> is set, sign in at <code>/login</code> (defaults often <code>admin</code> / <code>Admin@321</code> on lab hosts — override via env).</p>
 <h2>4. Orient yourself</h2>
 <ol>
-<li><strong>Hero</strong> — pods, replicas, last QA run, pass rate, next smoke.</li>
+<li><strong>Boot splash → hero</strong> — pods, replicas, last QA run, pass rate, next smoke; signal field behind the hero.</li>
 <li><strong>Actions</strong> — smoke, generate, flow, HAR, API, auth, vitals, probes, …</li>
 <li><strong>Live job panel</strong> — streaming log, ✓/✗ chips, Stop.</li>
 <li><strong>Schedules / Findings / QA Runs</strong> — monitors, collected issues, history.</li>
-<li><strong>⌘K</strong> — jump to any card by name.</li>
+<li><strong>⌘K</strong> — jump to any card; double-click brand for <strong>NOC</strong>; <code>`</code> for warp.</li>
 </ol>
 <h2>5. First workflows</h2>
 <h3>A. Smoke from the UI</h3>
 <p>Mission Control → ▶ Smoke (optional <code>@smoke</code> grep).</p>
-<h3>B. Drive a short journey</h3>
+<h3>B. Drive a short journey (record video)</h3>
 <p>Actions → 🎬 Flow test — paste steps or English, run with video recording.</p>
+<p>Against the public demo site:</p>
+<pre><code class="language-bash">ZYVOR_BASE_URL=https://zyvor.dev
+zyvor-qa flow https://zyvor.dev --steps /tmp/zyvor-home.steps --video
+</code></pre>
+<p>Full recipe + <strong>watch the journey video</strong>: <a href="test-zyvor-dev.md">Test zyvor.dev</a>.</p>
 <h3>C. Full pipeline from a spec</h3>
 <pre><code class="language-bash">zyvor-qa run --source local --spec path/to/spec.md
 </code></pre>
 <h2>Related</h2>
 <ul>
 <li><a href="using-the-dashboard.md">Using the Dashboard</a></li>
+<li><a href="test-zyvor-dev.md">Test zyvor.dev</a></li>
 <li><a href="workflows.md">Common workflows</a></li>
 <li><a href="admin-basics.md">Admin basics</a></li>
 <li><a href="pages/README.md">Page-by-page guides</a></li>
@@ -100,8 +106,20 @@ make install           # zyvor-qa CLI + Playwright browsers
 </tr>
 </thead>
 <tbody><tr>
+<td><strong>Boot splash</strong></td>
+<td>Short warm-up intro on first load</td>
+</tr>
+<tr>
 <td><strong>Hero</strong></td>
-<td>Health banner + stat tiles (pods, replicas, last run, pass rate, cron)</td>
+<td>Health banner + stat tiles (pods, replicas, last run, pass rate, cron) + primary Smoke CTA</td>
+</tr>
+<tr>
+<td><strong>Signal field</strong></td>
+<td>Live constellation canvas behind the hero</td>
+</tr>
+<tr>
+<td><strong>Glass topbar / footer</strong></td>
+<td>Sticky brand + status while you scroll</td>
 </tr>
 <tr>
 <td><strong>Workloads / Pods</strong></td>
@@ -132,12 +150,105 @@ make install           # zyvor-qa CLI + Playwright browsers
 <td>⌘K / Ctrl-K to find any action by name</td>
 </tr>
 </tbody></table>
+<h2>UX extras</h2>
+<table>
+<thead>
+<tr>
+<th>Cue</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>NOC wall</strong></td>
+<td>Double-click the <strong>Zyvor Mission Control</strong> brand</td>
+</tr>
+<tr>
+<td><strong>Warp flash</strong></td>
+<td>Press <code>`</code> or type <code>zyvor</code></td>
+</tr>
+<tr>
+<td><strong>Achievements</strong></td>
+<td>First visit / NOC / warp unlock toast badges</td>
+</tr>
+<tr>
+<td><strong>Reduced motion</strong></td>
+<td>Splash / flash / canvas respect <code>prefers-reduced-motion</code></td>
+</tr>
+</tbody></table>
 <h2>Browse vs act</h2>
 <p>Reading pods, history, and findings is safe. Starting jobs mutates the target under test and writes reports under <code>reports/</code> — confirm URL, credentials, and scope before Run.</p>
+<h2>Practice on zyvor.dev</h2>
+<p>See <a href="test-zyvor-dev.md">Test zyvor.dev (with recording)</a> for smoke + flow video + HAR against the public site.</p>
 <h2>Related</h2>
 <ul>
 <li><a href="getting-started.md">Getting Started</a></li>
+<li><a href="test-zyvor-dev.md">Test zyvor.dev</a></li>
 <li><a href="pages/README.md">Page-by-page guides</a></li>
+<li><a href="workflows.md">Common workflows</a></li>
+</ul>
+<hr>
+<p>Canonical how-to for pointing ZyAIQAAgent at <strong><a href="https://zyvor.dev">https://zyvor.dev</a></strong>. <strong>Watch the journey video first</strong>, then re-run the same flow locally.</p>
+<h2>Watch the recording</h2>
+<p><a href="https://youtu.be/ys7SvKKqf9w"><img src="https://img.youtube.com/vi/ys7SvKKqf9w/maxresdefault.jpg" alt="ZyAIQAAgent · Mission Control → GuestKit"></a></p>
+<p><video src="../assets/zyvor-dev-mission-control-demo.webm" controls width="720" title="zyvor.dev journey recording"></video></p>
+<ul>
+<li><strong>YouTube (with thumbnail):</strong> <a href="https://youtu.be/ys7SvKKqf9w">https://youtu.be/ys7SvKKqf9w</a></li>
+<li><strong><a href="../assets/zyvor-dev-mission-control-demo.webm">Download the .webm</a></strong></li>
+<li>Steps used: <a href="../assets/zyvor-dev-demo.steps"><code>zyvor-dev-demo.steps</code></a> in <code>docs/assets/</code></li>
+<li>Full tutorial: <a href="../tutorials/13-test-zyvor-dev-recording.md">Test zyvor.dev with recording</a></li>
+</ul>
+<h2>Setup</h2>
+<pre><code class="language-bash"># .env
+ZYVOR_BASE_URL=https://zyvor.dev
+</code></pre>
+<h2>Re-run the same recording</h2>
+<pre><code class="language-bash">zyvor-qa test --grep @smoke
+zyvor-qa flow https://zyvor.dev --steps docs/assets/zyvor-dev-demo.steps --video
+</code></pre>
+<p>Journey video lands under <code>reports/artifacts/flows/cli/journey.webm</code> (or Mission Control → 🎬 Videos).</p>
+<h2>Mission Control</h2>
+<pre><code class="language-bash">zyvor-qa serve --port 8080
+# → http://localhost:8080/dashboard
+</code></pre>
+<ol>
+<li>▶ <strong>Smoke</strong></li>
+<li>🎬 <strong>Flow test</strong> — URL <code>https://zyvor.dev</code>, paste <a href="https://github.com/hypersdk/ZyAIQAAgent/blob/main/docs/assets/zyvor-dev-demo.steps"><code>zyvor-dev-demo.steps</code></a>, <strong>record video</strong> on</li>
+<li>📼 <strong>HAR</strong> — optional record <code>/</code> then replay</li>
+</ol>
+<h3>UX cues</h3>
+<table>
+<thead>
+<tr>
+<th>Cue</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Boot splash</td>
+<td>Brief intro on first load</td>
+</tr>
+<tr>
+<td>Signal field</td>
+<td>Live constellation behind the hero</td>
+</tr>
+<tr>
+<td>⌘K</td>
+<td>Command palette</td>
+</tr>
+<tr>
+<td>NOC wall</td>
+<td>Double-click the brand</td>
+</tr>
+<tr>
+<td>Warp</td>
+<td><code>`</code> or type <code>zyvor</code></td>
+</tr>
+</tbody></table>
+<h2>Related</h2>
+<ul>
+<li><a href="getting-started.md">Getting Started</a></li>
+<li><a href="using-the-dashboard.md">Using the Dashboard</a></li>
+<li><a href="pages/journeys/dashboard-actions-flow.md">Flow test</a></li>
 <li><a href="workflows.md">Common workflows</a></li>
 </ul>
 <hr>
@@ -158,6 +269,7 @@ make install           # zyvor-qa CLI + Playwright browsers
 <li>Or <a href="pages/journeys/dashboard-actions-import-codegen.md">Import codegen</a> from Playwright codegen</li>
 <li><a href="pages/journeys/dashboard-actions-har.md">HAR record / replay</a> when you need offline network fixtures</li>
 </ol>
+<p><strong>Public demo:</strong> <a href="test-zyvor-dev.md">Test zyvor.dev</a> — watch the committed journey <code>.webm</code>, then re-run smoke / flow / HAR against <code>https://zyvor.dev</code>.</p>
 <h2>API, auth, and live data</h2>
 <ol>
 <li><a href="pages/api/dashboard-actions-auth.md">Auth &amp; session</a> → save session file</li>
