@@ -1,11 +1,11 @@
 [package]
-name = "zyvor-qa-desktop"
+name = "zyvor-argus-desktop"
 version = "0.1.0"
-description = "Zyvor QA Agent — native desktop shell around `zyvor-qa serve`"
+description = "Zyvor Argus — native desktop shell around `argus serve`"
 edition = "2021"
 
 [lib]
-name = "zyvor_qa_desktop_lib"
+name = "zyvor_argus_desktop_lib"
 crate-type = ["lib", "cdylib", "staticlib"]
 
 [build-dependencies]

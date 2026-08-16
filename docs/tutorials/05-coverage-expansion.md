@@ -11,7 +11,7 @@ Let the agent discover what your test suite is missing: it reads the product rep
 Start with a dry look at the inventory:
 
 ```bash
-zyvor-qa discover --source github
+argus test discover --source github
 ```
 
 ```
@@ -38,9 +38,9 @@ A candidate counts as **covered** when its path or slug appears in any existing 
 ## 2. Generate tests for the gaps
 
 ```bash
-zyvor-qa run --source github --expand-coverage
+argus test run --source github --expand-coverage
 # or generation only:
-zyvor-qa generate --source github --expand-coverage
+argus test generate --source github --expand-coverage
 ```
 
 Each gap becomes a requirement (`navigate → wait → assert heading/content`) and then a spec file:
@@ -96,7 +96,7 @@ To see how much of the site's JavaScript your tests actually exercise:
 # .env
 ENABLE_V8_COVERAGE=true
 
-zyvor-qa test
+argus test exec
 ```
 
 Each test writes V8 coverage to `reports/v8-coverage/`, aggregated into the HTML report and PR comment as a percentage. Low-coverage files hint at untested interactive features.
@@ -115,7 +115,7 @@ Generated coverage stubs from older pipeline versions can be refreshed:
 
 ```bash
 rm tests/generated/coverage-*.spec.ts
-zyvor-qa generate --source github --expand-coverage
+argus test generate --source github --expand-coverage
 ```
 
 **Next:** [Tutorial 6 — Visual regression](06-visual-regression.md).

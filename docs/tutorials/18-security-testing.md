@@ -2,7 +2,7 @@
 
 Go beyond the 10 read-only probes: misconfig/recon scanning, CVE lookups, LLM red-teaming of Ask Zyvor, a CI/CD security gate, attack-graph reporting, and — behind extra gates — sandboxed PoC verification, attack chaining, and credentialed host/cloud pentesting.
 
-**Prerequisites:** [Tutorial 1](01-getting-started.md), [Tutorial 10](10-mission-control-dashboard.md). For the sandboxed-exploitation sections (§6–§8) you'll also need a Kubernetes cluster reachable from wherever `zyvor-qa serve` runs.
+**Prerequisites:** [Tutorial 1](01-getting-started.md), [Tutorial 10](10-mission-control-dashboard.md). For the sandboxed-exploitation sections (§6–§8) you'll also need a Kubernetes cluster reachable from wherever `argus serve` runs.
 
 ---
 
@@ -31,7 +31,7 @@ Only `admin` (RBAC role) can create/revoke engagements; `viewer`/`operator` can 
 Tech/version fingerprinting, a ~150-path wordlist sweep (vs. the `security_paths` probe's static 7), security-header *value* grading (not just presence), and DNS hygiene (SPF/DMARC/CAA):
 
 ```bash
-zyvor-qa misconfig-scan https://your-app.example.com --engagement-id <id> --fail-on high
+argus guard misconfig-scan https://your-app.example.com --engagement-id <id> --fail-on high
 ```
 
 Or from Mission Control: the **🕵️ Misconfig scan** card. Findings show up in the **🐞 Findings** panel with a `category` like `admin-panel-exposure`, `missing-security-header`, or `dns-misconfiguration`.
@@ -41,7 +41,7 @@ Or from Mission Control: the **🕵️ Misconfig scan** card. Findings show up i
 Read-only: fingerprints tech/versions from the same signals as §2, then checks each against [OSV.dev](https://osv.dev). No PoC is generated or run.
 
 ```bash
-zyvor-qa cve-lookup https://your-app.example.com --engagement-id <id>
+argus guard cve-lookup https://your-app.example.com --engagement-id <id>
 ```
 
 Coverage is intentionally limited to products with a known ecosystem mapping (currently just npm-published JS libraries like jQuery) — everything else reports "no known ecosystem mapping" rather than guessing.
@@ -51,7 +51,7 @@ Coverage is intentionally limited to products with a known ecosystem mapping (cu
 An attacker→judge loop against your own Ask Zyvor RAG agent — a curated battery across five categories: prompt injection, system-prompt exfiltration, excessive agency, jailbreaks, and PII/secret exfiltration.
 
 ```bash
-zyvor-qa llm-redteam --target dashboard_ask --engagement-id <id>
+argus redteam llm --target dashboard_ask --engagement-id <id>
 ```
 
 `--target dashboard_ask` (the default) tests in-process, no separate credentials needed. `--target v1_qa --base-url <url> --api-key <key>` tests an external `/v1/qa` deployment instead. A failed prompt raises a `high` or `critical` finding tagged with its OWASP LLM Top 10 category (`LLM01`, `LLM06`, `LLM07`, `LLM02`).
@@ -63,10 +63,10 @@ zyvor-qa llm-redteam --target dashboard_ask --engagement-id <id>
 To actually block a GitHub PR merge on a confirmed critical, run the scan, then:
 
 ```bash
-zyvor-qa pr-gate myorg/myrepo 42 --fail-on high
+argus guard pr-gate myorg/myrepo 42 --fail-on high
 ```
 
-This reads `reports/summary.json` from the scan you just ran and posts a `REQUEST_CHANGES` (or `APPROVE`) review plus a `zyvor-qa/security` commit status — set that status as a required check under **Settings → Branches** to actually enforce it.
+This reads `reports/summary.json` from the scan you just ran and posts a `REQUEST_CHANGES` (or `APPROVE`) review plus a `argus/security` commit status — set that status as a required check under **Settings → Branches** to actually enforce it.
 
 ## 6. Attack-graph reporting
 
@@ -78,7 +78,7 @@ Everything past this point needs a genuine execution sandbox — a locked-down K
 
 ```bash
 kubectl apply -f kubernetes/sandbox.yaml   # dedicated namespace + RBAC + default-deny egress
-export ZYVOR_SANDBOX_NAMESPACE=zyvor-qa-sandbox
+export ZYVOR_SANDBOX_NAMESPACE=argus-sandbox
 export ZYVOR_EXPLOIT_EXECUTION_ENABLED=true   # second, independent gate — an exploit-tier engagement alone isn't enough
 ```
 
@@ -87,7 +87,7 @@ Without `ZYVOR_SANDBOX_NAMESPACE` pointing at a reachable cluster, both job kind
 **`exploit_poc`** generates a non-destructive verification script via LLM for a described finding — constrained to read-only requests, no floods, and a single `VERIFIED: true/false - reason` output line — and runs it in the sandbox:
 
 ```bash
-zyvor-qa exploit-poc https://your-app.example.com \
+argus guard exploit-poc https://your-app.example.com \
   --finding "SQL injection in ?id= reflects unescaped input" \
   --engagement-id <exploit-tier-id>
 ```
@@ -95,7 +95,7 @@ zyvor-qa exploit-poc https://your-app.example.com \
 **`attack_chain`** is `exploit_poc` run in a loop: an LLM planner proposes one next step at a time given every step already confirmed, stopping the moment a step fails to verify or the planner has nothing safe left to propose (capped at 5 steps):
 
 ```bash
-zyvor-qa attack-chain https://your-app.example.com \
+argus guard attack-chain https://your-app.example.com \
   --objective "escalate SQLi to RCE" \
   --engagement-id <exploit-tier-id>
 ```
@@ -112,12 +112,12 @@ export ZYVOR_SANDBOX_HOST_IMAGE=your-registry/zyvor-sandbox-host:latest    # pyt
 export ZYVOR_SANDBOX_CLOUD_IMAGE=your-registry/zyvor-sandbox-cloud:latest  # + aws-cli/gcloud/az
 ```
 
-**Credentials are never accepted as raw values.** Every secret-shaped field in `creds` (`password`, `private_key`, `secret_access_key`, ...) must be a `{"$secret": "env:NAME"}` reference — the actual value comes from an env var already set on the `zyvor-qa` server process, resolved only at execution time and injected straight into that one ephemeral sandbox Job. It's never logged, never given to the LLM, and never present in the job result.
+**Credentials are never accepted as raw values.** Every secret-shaped field in `creds` (`password`, `private_key`, `secret_access_key`, ...) must be a `{"$secret": "env:NAME"}` reference — the actual value comes from an env var already set on the `argus` server process, resolved only at execution time and injected straight into that one ephemeral sandbox Job. It's never logged, never given to the LLM, and never present in the job result.
 
 ```bash
-export TARGET_SSH_PASSWORD=...   # set on the zyvor-qa server itself, not passed on the CLI
+export TARGET_SSH_PASSWORD=...   # set on the argus server itself, not passed on the CLI
 
-zyvor-qa host-pentest internal-host.example.com \
+argus guard host-pentest internal-host.example.com \
   --finding "SSH allows password auth with a weak default credential" \
   --creds '{"username":"admin","password":{"$secret":"env:TARGET_SSH_PASSWORD"}}' \
   --engagement-id <exploit-tier-id>
@@ -126,7 +126,7 @@ zyvor-qa host-pentest internal-host.example.com \
 ```bash
 export AWS_SECRET=...
 
-zyvor-qa cloud-pentest aws-prod-123456789012 \
+argus guard cloud-pentest aws-prod-123456789012 \
   --provider aws \
   --finding "S3 bucket policy allows public write" \
   --creds '{"access_key_id":"AKIA...","secret_access_key":{"$secret":"env:AWS_SECRET"}}' \

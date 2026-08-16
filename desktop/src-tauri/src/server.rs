@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Spawn `zyvor-qa serve` as a child process and track its readiness.
+//! Spawn `argus serve` as a child process and track its readiness.
 //!
 //! Unlike hypercluster's `hypercluster.rs` (which spawns a fresh subprocess
 //! per action and streams its output into custom UI panels), there's only
-//! ever one long-lived child here: `zyvor-qa serve` runs once for the
+//! ever one long-lived child here: `argus serve` runs once for the
 //! app's lifetime, and the dashboard it serves handles every subsequent
 //! action itself over HTTP — the Rust side's job is just "start it, know
 //! when it's ready, kill it on quit."
@@ -43,7 +43,7 @@ struct ServerHandle {
 
 impl Drop for ServerHandle {
     fn drop(&mut self) {
-        // Best-effort: the app is quitting either way. A `zyvor-qa serve`
+        // Best-effort: the app is quitting either way. A `argus serve`
         // left running after the window closes would silently keep a port
         // bound and a stale dashboard reachable, so this is not optional.
         let _ = self.child.kill();
@@ -71,7 +71,7 @@ fn free_port() -> Result<u16, String> {
         .local_addr()
         .map_err(|e| e.to_string())?
         .port();
-    drop(listener); // release it immediately so `zyvor-qa serve` can bind it
+    drop(listener); // release it immediately so `argus serve` can bind it
     Ok(port)
 }
 
@@ -87,7 +87,7 @@ fn wait_for_port(port: u16, timeout: Duration) -> bool {
 }
 
 fn spawn_serve(bin_override: Option<&str>) -> Result<(Child, u16), String> {
-    let bin = paths::resolve_zyvor_qa_bin(bin_override);
+    let bin = paths::resolve_argus_bin(bin_override);
     let port = free_port()?;
     let working_dir = paths::working_dir();
     std::fs::create_dir_all(&working_dir).ok();
@@ -101,7 +101,7 @@ fn spawn_serve(bin_override: Option<&str>) -> Result<(Child, u16), String> {
         // See paths::working_dir()'s doc comment — without this, relative
         // state paths (MissionControlStore's ZYVOR_STATE_DB default among
         // them) resolve against whatever CWD the app happened to launch
-        // with, not the repo the wrapped `zyvor-qa` actually belongs to.
+        // with, not the repo the wrapped `argus` actually belongs to.
         .current_dir(&working_dir)
         // Tells the dashboard template it's running inside this desktop
         // shell, not a normal browser tab — it hides the Kubernetes
@@ -114,7 +114,7 @@ fn spawn_serve(bin_override: Option<&str>) -> Result<(Child, u16), String> {
 
     let mut child = cmd.spawn().map_err(|e| {
         format!(
-            "failed to launch {} ({e}) — is zyvor-qa installed? \
+            "failed to launch {} ({e}) — is argus installed? \
              Set a custom path in Settings if it's not on PATH.",
             bin.display()
         )
@@ -126,14 +126,14 @@ fn spawn_serve(bin_override: Option<&str>) -> Result<(Child, u16), String> {
     if let Some(stdout) = child.stdout.take() {
         thread::spawn(move || {
             for line in BufReader::new(stdout).lines().map_while(Result::ok) {
-                println!("[zyvor-qa serve] {line}");
+                println!("[argus serve] {line}");
             }
         });
     }
     if let Some(stderr) = child.stderr.take() {
         thread::spawn(move || {
             for line in BufReader::new(stderr).lines().map_while(Result::ok) {
-                eprintln!("[zyvor-qa serve] {line}");
+                eprintln!("[argus serve] {line}");
             }
         });
     }
@@ -161,7 +161,7 @@ pub fn start_in_background(app_handle: tauri::AppHandle, bin_override: Option<St
                     state.set_status(ServerStatus::Ready(port));
                 } else {
                     state.set_status(ServerStatus::Failed(format!(
-                        "zyvor-qa serve did not become ready on port {port} within {}s",
+                        "argus serve did not become ready on port {port} within {}s",
                         READY_TIMEOUT.as_secs()
                     )));
                 }

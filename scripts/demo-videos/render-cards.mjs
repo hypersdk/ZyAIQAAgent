@@ -1,4 +1,4 @@
-// Render title/caption PNG cards for the ZyAIQAAgent "15-minute KT" tutorial —
+// Render title/caption PNG cards for the Zyvor Argus "15-minute KT" tutorial —
 // blue/cyan Mission Control ops aesthetic matching the dashboard itself.
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
@@ -57,7 +57,7 @@ const cards = [
 ];
 
 const captions = [
-  { file: "cap-login", text: "Default credentials are generated per host and persisted in .zyvor-qa-auth — sign in once, session lasts 12h (30d with remember me)." },
+  { file: "cap-login", text: "Default credentials are generated per host and persisted in .zyvor-argus-auth — sign in once, session lasts 12h (30d with remember me)." },
   { file: "cap-status", text: "One glanceable verdict — pods, replicas, last QA run, and a countdown to the next scheduled smoke run." },
   { file: "cap-pods", text: "Click any pod to open the live log drawer — last 100 lines, auto-refreshing, hover to pause." },
   { file: "cap-actions", text: "Every CLI command plus web-quality, security, and performance checks — click a card, one job runs at a time." },

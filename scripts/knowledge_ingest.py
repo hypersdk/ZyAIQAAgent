@@ -24,7 +24,7 @@ from knowledge.vectorstore import delete_existing_sources, get_vector_store
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Ingest documents into Zyvor QA")
+    parser = argparse.ArgumentParser(description="Ingest documents into Zyvor Argus")
     parser.add_argument("path", type=Path)
     parser.add_argument("--tenant-id", required=True)
     parser.add_argument("--access-level", default="customer")

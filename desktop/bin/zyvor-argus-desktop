@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Zyvor QA Agent Desktop — npm-style CLI launcher (modeled on hypercluster-desktop)
+# Zyvor Argus Desktop — npm-style CLI launcher (modeled on hypercluster-desktop)
 set -euo pipefail
 
 export ZQ_DESKTOP_INVOKED_AS="${ZQ_DESKTOP_INVOKED_AS:-$(basename "$0")}"
@@ -53,17 +53,17 @@ launch_built() {
     fi
   fi
 
-  local bin="$TAURI_DIR/target/release/zyvor-qa-desktop"
+  local bin="$TAURI_DIR/target/release/zyvor-argus-desktop"
   if [[ -x "$bin" ]]; then
     exec "$bin" "${@:2}"
   fi
 
-  bin="$TAURI_DIR/target/debug/zyvor-qa-desktop"
+  bin="$TAURI_DIR/target/debug/zyvor-argus-desktop"
   if [[ -x "$bin" ]]; then
     exec "$bin" "${@:2}"
   fi
 
-  echo "❌  No built Zyvor QA Agent Desktop app found." >&2
+  echo "❌  No built Zyvor Argus Desktop app found." >&2
   echo "    Run: ${ZQ_DESKTOP_INVOKED_AS} build" >&2
   exit 1
 }

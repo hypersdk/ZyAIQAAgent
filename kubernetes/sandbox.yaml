@@ -1,7 +1,7 @@
 # PoC-execution sandbox for the `exploit_poc` job kind
 # (orchestrator/security/sandbox.py). A dedicated namespace, deliberately
-# separate from wherever `zyvor-qa` itself runs: the orchestrator's own
-# ServiceAccount (`zyvor-qa`, see rbac.yaml) is granted cross-namespace
+# separate from wherever `argus` itself runs: the orchestrator's own
+# ServiceAccount (`argus`, see rbac.yaml) is granted cross-namespace
 # permission to create/delete short-lived Jobs *here*, but the Jobs
 # themselves run under a zero-permission ServiceAccount that can't reach
 # back into the app's own namespace.
@@ -15,22 +15,22 @@
 # `sandbox.py` is the containment that holds regardless of CNI; treat the
 # NetworkPolicy as defense-in-depth, not the primary boundary, until you've
 # confirmed your CNI enforces it (`kubectl get networkpolicy -n
-# zyvor-qa-sandbox` existing is not proof of enforcement).
+# argus-sandbox` existing is not proof of enforcement).
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: zyvor-qa-sandbox
+  name: argus-sandbox
   labels:
-    app: zyvor-qa-agent
+    app: argus
     component: sandbox
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: zyvor-qa-sandbox
-  namespace: zyvor-qa-sandbox
+  name: argus-sandbox
+  namespace: argus-sandbox
   labels:
-    app: zyvor-qa-agent
+    app: argus
 # No Role is ever bound to this ServiceAccount — PoC pods run with it and
 # get zero Kubernetes API permissions. automountServiceAccountToken is also
 # set false at the Pod level in sandbox.py as a second, redundant guard.
@@ -39,10 +39,10 @@ automountServiceAccountToken: false
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: zyvor-qa-sandbox-operator
-  namespace: zyvor-qa-sandbox
+  name: argus-sandbox-operator
+  namespace: argus-sandbox
   labels:
-    app: zyvor-qa-agent
+    app: argus
 rules:
   - apiGroups: ["batch"]
     resources: ["jobs"]
@@ -60,20 +60,20 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: zyvor-qa-sandbox-operator
-  namespace: zyvor-qa-sandbox
+  name: argus-sandbox-operator
+  namespace: argus-sandbox
   labels:
-    app: zyvor-qa-agent
+    app: argus
 subjects:
   # The orchestrator's own ServiceAccount (rbac.yaml), granted permission
   # here — in the sandbox namespace only — to spawn/tear down PoC Jobs.
-  # Update `namespace:` below if zyvor-qa itself is deployed outside `default`.
+  # Update `namespace:` below if argus itself is deployed outside `default`.
   - kind: ServiceAccount
-    name: zyvor-qa
+    name: argus
     namespace: default
 roleRef:
   kind: Role
-  name: zyvor-qa-sandbox-operator
+  name: argus-sandbox-operator
   apiGroup: rbac.authorization.k8s.io
 ---
 # Default-deny egress + DNS-only baseline for the sandbox namespace. Per-Job
@@ -83,8 +83,8 @@ roleRef:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: zyvor-qa-sandbox-default-deny
-  namespace: zyvor-qa-sandbox
+  name: argus-sandbox-default-deny
+  namespace: argus-sandbox
 spec:
   podSelector: {}
   policyTypes: ["Egress"]

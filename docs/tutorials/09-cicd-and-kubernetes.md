@@ -14,12 +14,12 @@ Two workflows ship in `.github/workflows/`:
 
 Triggers: push to `main`, PRs to `main`, nightly at 06:00 UTC, manual dispatch.
 
-- **`smoke` job**: installs Python + Node + Chromium, runs `zyvor-qa test` against `https://zyvor.dev`, uploads `reports/` + `test-results/` as artifacts (14-day retention).
+- **`smoke` job**: installs Python + Node + Chromium, runs `argus test exec` against `https://zyvor.dev`, uploads `reports/` + `test-results/` as artifacts (14-day retention).
 - **`multi-browser` job**: manual `workflow_dispatch` only — runs `tests/manual/` on chromium + firefox + webkit.
 
 ### `qa-post-deploy.yml` — full pipeline after deploys
 
-Trigger: `repository_dispatch` with type `staging-deployed`. Runs `zyvor-qa run --source github` with LLM analysis, regression, and Slack notification.
+Trigger: `repository_dispatch` with type `staging-deployed`. Runs `argus test run --source github` with LLM analysis, regression, and Slack notification.
 
 Fire it from your product repo's deploy job:
 
@@ -51,13 +51,13 @@ Build and run the container (multi-stage: Node + Playwright Chromium layered ont
 ```bash
 make docker
 # or manually:
-docker build -f docker/Dockerfile -t zyvor-qa-agent .
-docker run --env-file .env zyvor-qa-agent                 # default: run --source local
-docker run --env-file .env zyvor-qa-agent test            # any CLI subcommand
-docker run --env-file .env -p 8080:8080 zyvor-qa-agent serve --port 8080 --host 0.0.0.0
+docker build -f docker/Dockerfile -t zyvor-argus .
+docker run --env-file .env zyvor-argus                 # default: run --source local
+docker run --env-file .env zyvor-argus test            # any CLI subcommand
+docker run --env-file .env -p 8080:8080 zyvor-argus serve --port 8080 --host 0.0.0.0
 ```
 
-The entrypoint is `zyvor-qa`, so container args are CLI args.
+The entrypoint is `argus`, so container args are CLI args.
 
 ## 3. Kubernetes
 
@@ -65,8 +65,8 @@ Manifests in `kubernetes/` deploy two workloads from the same image:
 
 | Manifest | Workload |
 |----------|----------|
-| `deployment.yaml` + `service.yaml` + `ingress.yaml` | Webhook server (`zyvor-qa serve`) with `/health` liveness/readiness probes |
-| `cronjob.yaml` | Nightly smoke tests (`zyvor-qa test`, 06:00 UTC) |
+| `deployment.yaml` + `service.yaml` + `ingress.yaml` | Webhook server (`argus serve`) with `/health` liveness/readiness probes |
+| `cronjob.yaml` | Nightly smoke tests (`argus test exec`, 06:00 UTC) |
 | `configmap.yaml` | Feature flags and URLs |
 | `secret.yaml` | API keys and tokens (use ExternalSecrets or SOPS in production) |
 
@@ -88,7 +88,7 @@ make k8s-validate-cluster
 make k8s-delete
 ```
 
-Local cluster for testing: `kind create cluster --name zyvor-qa` or `minikube start`, then `kubectl cluster-info` to confirm.
+Local cluster for testing: `kind create cluster --name argus` or `minikube start`, then `kubectl cluster-info` to confirm.
 
 Point the GitHub webhook at the ingress host you set in `kubernetes/ingress.yaml` (default manifest placeholder is `qa-webhook.example.com`):
 
@@ -111,7 +111,7 @@ They compose — most setups run Actions smoke on PRs *and* the webhook server f
 
 ## 5. CI tips
 
-- `zyvor-qa run` and `zyvor-qa test` exit non-zero on failure — safe as gating steps.
+- `argus test run` and `argus test exec` exit non-zero on failure — safe as gating steps.
 - Always upload `reports/`, `test-results/`, `screenshots/`, `videos/`, `traces/` with `if: always()` so failures keep their evidence.
 - Commit `screenshots/baselines/` if you enable regression in CI; otherwise every CI run starts baseline-less.
 - Keep `ENABLE_AUTOFIX_APPLY=false` in CI unless the workflow commits the patch as a reviewable PR.

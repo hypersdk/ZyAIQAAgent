@@ -72,7 +72,7 @@ const demoCta = page.getByRole('link', { name: /schedule.*demo|book.*demo/i });
 const demoCta = page.getByRole('link', { name: /request.*quote/i });
 ```
 
-Run `zyvor-qa run --source local` and watch the fail branch: analysis names the test and the missing locator, autofix proposes a role-based selector from the actual error context, apply patches the file, and the re-run goes green.
+Run `argus test run --source local` and watch the fail branch: analysis names the test and the missing locator, autofix proposes a role-based selector from the actual error context, apply patches the file, and the re-run goes green.
 
 Afterwards, review what changed:
 

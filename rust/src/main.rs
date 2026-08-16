@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Screenshot diff utility for Zyvor QA Agent.
+//! Screenshot diff utility for Zyvor Argus.
 //! Called from Python when ENABLE_RUST_PROCESSOR=true.
 
 use clap::Parser;

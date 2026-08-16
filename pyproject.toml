@@ -4,9 +4,9 @@ requires = ["setuptools>=78.1.1", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "zyvor-qa-agent"
+name = "zyvor-argus"
 version = "0.6.0"
-description = "Autonomous AI QA agent for Zyvor platform testing"
+description = "Autonomous software assurance platform for Zyvor platform testing"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -59,10 +59,12 @@ mcp = [
 ]
 
 [project.scripts]
-zyvor-qa = "orchestrator.cli:main"
-zyvor-qa-knowledge-ingest = "scripts.knowledge_ingest:main"
-zyvor-qa-knowledge-evaluate = "scripts.knowledge_evaluate:main"
-zyvor-qa-mcp = "integrations.mcp.server:main"
+argus = "orchestrator.cli:main"
+argus-knowledge-ingest = "scripts.knowledge_ingest:main"
+argus-knowledge-evaluate = "scripts.knowledge_evaluate:main"
+argus-mcp = "integrations.mcp.server:main"
+# Backward-compat alias for the main CLI only — deprecate after a few releases.
+zyvor-qa = "orchestrator.cli:legacy_main"
 
 [tool.setuptools.packages.find]
 where = ["."]

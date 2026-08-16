@@ -1,11 +1,11 @@
 {
-  "name": "zyvor-qa-desktop",
+  "name": "zyvor-argus-desktop",
   "private": true,
   "version": "0.1.0",
-  "description": "Zyvor QA Agent desktop UI — npm CLI launcher for the Tauri app",
+  "description": "Zyvor Argus desktop UI — npm CLI launcher for the Tauri app",
   "type": "module",
   "bin": {
-    "zyvor-qa-desktop": "./bin/zyvor-qa-desktop"
+    "zyvor-argus-desktop": "./bin/zyvor-argus-desktop"
   },
   "files": [
     "bin",
@@ -17,7 +17,7 @@
     "dev": "tauri dev",
     "build": "tauri build",
     "tauri": "tauri",
-    "start": "zyvor-qa-desktop dev"
+    "start": "zyvor-argus-desktop dev"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.2.0"

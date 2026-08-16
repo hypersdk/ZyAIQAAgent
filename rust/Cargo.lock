@@ -1252,8 +1252,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "zyvor-qa-rust"
-version = "0.1.0"
+name = "zyvor-argus-rust"
+version = "0.3.0"
 dependencies = [
  "clap",
  "image",

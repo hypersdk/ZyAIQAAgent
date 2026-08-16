@@ -11,7 +11,7 @@
 | `docs/specs/*.md` acceptance criteria | Product repo | Product / QA |
 | `qa/flows/*.flow` journeys | Product repo | QA |
 | OpenAPI URL / file | Product / API repo | API owners |
-| Workflow calling zyvor-qa | Product repo `.github/` | DevOps |
+| Workflow calling argus | Product repo `.github/` | DevOps |
 | Image pin `v0.4.0` | Workflow | DevOps |
 | Optional long-lived agent checkout with `tests/manual/` | Platform repo or fork | QA + DevOps |
 
@@ -56,7 +56,7 @@ Put specs under a stable path, e.g. `docs/specs/`. PR template: “New user-faci
 ### A. Developer laptop / agent workspace
 
 ```bash
-git clone https://github.com/hypersdk/ZyAIQAAgent.git && cd ZyAIQAAgent
+git clone https://github.com/hypersdk/zyvor-argus.git && cd Zyvor Argus
 cp .env.example .env
 # .env
 ZYVOR_BASE_URL=https://staging.example.com
@@ -64,7 +64,7 @@ ZYVOR_PRODUCT_REPO=myorg/my-app
 GITHUB_TOKEN=ghp_...   # or gh auth login
 
 make install
-zyvor-qa run --source github --spec docs/specs/billing-upgrade.md
+argus test run --source github --spec docs/specs/billing-upgrade.md
 ```
 
 ### B. CI with GitHub source (container + env)
@@ -78,7 +78,7 @@ zyvor-qa run --source github --spec docs/specs/billing-upgrade.md
       -e GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} \
       -e ZYVOR_ENV=development \
       -v "$PWD/reports:/app/reports" \
-      ghcr.io/hypersdk/zyaiqaagent:v0.4.0 \
+      ghcr.io/hypersdk/zyvor-argus:v0.4.0 \
       run --source github --spec docs/specs/billing-upgrade.md
 ```
 
@@ -89,7 +89,7 @@ zyvor-qa run --source github --spec docs/specs/billing-upgrade.md
 Check in `qa/flows/billing.flow`, then either:
 
 - Build a thin wrapper job that `docker run` with a bind-mount of `qa/flows` into the container, **or**
-- Checkout ZyAIQAAgent + copy flows into the workspace before `zyvor-qa flow`.
+- Checkout Zyvor Argus + copy flows into the workspace before `argus flow run`.
 
 Example mount pattern:
 
@@ -98,7 +98,7 @@ docker run --rm \
   -e ZYVOR_BASE_URL="$STAGING_URL" \
   -v "$PWD/qa/flows:/flows:ro" \
   -v "$PWD/reports:/app/reports" \
-  ghcr.io/hypersdk/zyaiqaagent:v0.4.0 \
+  ghcr.io/hypersdk/zyvor-argus:v0.4.0 \
   flow "$STAGING_URL" --steps /flows/billing.flow --video
 ```
 
@@ -107,7 +107,7 @@ docker run --rm \
 ## 4. OpenAPI as the feature contract
 
 ```bash
-zyvor-qa api-test https://api.staging.example.com \
+argus api test https://api.staging.example.com \
   --spec https://api.staging.example.com/openapi.json \
   --token "$STAGING_API_TOKEN"
 ```
@@ -122,7 +122,7 @@ Gate on exit code; upload `reports/`. Schema violations (missing required fields
 
 | Stage | Action |
 |-------|--------|
-| Spike | `zyvor-qa create "…" --execute` (LLM) |
+| Spike | `argus test create "…" --execute` (LLM) |
 | Review | Spec in `docs/specs/` + `generate` |
 | Forever | Move `.spec.ts` → agent `tests/manual/` **or** always `run --spec` from git |
 
@@ -133,7 +133,7 @@ Never treat `tests/generated/` alone as source of truth in CI without regenerati
 ## 6. PR comment loop (optional)
 
 ```bash
-zyvor-qa run --source github \
+argus test run --source github \
   --spec docs/specs/billing-upgrade.md \
   --pr-number "$PR_NUMBER"
 ```

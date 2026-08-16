@@ -1,5 +1,5 @@
-name: 'Zyvor QA'
-description: 'Run zyvor-qa Playwright-based QA checks against any target URL, from any CI/CD pipeline.'
+name: 'Zyvor Argus'
+description: 'Run argus Playwright-based QA checks against any target URL, from any CI/CD pipeline.'
 author: 'ZyvorAI Labs'
 branding:
   icon: 'check-circle'
@@ -8,12 +8,13 @@ branding:
 inputs:
   command:
     description: >-
-      zyvor-qa subcommand to run: test | flow | route-sweep | vitals | api-test | run.
+      Full argus subcommand path to run, e.g. "test exec" | "flow run" |
+      "vision route-sweep" | "watch vitals" | "api test" | "test run".
       See docs/tutorials/15-external-cicd-integration.md for the full command/exit-code contract.
     required: false
-    default: 'test'
+    default: 'test exec'
   args:
-    description: 'Additional raw zyvor-qa CLI flags, appended verbatim (e.g. "--grep @smoke --shard 1/2").'
+    description: 'Additional raw argus CLI flags, appended verbatim (e.g. "--grep @smoke --shard 1/2").'
     required: false
     default: ''
   target-url:
@@ -59,13 +60,13 @@ inputs:
     required: false
     default: ''
   fail-on-error:
-    description: 'If "false", the Action always exits 0 (report-only mode) regardless of zyvor-qa results. Default "true" propagates the real exit code.'
+    description: 'If "false", the Action always exits 0 (report-only mode) regardless of argus results. Default "true" propagates the real exit code.'
     required: false
     default: 'true'
 
 outputs:
   exit-code:
-    description: 'Raw exit code returned by zyvor-qa.'
+    description: 'Raw exit code returned by argus.'
   passed:
     description: 'Number of passed checks, parsed from reports/summary.json.'
   failed:
@@ -75,7 +76,7 @@ outputs:
 
 runs:
   using: 'docker'
-  image: 'docker://ghcr.io/hypersdk/zyaiqaagent:v0.4.0'
+  image: 'docker://ghcr.io/hypersdk/zyvor-argus:v0.7.0'
   entrypoint: '/action-entrypoint.sh'
   args:
     - ${{ inputs.command }}

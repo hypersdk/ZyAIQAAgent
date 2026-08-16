@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Paste Playwright codegen JS/TS and convert it into ZyAIQAAgent flow steps (optionally run immediately).
+Paste Playwright codegen JS/TS and convert it into Zyvor Argus flow steps (optionally run immediately).
 
 ## When to use it
 
@@ -19,7 +19,7 @@ Paste Playwright codegen JS/TS and convert it into ZyAIQAAgent flow steps (optio
 1. Paste codegen output (`page.goto`, `getByRole().click`, `fill`, …).
 2. Optionally tick **run as flow** and provide the app URL.
 3. Click **📥 Import** — inspect emitted steps; run if requested.
-4. CLI: `zyvor-qa import-codegen script.js [--run --url …]`.
+4. CLI: `argus test import-codegen script.js [--run --url …]`.
 5. Local headed record alternative: `npm run record-flow -- <url> out.flow.json`.
 
 ## Related pages

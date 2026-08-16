@@ -1,9 +1,9 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: zyvor-qa-webhook
+  name: argus-webhook
   labels:
-    app: zyvor-qa-agent
+    app: argus
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
 spec:
@@ -17,6 +17,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: zyvor-qa-webhook
+                name: argus-webhook
                 port:
                   number: 80

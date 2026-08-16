@@ -36,7 +36,7 @@ RUN ln -sf /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
 
 COPY --from=node-base /app/node_modules ./node_modules
 COPY --from=node-base /root/.cache/ms-playwright /root/.cache/ms-playwright
-# The zyvor-qa console script and installed packages, not just the source tree
+# The argus console script and installed packages, not just the source tree
 COPY --from=python-base /usr/local/bin /usr/local/bin
 COPY --from=python-base /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=python-base /app /app
@@ -60,5 +60,5 @@ ENV ZYVOR_PW_WORKERS=2
 COPY docker/action-entrypoint.sh /action-entrypoint.sh
 RUN chmod +x /action-entrypoint.sh
 
-ENTRYPOINT ["zyvor-qa"]
-CMD ["run", "--source", "local"]
+ENTRYPOINT ["argus"]
+CMD ["test", "run", "--source", "local"]

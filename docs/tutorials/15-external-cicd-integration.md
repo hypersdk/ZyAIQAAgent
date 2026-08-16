@@ -1,6 +1,6 @@
-# Tutorial 15 — Integrating zyvor-qa into any project's CI/CD
+# Tutorial 15 — Integrating argus into any project's CI/CD
 
-Run `zyvor-qa` as a QA gate inside **your own** repo's pipeline — GitHub Actions, GitLab CI, CircleCI, Jenkins, Azure Pipelines, or anything else that can run a container. This is different from [Tutorial 9](09-cicd-and-kubernetes.md), which documents *this repo's own* workflows and Kubernetes deployment.
+Run `argus` as a QA gate inside **your own** repo's pipeline — GitHub Actions, GitLab CI, CircleCI, Jenkins, Azure Pipelines, or anything else that can run a container. This is different from [Tutorial 9](09-cicd-and-kubernetes.md), which documents *this repo's own* workflows and Kubernetes deployment.
 
 **Prerequisites:** none — no checkout of this repo, no `.env` file, no GitHub App. Everything here works against the published container image.
 
@@ -11,7 +11,7 @@ Run `zyvor-qa` as a QA gate inside **your own** repo's pipeline — GitHub Actio
 ### (a) GitHub Actions — the reusable Action
 
 ```yaml
-- uses: hypersdk/ZyAIQAAgent@v0.4.0
+- uses: hypersdk/Zyvor Argus@v0.4.0
   with:
     command: test
     target-url: https://staging.example.com
@@ -24,11 +24,11 @@ Run `zyvor-qa` as a QA gate inside **your own** repo's pipeline — GitHub Actio
   if: always()
   uses: actions/upload-artifact@v4
   with:
-    name: zyvor-qa-report
+    name: argus-report
     path: reports/
 ```
 
-The Action is defined in [`action.yml`](../../action.yml) at the repo root — see its `inputs`/`outputs` for the full list (target-policy knobs, LLM keys, `fail-on-error`). It's a **Docker-type Action**, so it only runs on Linux (`ubuntu-latest`) runners, and it wraps the same `ghcr.io/hypersdk/zyaiqaagent` image described below rather than reinstalling Python/Node/Playwright on every run.
+The Action is defined in [`action.yml`](../../action.yml) at the repo root — see its `inputs`/`outputs` for the full list (target-policy knobs, LLM keys, `fail-on-error`). It's a **Docker-type Action**, so it only runs on Linux (`ubuntu-latest`) runners, and it wraps the same `ghcr.io/hypersdk/zyvor-argus` image described below rather than reinstalling Python/Node/Playwright on every run.
 
 Outputs `exit-code`, `passed`, `failed`, `summary-path` are populated from `reports/summary.json` (§4) and can be read in a later step via `${{ steps.<id>.outputs.passed }}`.
 
@@ -38,7 +38,7 @@ Outputs `exit-code`, `passed`, `failed`, `summary-path` are populated from `repo
 docker run --rm \
   -e ZYVOR_BASE_URL=https://staging.example.com \
   -v "$PWD/reports:/app/reports" \
-  ghcr.io/hypersdk/zyaiqaagent:v0.4.0 \
+  ghcr.io/hypersdk/zyvor-argus:v0.4.0 \
   test --grep @smoke
 ```
 
@@ -48,7 +48,7 @@ Ready-to-copy starting points for GitLab CI, CircleCI, Jenkins, and Azure Pipeli
 
 ## 2. The `.env` gotcha
 
-`zyvor-qa` auto-loads a `.env` file, but only the one colocated with its **own installed package** — never your repository's `.env`, regardless of your working directory (`orchestrator/cli.py`'s `_load_env()`). In an external repo's CI there is no such file, which is fine: pass every setting below as an environment variable or CI secret/variable, exactly as the examples do. Don't rely on committing a `.env` to your own repo and expecting it to be picked up — it won't be.
+`argus` auto-loads a `.env` file, but only the one colocated with its **own installed package** — never your repository's `.env`, regardless of your working directory (`orchestrator/cli.py`'s `_load_env()`). In an external repo's CI there is no such file, which is fine: pass every setting below as an environment variable or CI secret/variable, exactly as the examples do. Don't rely on committing a `.env` to your own repo and expecting it to be picked up — it won't be.
 
 ---
 
@@ -144,6 +144,6 @@ Upload `reports/` (and `test-results/`, `screenshots/`, `videos/`, `traces/` if 
 ## 7. Troubleshooting
 
 - **"target rejected by policy"** — `ZYVOR_ENV=production` with an unlisted private/internal target. Either add it to `ZYVOR_TARGET_ALLOWLIST` or drop back to `ZYVOR_ENV=development` for CI runs against non-public infrastructure you already trust.
-- **Missing browsers / Playwright errors when not using the container** — install via `npx playwright install --with-deps chromium`, or just use the `ghcr.io/hypersdk/zyaiqaagent` image, which already bundles them.
+- **Missing browsers / Playwright errors when not using the container** — install via `npx playwright install --with-deps chromium`, or just use the `ghcr.io/hypersdk/zyvor-argus` image, which already bundles them.
 - **`ai-test`/`run`/`create` fail immediately** — these require an LLM provider key; there's no rule-based fallback for them.
 - **A `.env` you committed to your repo isn't being read** — see §2; use CI env vars/secrets instead.

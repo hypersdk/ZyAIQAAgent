@@ -14,16 +14,16 @@
 # limitations under the License.
 
 # ─────────────────────────────────────────────────────────────
-# Zyvor QA Agent — Remote deployment (SSH + rsync)
+# Zyvor Argus — Remote deployment (SSH + rsync)
 #
 # Profiles:
 #   default     Sync source → install system deps → venv + npm +
-#               Playwright Chromium → /usr/local/bin/zyvor-qa → verify
+#               Playwright Chromium → /usr/local/bin/argus → verify
 #   --quick     Rsync + reinstall Python/Node deps only (skip system deps)
 #
 # Auth: SSH keys (recommended). Password via sshpass is supported but deprecated.
 #
-# Post-deploy verify: zyvor-qa --help + pipeline import check
+# Post-deploy verify: argus --help + pipeline import check
 # ─────────────────────────────────────────────────────────────
 set -euo pipefail
 
@@ -32,7 +32,7 @@ PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 VERSION="1.0.0"
 REMOTE_DIR=""
 DEPLOY_PROFILE="full"
-DEPLOY_LOG="${ZYVOR_QA_DEPLOY_LOG:-${HOME}/.zyvor-qa/deploy-$(date +%Y%m%d-%H%M%S).log}"
+DEPLOY_LOG="${ZYVOR_ARGUS_DEPLOY_LOG:-${HOME}/.zyvor-argus/deploy-$(date +%Y%m%d-%H%M%S).log}"
 
 QUICK_MODE=false
 UNINSTALL=false
@@ -48,19 +48,19 @@ INSTALL_SERVICE=false
 TLS_MODE=""
 RUN_SMOKE=false
 VERBOSE=false
-SERVE_PORT="${ZYVOR_QA_PORT:-}"
+SERVE_PORT="${ZYVOR_ARGUS_PORT:-}"
 DEFAULT_SERVE_PORT=30080   # fixed NodePort-range default — stable across hosts and redeploys
-RUNTIME_PREF="${ZYVOR_QA_RUNTIME:-}"   # docker | podman | (auto)
+RUNTIME_PREF="${ZYVOR_ARGUS_RUNTIME:-}"   # docker | podman | (auto)
 NO_AUTH=false
-DASH_USER="${ZYVOR_QA_DASH_USER:-admin}"
-DASH_PASS_DEFAULT="${ZYVOR_QA_DASH_PASS:-Admin@321}"
+DASH_USER="${ZYVOR_ARGUS_DASH_USER:-admin}"
+DASH_PASS_DEFAULT="${ZYVOR_ARGUS_DASH_PASS:-Admin@321}"
 DASH_PASS=""
-SSH_RETRIES="${ZYVOR_QA_SSH_RETRIES:-3}"
+SSH_RETRIES="${ZYVOR_ARGUS_SSH_RETRIES:-3}"
 POSITIONAL=()
 
 usage() {
     cat <<EOF
-🔧 Zyvor QA Agent remote deploy v${VERSION}
+🔧 Zyvor Argus remote deploy v${VERSION}
 
 Usage:
   $0 <host> <user> [options]
@@ -84,7 +84,7 @@ Options:
   --skip-sync         Skip rsync (sources already on host)
   --skip-verify       Skip remote verification
   --with-env          Also sync local .env (contains secrets — default: excluded)
-  --service           Install + start systemd unit: zyvor-qa serve (webhook + dashboard)
+  --service           Install + start systemd unit: argus serve (webhook + dashboard)
   --tls               Serve the dashboard over HTTPS (self-signed cert, auto-generated
                       on the host) — sets the session cookie Secure
   --port N            Serve port (default: 30080 — fixed, NodePort-range,
@@ -94,17 +94,17 @@ Options:
                       and podman on dnf/yum hosts when neither is present)
   --podman            Shorthand for --runtime podman
   --no-auth           Skip dashboard login setup (default: admin / Admin@321,
-                      persisted per host; override with ZYVOR_QA_DASH_USER /
-                      ZYVOR_QA_DASH_PASS or by editing .zyvor-qa-auth on the host)
-  --smoke             Run 'zyvor-qa test' on the remote after deploy
+                      persisted per host; override with ZYVOR_ARGUS_DASH_USER /
+                      ZYVOR_ARGUS_DASH_PASS or by editing .zyvor-argus-auth on the host)
+  --smoke             Run 'argus test exec' on the remote after deploy
   --key               SSH key auth (clear password)
-  --uninstall         Remove zyvor-qa from host
+  --uninstall         Remove argus from host
   -v, --verbose       Verbose rsync
 
 Environment:
-  ZYVOR_QA_DEPLOY_LOG    Log file path
-  ZYVOR_QA_SSH_RETRIES   SSH retry count (default: 3)
-  DEPLOY_DIR             Override remote staging dir (default: ~/.deployments/zyvor-qa-agent)
+  ZYVOR_ARGUS_DEPLOY_LOG    Log file path
+  ZYVOR_ARGUS_SSH_RETRIES   SSH retry count (default: 3)
+  DEPLOY_DIR             Override remote staging dir (default: ~/.deployments/zyvor-argus)
 
 Examples:
   $0 10.0.0.5 root --key
@@ -217,7 +217,7 @@ print_banner() {
     [ -z "${TARGET_HOST}" ] && target="(fleet mode)"
     echo ""
     echo "${C_CYAN}${C_BOLD}  ╔══════════════════════════════════════════════════════════╗${C_RST}"
-    echo "${C_CYAN}${C_BOLD}  ║${C_RST}  ${pe}  🤖 ${C_BOLD}Zyvor QA Agent${C_RST} Remote Deploy  ${C_DIM}v${VERSION}${C_RST}          ${C_CYAN}${C_BOLD}║${C_RST}"
+    echo "${C_CYAN}${C_BOLD}  ║${C_RST}  ${pe}  🤖 ${C_BOLD}Zyvor Argus${C_RST} Remote Deploy  ${C_DIM}v${VERSION}${C_RST}          ${C_CYAN}${C_BOLD}║${C_RST}"
     echo "${C_CYAN}${C_BOLD}  ║${C_RST}     🛰️  ${C_BOLD}${target}${C_RST}  ·  profile: ${pe} ${pl}                ${C_CYAN}${C_BOLD}║${C_RST}"
     [ "$DRY_RUN" = true ] && echo "${C_MAG}${C_BOLD}  ║${C_RST}     👻  DRY-RUN — no remote changes                    ${C_MAG}${C_BOLD}║${C_RST}"
     [ -n "${FLEET_FILE}" ] && echo "${C_CYAN}${C_BOLD}  ║${C_RST}     🚢  Fleet: ${FLEET_FILE}                          ${C_CYAN}${C_BOLD}║${C_RST}"
@@ -302,7 +302,7 @@ _rsync() {
 
 validate() {
     [ -n "${TARGET_HOST}" ] || { usage; exit 1; }
-    [ -f "${PROJECT_DIR}/pyproject.toml" ] || fail "Not in zyvor-qa-agent repo: ${PROJECT_DIR}"
+    [ -f "${PROJECT_DIR}/pyproject.toml" ] || fail "Not in zyvor-argus repo: ${PROJECT_DIR}"
     if [ -n "${TARGET_PASS}" ]; then
         warn "Password auth is deprecated. Prefer: ssh-copy-id ${TARGET_USER}@${TARGET_HOST}"
         command -v sshpass &>/dev/null || fail "sshpass required for password auth (dnf/apt install sshpass)"
@@ -312,7 +312,7 @@ validate() {
 check_connectivity() {
     info "SSH → ${TARGET_USER}@${TARGET_HOST}  📝 ${DEPLOY_LOG}"
     if [ "$DRY_RUN" = true ]; then
-        REMOTE_DIR="${DEPLOY_DIR:-\$HOME/.deployments/zyvor-qa-agent}"
+        REMOTE_DIR="${DEPLOY_DIR:-\$HOME/.deployments/zyvor-argus}"
         return 0
     fi
     _ssh "echo ok" &>/dev/null || fail "SSH failed — try: ssh-copy-id ${TARGET_USER}@${TARGET_HOST}"
@@ -320,15 +320,15 @@ check_connectivity() {
     local remote_home
     remote_home=$(_ssh "echo \$HOME" 2>/dev/null | tr -d '\r')
     remote_home="${remote_home:-/home/${TARGET_USER}}"
-    REMOTE_DIR="${DEPLOY_DIR:-${remote_home}/.deployments/zyvor-qa-agent}"
+    REMOTE_DIR="${DEPLOY_DIR:-${remote_home}/.deployments/zyvor-argus}"
     info "Remote path: ${REMOTE_DIR}"
 }
 
 resolve_serve_port() {
-    # Explicit --port / ZYVOR_QA_PORT wins; otherwise reuse the port persisted on
+    # Explicit --port / ZYVOR_ARGUS_PORT wins; otherwise reuse the port persisted on
     # the remote from a previous deploy; otherwise the fixed default (30080).
     if [ -n "${SERVE_PORT}" ]; then
-        [ "$DRY_RUN" = true ] || _ssh "mkdir -p '${REMOTE_DIR}' && echo '${SERVE_PORT}' > '${REMOTE_DIR}/.zyvor-qa-port'"
+        [ "$DRY_RUN" = true ] || _ssh "mkdir -p '${REMOTE_DIR}' && echo '${SERVE_PORT}' > '${REMOTE_DIR}/.zyvor-argus-port'"
         info "Serve port: ${SERVE_PORT} (explicit)"
         return 0
     fi
@@ -338,14 +338,14 @@ resolve_serve_port() {
         return 0
     fi
     local existing
-    existing=$(_ssh "cat '${REMOTE_DIR}/.zyvor-qa-port' 2>/dev/null" | tr -d '[:space:]' || true)
+    existing=$(_ssh "cat '${REMOTE_DIR}/.zyvor-argus-port' 2>/dev/null" | tr -d '[:space:]' || true)
     if [[ "${existing}" =~ ^[0-9]+$ ]] && [ "${existing}" -ge 1024 ] && [ "${existing}" -le 65535 ]; then
         SERVE_PORT="${existing}"
         info "Serve port: ${SERVE_PORT} (reused from remote)"
         return 0
     fi
     SERVE_PORT="${DEFAULT_SERVE_PORT}"
-    _ssh "mkdir -p '${REMOTE_DIR}' && echo '${SERVE_PORT}' > '${REMOTE_DIR}/.zyvor-qa-port'"
+    _ssh "mkdir -p '${REMOTE_DIR}' && echo '${SERVE_PORT}' > '${REMOTE_DIR}/.zyvor-argus-port'"
     info "Serve port: ${SERVE_PORT} (fixed default, persisted on remote)"
 }
 
@@ -362,14 +362,14 @@ resolve_dashboard_auth() {
         return 0
     fi
     local existing
-    existing=$(_ssh "cat '${REMOTE_DIR}/.zyvor-qa-auth' 2>/dev/null" | tr -d '[:space:]' || true)
+    existing=$(_ssh "cat '${REMOTE_DIR}/.zyvor-argus-auth' 2>/dev/null" | tr -d '[:space:]' || true)
     if [[ "${existing}" == *:* ]]; then
         DASH_USER="${existing%%:*}"
         DASH_PASS="${existing#*:}"
         info "Dashboard auth: reusing credentials from remote"
     else
         DASH_PASS="${DASH_PASS_DEFAULT}"
-        _ssh "mkdir -p '${REMOTE_DIR}' && umask 077 && echo '${DASH_USER}:${DASH_PASS}' > '${REMOTE_DIR}/.zyvor-qa-auth'"
+        _ssh "mkdir -p '${REMOTE_DIR}' && umask 077 && echo '${DASH_USER}:${DASH_PASS}' > '${REMOTE_DIR}/.zyvor-argus-auth'"
         info "Dashboard auth: default credentials set (persisted on remote)"
     fi
     _ssh env REMOTE_STAGING="${REMOTE_DIR}" DASH_USER="${DASH_USER}" DASH_PASS="${DASH_PASS}" bash <<'REMOTE'
@@ -426,9 +426,9 @@ sync_files() {
     _ssh "mkdir -p '${REMOTE_DIR}'"
     local excludes=(
         # deploy-state files on the remote — excluded so --delete can't wipe them
-        --exclude '.zyvor-qa-port'
-        --exclude '.zyvor-qa-auth'
-        --exclude '.zyvor-qa-image-tag'
+        --exclude '.zyvor-argus-port'
+        --exclude '.zyvor-argus-auth'
+        --exclude '.zyvor-argus-image-tag'
         --exclude '.git'
         --exclude '.venv' --exclude 'venv'
         --exclude 'node_modules'
@@ -510,7 +510,7 @@ cd "${REMOTE_STAGING}"
 python3 -m venv .venv
 .venv/bin/pip install -q --upgrade pip
 .venv/bin/pip install -q -e .
-echo "  ✅ zyvor-qa $(.venv/bin/zyvor-qa --help >/dev/null 2>&1 && echo installed)"
+echo "  ✅ argus $(.venv/bin/argus --help >/dev/null 2>&1 && echo installed)"
 
 # Node deps + Playwright Chromium (browser deps need root)
 npm install --silent --no-fund --no-audit
@@ -529,13 +529,13 @@ if [ ! -f .env ]; then
 fi
 
 # Global wrapper
-$SUDO tee /usr/local/bin/zyvor-qa >/dev/null <<WRAPPER
+$SUDO tee /usr/local/bin/argus >/dev/null <<WRAPPER
 #!/usr/bin/env bash
 cd "${REMOTE_STAGING}"
-exec "${REMOTE_STAGING}/.venv/bin/zyvor-qa" "\$@"
+exec "${REMOTE_STAGING}/.venv/bin/argus" "\$@"
 WRAPPER
-$SUDO chmod 755 /usr/local/bin/zyvor-qa
-echo "Installed: /usr/local/bin/zyvor-qa"
+$SUDO chmod 755 /usr/local/bin/argus
+echo "Installed: /usr/local/bin/argus"
 REMOTE
 }
 
@@ -545,9 +545,9 @@ set -e
 SUDO=""
 [ "$(id -u)" -ne 0 ] && SUDO="sudo"
 command -v systemctl >/dev/null || { echo "⚠️  systemd not available — skipping service"; exit 0; }
-$SUDO tee /etc/systemd/system/zyvor-qa.service >/dev/null <<UNIT
+$SUDO tee /etc/systemd/system/argus.service >/dev/null <<UNIT
 [Unit]
-Description=Zyvor QA Agent webhook server + Mission Control dashboard
+Description=Zyvor Argus webhook server + Mission Control dashboard
 After=network-online.target
 Wants=network-online.target
 
@@ -555,7 +555,7 @@ Wants=network-online.target
 Type=simple
 User=${REMOTE_USER}
 WorkingDirectory=${REMOTE_STAGING}
-ExecStart=${REMOTE_STAGING}/.venv/bin/zyvor-qa serve --port ${SERVE_PORT} --host 0.0.0.0${TLS_MODE:+ --tls}
+ExecStart=${REMOTE_STAGING}/.venv/bin/argus serve --port ${SERVE_PORT} --host 0.0.0.0${TLS_MODE:+ --tls}
 Restart=on-failure
 RestartSec=5
 
@@ -563,19 +563,19 @@ RestartSec=5
 WantedBy=multi-user.target
 UNIT
 $SUDO systemctl daemon-reload
-$SUDO systemctl enable zyvor-qa.service >/dev/null 2>&1 || true
+$SUDO systemctl enable argus.service >/dev/null 2>&1 || true
 # stop first so the old process releases the port, then start fresh (enable --now
 # would NOT restart an already-running service, leaving stale code + a port race)
-$SUDO systemctl stop zyvor-qa.service 2>/dev/null || true
-$SUDO pkill -f "zyvor-qa serve" 2>/dev/null || true
+$SUDO systemctl stop argus.service 2>/dev/null || true
+$SUDO pkill -f "argus serve" 2>/dev/null || true
 sleep 2
-$SUDO systemctl reset-failed zyvor-qa.service 2>/dev/null || true
-$SUDO systemctl start zyvor-qa.service
+$SUDO systemctl reset-failed argus.service 2>/dev/null || true
+$SUDO systemctl start argus.service
 for i in $(seq 1 10); do
     sleep 2
     curl -sf "http://127.0.0.1:${SERVE_PORT}/health" >/dev/null && break
 done
-$SUDO systemctl --no-pager --lines=0 status zyvor-qa.service | head -3
+$SUDO systemctl --no-pager --lines=0 status argus.service | head -3
 curl -sf "http://127.0.0.1:${SERVE_PORT}/health" >/dev/null && echo "  ✅ /health responding on :${SERVE_PORT}" || echo "  ⚠️  /health not responding yet"
 REMOTE
 }
@@ -635,21 +635,21 @@ ${RESOLVE_CRT}
 cd "\${REMOTE_STAGING}"
 [ -f .env ] || cp .env.example .env
 
-echo "Building image zyvor-qa-agent with \$CRT (first build can take a few minutes)..."
-\$SUDO \$CRT build -f docker/Dockerfile -t zyvor-qa-agent . 2>&1 | tail -4
+echo "Building image zyvor-argus with \$CRT (first build can take a few minutes)..."
+\$SUDO \$CRT build -f docker/Dockerfile -t zyvor-argus . 2>&1 | tail -4
 
-\$SUDO \$CRT rm -f zyvor-qa 2>/dev/null || true
-\$SUDO \$CRT run -d --name zyvor-qa \
+\$SUDO \$CRT rm -f argus 2>/dev/null || true
+\$SUDO \$CRT run -d --name argus \
     --restart unless-stopped \
     --env-file .env \
     -p "\${SERVE_PORT}:8080" \
-    zyvor-qa-agent serve --port 8080 --host 0.0.0.0
+    zyvor-argus serve --port 8080 --host 0.0.0.0
 
 sleep 3
-\$SUDO \$CRT ps --filter name=zyvor-qa --format '  {{.Names}}  {{.Status}}  {{.Ports}}'
+\$SUDO \$CRT ps --filter name=argus --format '  {{.Names}}  {{.Status}}  {{.Ports}}'
 curl -sf "http://127.0.0.1:\${SERVE_PORT}/health" >/dev/null \
     && echo "  ✅ /health responding on :\${SERVE_PORT} (runtime: \$CRT)" \
-    || { echo "  ❌ /health not responding"; \$SUDO \$CRT logs --tail 20 zyvor-qa; exit 1; }
+    || { echo "  ❌ /health not responding"; \$SUDO \$CRT logs --tail 20 argus; exit 1; }
 REMOTE
 }
 
@@ -679,16 +679,16 @@ SUDO=""
 ${RESOLVE_CRT}
 [ -n "\$CRT" ] || { echo "❌ no container runtime found (needed to build the image)"; exit 1; }
 cd "\${REMOTE_STAGING}"
-echo "Building image zyvor-qa-agent with \$CRT..."
-\$SUDO \$CRT build -f docker/Dockerfile -t zyvor-qa-agent . 2>&1 | tail -4
+echo "Building image zyvor-argus with \$CRT..."
+\$SUDO \$CRT build -f docker/Dockerfile -t zyvor-argus . 2>&1 | tail -4
 # Content-unique tag so re-importing :latest can't dedupe to a stale manifest —
 # the pod's imagePullPolicy:Never image always matches the freshly built code.
-TAG="zyvor-qa-agent:d\$(date +%Y%m%d%H%M%S)"
+TAG="zyvor-argus:d\$(date +%Y%m%d%H%M%S)"
 DOCKER_TAG="docker.io/library/\${TAG}"
-\$SUDO \$CRT tag zyvor-qa-agent:latest "\${DOCKER_TAG}"
+\$SUDO \$CRT tag zyvor-argus:latest "\${DOCKER_TAG}"
 echo "Importing \${TAG} into k3s containerd..."
 \$SUDO \$CRT save "\${DOCKER_TAG}" | \$SUDO k3s ctr images import -
-echo "\${TAG}" > "\${REMOTE_STAGING}/.zyvor-qa-image-tag"
+echo "\${TAG}" > "\${REMOTE_STAGING}/.zyvor-argus-image-tag"
 \$SUDO k3s ctr images ls | grep -o "docker.io/library/\${TAG}" | head -1
 REMOTE
 }
@@ -702,13 +702,13 @@ SUDO=""
 KUBECTL="$SUDO k3s kubectl"
 cd "${REMOTE_STAGING}"
 
-IMAGE_TAG=$(cat "${REMOTE_STAGING}/.zyvor-qa-image-tag" 2>/dev/null || echo "zyvor-qa-agent:latest")
+IMAGE_TAG=$(cat "${REMOTE_STAGING}/.zyvor-argus-image-tag" 2>/dev/null || echo "zyvor-argus:latest")
 
 # Local image only — pin the content-unique tag + imagePullPolicy: Never so the
 # pod always runs the freshly built code and never hits a registry.
 WORK=$(mktemp -d)
 for f in configmap secret rbac pvc deployment service cronjob; do
-    sed -E "s|^([[:space:]]*)image: zyvor-qa-agent:latest|\1image: ${IMAGE_TAG}\n\1imagePullPolicy: Never|" \
+    sed -E "s|^([[:space:]]*)image: ghcr.io/hypersdk/zyvor-argus:latest|\1image: ${IMAGE_TAG}\n\1imagePullPolicy: Never|" \
         "kubernetes/${f}.yaml" > "${WORK}/${f}.yaml"
 done
 $KUBECTL apply -f "${WORK}/configmap.yaml" -f "${WORK}/secret.yaml" -f "${WORK}/rbac.yaml" \
@@ -717,14 +717,14 @@ rm -rf "${WORK}"
 
 # Dashboard login — patch credentials into the secret before the rollout below
 if [ -n "${DASH_PASS:-}" ] && [ "${DASH_PASS}" != "<generated>" ]; then
-    $KUBECTL patch secret zyvor-qa-secrets --type merge -p \
+    $KUBECTL patch secret argus-secrets --type merge -p \
         "{\"stringData\":{\"DASHBOARD_USER\":\"${DASH_USER}\",\"DASHBOARD_PASSWORD\":\"${DASH_PASS}\"}}"
     echo "  Dashboard credentials injected into secret"
 fi
 
 # Expose the webhook + dashboard on the deploy port (NodePort range 30000-32767)
 if [ "${SERVE_PORT}" -ge 30000 ] && [ "${SERVE_PORT}" -le 32767 ]; then
-    $KUBECTL patch svc zyvor-qa-webhook -p \
+    $KUBECTL patch svc argus-webhook -p \
         "{\"spec\":{\"type\":\"NodePort\",\"ports\":[{\"port\":80,\"targetPort\":8080,\"nodePort\":${SERVE_PORT}}]}}"
     echo "  Service exposed: NodePort ${SERVE_PORT}"
 else
@@ -733,27 +733,27 @@ fi
 
 # The unique image tag already changes the pod spec, so apply triggers a fresh
 # rollout; restart as well to be safe on unchanged-tag redeploys.
-$KUBECTL rollout restart deployment/zyvor-qa-webhook
-$KUBECTL rollout status deployment/zyvor-qa-webhook --timeout=180s
-$KUBECTL get pods -l app=zyvor-qa-agent -o wide
+$KUBECTL rollout restart deployment/argus-webhook
+$KUBECTL rollout status deployment/argus-webhook --timeout=180s
+$KUBECTL get pods -l app=argus -o wide
 curl -sf "http://127.0.0.1:${SERVE_PORT}/health" >/dev/null \
     && echo "  ✅ /health responding on NodePort :${SERVE_PORT}" \
-    || { echo "  ❌ /health not responding"; $KUBECTL logs -l app=zyvor-qa-agent --tail=20; exit 1; }
+    || { echo "  ❌ /health not responding"; $KUBECTL logs -l app=argus --tail=20; exit 1; }
 REMOTE
 }
 
 verify_remote() {
     info "Verifying on ${TARGET_HOST}..."
     if [ "$DRY_RUN" = true ]; then
-        dry "would run: zyvor-qa --help + pipeline import check"
+        dry "would run: argus --help + pipeline import check"
         return 0
     fi
     # Single SSH attempt — do not retry when verification exits non-zero
     if _ssh_once env REMOTE_STAGING="${REMOTE_DIR}" bash <<'REMOTE'
 set -e
 cd "${REMOTE_STAGING}"
-echo "  zyvor-qa: $(command -v zyvor-qa || echo missing)"
-zyvor-qa --help >/dev/null && echo "  ✅ CLI responds"
+echo "  argus: $(command -v argus || echo missing)"
+argus --help >/dev/null && echo "  ✅ CLI responds"
 .venv/bin/python -c "from orchestrator.graph import get_compiled_graph; get_compiled_graph()" \
     && echo "  ✅ pipeline graph compiles"
 echo "  node $(node -v) · playwright $(npx playwright --version | awk '{print $2}')"
@@ -770,18 +770,18 @@ REMOTE
 }
 
 run_smoke_remote() {
-    info "Running smoke tests on ${TARGET_HOST} (zyvor-qa test)..."
-    if [ "$DRY_RUN" = true ]; then dry "would run: zyvor-qa test"; return 0; fi
+    info "Running smoke tests on ${TARGET_HOST} (argus test exec)..."
+    if [ "$DRY_RUN" = true ]; then dry "would run: argus test exec"; return 0; fi
     local cmd
     case "${DEPLOY_PROFILE}" in
         container)
-            cmd="S=; [ \"\$(id -u)\" -ne 0 ] && S=sudo; CRT=docker; command -v docker >/dev/null || CRT=podman; \$S \$CRT exec zyvor-qa zyvor-qa test"
+            cmd="S=; [ \"\$(id -u)\" -ne 0 ] && S=sudo; CRT=docker; command -v docker >/dev/null || CRT=podman; \$S \$CRT exec argus argus test exec"
             ;;
         k3s)
-            cmd="S=; [ \"\$(id -u)\" -ne 0 ] && S=sudo; \$S k3s kubectl exec deploy/zyvor-qa-webhook -- zyvor-qa test"
+            cmd="S=; [ \"\$(id -u)\" -ne 0 ] && S=sudo; \$S k3s kubectl exec deploy/argus-webhook -- argus test exec"
             ;;
         *)
-            cmd="cd '${REMOTE_DIR}' && zyvor-qa test"
+            cmd="cd '${REMOTE_DIR}' && argus test exec"
             ;;
     esac
     if _ssh_once "${cmd}"; then
@@ -798,29 +798,29 @@ set -e
 SUDO=""
 [ "$(id -u)" -ne 0 ] && SUDO="sudo"
 # systemd service
-if command -v systemctl >/dev/null && [ -f /etc/systemd/system/zyvor-qa.service ]; then
-    $SUDO systemctl disable --now zyvor-qa.service 2>/dev/null || true
-    $SUDO rm -f /etc/systemd/system/zyvor-qa.service
+if command -v systemctl >/dev/null && [ -f /etc/systemd/system/argus.service ]; then
+    $SUDO systemctl disable --now argus.service 2>/dev/null || true
+    $SUDO rm -f /etc/systemd/system/argus.service
     $SUDO systemctl daemon-reload
     echo "  removed systemd service"
 fi
 # container (docker or podman)
 for CRT in docker podman; do
     if command -v "$CRT" >/dev/null 2>&1; then
-        $SUDO "$CRT" rm -f zyvor-qa 2>/dev/null && echo "  removed $CRT container" || true
-        $SUDO "$CRT" rmi -f zyvor-qa-agent 2>/dev/null || true
+        $SUDO "$CRT" rm -f argus 2>/dev/null && echo "  removed $CRT container" || true
+        $SUDO "$CRT" rmi -f zyvor-argus 2>/dev/null || true
     fi
 done
 # k3s resources (cluster itself is left alone)
 if command -v k3s >/dev/null 2>&1; then
     $SUDO k3s kubectl delete deployment,service,cronjob,configmap,secret,role,rolebinding,serviceaccount \
-        -l app=zyvor-qa-agent --ignore-not-found 2>/dev/null || true
-    $SUDO k3s ctr images rm docker.io/library/zyvor-qa-agent:latest 2>/dev/null || true
+        -l app=argus --ignore-not-found 2>/dev/null || true
+    $SUDO k3s ctr images rm docker.io/library/zyvor-argus:latest 2>/dev/null || true
     echo "  removed k8s resources (k3s itself left installed)"
 fi
-$SUDO rm -f /usr/local/bin/zyvor-qa
+$SUDO rm -f /usr/local/bin/argus
 rm -rf "${REMOTE_STAGING}"
-echo "zyvor-qa removed"
+echo "argus removed"
 REMOTE
     ok "Uninstalled on ${TARGET_HOST}"
 }
@@ -868,7 +868,7 @@ print_deployment_summary() {
     [ -n "${SERVE_PORT}" ] && \
     echo "  📌  NodePort    ${SERVE_PORT}  ${C_DIM}(fixed — persisted; override with --port)${C_RST}"
     if [ "$NO_AUTH" != true ] && [ -n "${DASH_PASS}" ]; then
-        echo "  🔐  Login       ${C_BOLD}${DASH_USER}${C_RST} / ${C_BOLD}${DASH_PASS}${C_RST}  ${C_DIM}(persisted in ${REMOTE_DIR}/.zyvor-qa-auth)${C_RST}"
+        echo "  🔐  Login       ${C_BOLD}${DASH_USER}${C_RST} / ${C_BOLD}${DASH_PASS}${C_RST}  ${C_DIM}(persisted in ${REMOTE_DIR}/.zyvor-argus-auth)${C_RST}"
     fi
     echo ""
     case "${DEPLOY_PROFILE}" in
@@ -876,7 +876,7 @@ print_deployment_summary() {
             echo "  📺  ${C_BOLD}http://${TARGET_HOST}:${SERVE_PORT}/dashboard${C_RST}   Mission Control"
             echo "  ❤️   http://${TARGET_HOST}:${SERVE_PORT}/health"
             echo "  🪝  http://${TARGET_HOST}:${SERVE_PORT}/webhook/github"
-            echo "  🐳  ssh ${TARGET_USER}@${TARGET_HOST} 'sudo docker logs -f zyvor-qa'  ${C_DIM}(or podman)${C_RST}"
+            echo "  🐳  ssh ${TARGET_USER}@${TARGET_HOST} 'sudo docker logs -f argus'  ${C_DIM}(or podman)${C_RST}"
             ;;
         k3s)
             echo "  📺  ${C_BOLD}http://${TARGET_HOST}:${SERVE_PORT}/dashboard${C_RST}   Mission Control (live pods!)"
@@ -886,13 +886,13 @@ print_deployment_summary() {
             ;;
         *)
             echo "  🔗  ssh ${TARGET_USER}@${TARGET_HOST}"
-            echo "  🧪  zyvor-qa test"
-            echo "  🚀  zyvor-qa run --source local"
+            echo "  🧪  argus test exec"
+            echo "  🚀  argus test run --source local"
             if [ "$INSTALL_SERVICE" = true ]; then
                 echo "  📺  ${C_BOLD}http://${TARGET_HOST}:${SERVE_PORT}/dashboard${C_RST}   Mission Control"
-                echo "  🔧  sudo systemctl status zyvor-qa"
+                echo "  🔧  sudo systemctl status argus"
             else
-                echo "  📺  zyvor-qa serve --port ${SERVE_PORT}   → http://${TARGET_HOST}:${SERVE_PORT}/dashboard"
+                echo "  📺  argus serve --port ${SERVE_PORT}   → http://${TARGET_HOST}:${SERVE_PORT}/dashboard"
             fi
             ;;
     esac
@@ -960,7 +960,7 @@ main() {
     fi
 
     if [ "$UNINSTALL" = true ]; then
-        run_step "Uninstall zyvor-qa" do_uninstall
+        run_step "Uninstall argus" do_uninstall
         exit 0
     fi
 

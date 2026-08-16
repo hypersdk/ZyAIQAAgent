@@ -1,6 +1,6 @@
 # Writing Tests & GitHub Integration
 
-This guide explains how Zyvor QA Agent creates and runs test cases, and how to connect a GitHub repository as the requirement source.
+This guide explains how Zyvor Argus creates and runs test cases, and how to connect a GitHub repository as the requirement source.
 
 > New to the project? The [step-by-step tutorials](tutorials/README.md) walk through everything here with worked examples. See also: [Architecture](architecture.md) · [Configuration reference](configuration.md) · [Troubleshooting](troubleshooting.md).
 
@@ -61,7 +61,7 @@ gh auth refresh -h github.com
 
 ```bash
 # Run hand-written smoke tests in tests/manual/
-zyvor-qa test
+argus test exec
 ```
 
 ---
@@ -70,16 +70,16 @@ zyvor-qa test
 
 ```bash
 # Generate Playwright tests only (no run)
-zyvor-qa generate --spec prompts/examples/vm-create.md
+argus test generate --spec prompts/examples/vm-create.md
 
 # Generate from your own spec file
-zyvor-qa generate --spec path/to/your-spec.md
+argus test generate --spec path/to/your-spec.md
 
 # Full pipeline: parse → generate → execute → HTML + PDF report
-zyvor-qa run --source local --spec prompts/examples/vm-create.md
+argus test run --source local --spec prompts/examples/vm-create.md
 
 # Full pipeline with default example spec
-zyvor-qa run --source local
+argus test run --source local
 ```
 
 ---
@@ -90,20 +90,20 @@ Requires `ZYVOR_PRODUCT_REPO` in `.env` and `gh auth login` (or `GITHUB_TOKEN`).
 
 ```bash
 # Generate tests from a specific .md file in the product repo
-zyvor-qa generate --source github --spec docs/specs/my-feature.md
+argus test generate --source github --spec docs/specs/my-feature.md
 
 # Full pipeline from a GitHub markdown file
-zyvor-qa run --source github --spec docs/specs/my-feature.md
+argus test run --source github --spec docs/specs/my-feature.md
 
 # GitHub blob URL also works
-zyvor-qa run --source github \
+argus test run --source github \
   --spec https://github.com/ssahani/hypersdk-web/blob/main/docs/specs/my-feature.md
 
 # Fetch ALL default content (issues + docs/specs/ + README) — no --spec
-zyvor-qa run --source github
+argus test run --source github
 
 # Post report summary as a PR comment
-zyvor-qa run --source github --spec docs/specs/my-feature.md --pr-number 42
+argus test run --source github --spec docs/specs/my-feature.md --pr-number 42
 ```
 
 **`--spec` formats accepted with `--source github`:**
@@ -122,10 +122,10 @@ When `--spec` is omitted with `--source github`, the agent fetches all default s
 
 ```bash
 # Generate only
-zyvor-qa create "Verify homepage loads and shows product suite"
+argus test create "Verify homepage loads and shows product suite"
 
 # Generate and run immediately
-zyvor-qa create "Check /vm page shows migration content" --execute
+argus test create "Check /vm page shows migration content" --execute
 ```
 
 ---
@@ -134,10 +134,10 @@ zyvor-qa create "Check /vm page shows migration content" --execute
 
 ```bash
 # Compare screenshots against baselines
-zyvor-qa regression
+argus vision regression
 
 # Capture new baselines
-zyvor-qa regression --update-baselines
+argus vision regression --update-baselines
 
 # Makefile shortcuts
 make regression
@@ -149,7 +149,7 @@ make regression-update
 ### Webhook server (automatic GitHub triggers)
 
 ```bash
-zyvor-qa serve --port 8080
+argus serve --port 8080
 ```
 
 Configure a webhook on your product repo pointing to `https://<host>:8080/webhook/github` for `push`, `pull_request`, and `repository_dispatch` events.
@@ -172,17 +172,17 @@ npm run report:pdf        # Regenerate PDF from reports/qa-summary.html
 
 | Goal | Command |
 |------|---------|
-| Run smoke tests only | `zyvor-qa test` |
-| Generate from local spec | `zyvor-qa generate --spec path/to/spec.md` |
-| Full pipeline (local spec) | `zyvor-qa run --source local --spec path/to/spec.md` |
-| Generate from GitHub `.md` | `zyvor-qa generate --source github --spec docs/specs/foo.md` |
-| Full pipeline (GitHub `.md`) | `zyvor-qa run --source github --spec docs/specs/foo.md` |
-| Full pipeline (all GitHub specs) | `zyvor-qa run --source github` |
+| Run smoke tests only | `argus test exec` |
+| Generate from local spec | `argus test generate --spec path/to/spec.md` |
+| Full pipeline (local spec) | `argus test run --source local --spec path/to/spec.md` |
+| Generate from GitHub `.md` | `argus test generate --source github --spec docs/specs/foo.md` |
+| Full pipeline (GitHub `.md`) | `argus test run --source github --spec docs/specs/foo.md` |
+| Full pipeline (all GitHub specs) | `argus test run --source github` |
 | Post report to PR | Add `--pr-number 42` to any `run` command |
-| Natural language test | `zyvor-qa create "your description"` |
-| NL test + run | `zyvor-qa create "description" --execute` |
-| Visual regression | `zyvor-qa regression` |
-| Webhook server | `zyvor-qa serve` |
+| Natural language test | `argus test create "your description"` |
+| NL test + run | `argus test create "description" --execute` |
+| Visual regression | `argus vision regression` |
+| Webhook server | `argus serve` |
 | Write tests by hand | Add files to `tests/manual/*.spec.ts` |
 
 ---
@@ -292,8 +292,8 @@ The generator writes one `.spec.ts` per requirement into `tests/generated/`:
 Uses `agents/nl_create/` and `prompts/nl_create.md` — no markdown spec file needed.
 
 ```bash
-zyvor-qa create "Verify homepage loads and shows product suite"
-zyvor-qa create "Check /vm page shows migration content" --execute
+argus test create "Verify homepage loads and shows product suite"
+argus test create "Check /vm page shows migration content" --execute
 ```
 
 ---
@@ -349,8 +349,8 @@ When enabled, the agent reads product repo docs and code signals, compares them 
 
 ```bash
 # One-off via CLI flag
-zyvor-qa run --source github --expand-coverage
-zyvor-qa generate --source github --expand-coverage
+argus test run --source github --expand-coverage
+argus test generate --source github --expand-coverage
 
 # Or set in .env for webhook/default GitHub runs
 ENABLE_COVERAGE_EXPANSION=true
@@ -360,8 +360,8 @@ COVERAGE_MAX_NEW_TESTS=10
 ### Discover without generating tests
 
 ```bash
-zyvor-qa discover --source github
-zyvor-qa discover --source github --pr-number 42
+argus test discover --source github
+argus test discover --source github --pr-number 42
 ```
 
 ### What gets scanned
@@ -436,7 +436,7 @@ Collect V8 bytecode coverage during Playwright runs:
 
 ```bash
 ENABLE_V8_COVERAGE=true
-zyvor-qa test
+argus test exec
 ```
 
 Coverage artifacts are written to `reports/v8-coverage/` and summarized in the HTML/PR report.
@@ -446,7 +446,7 @@ Coverage artifacts are written to `reports/v8-coverage/` and summarized in the H
 After pipeline updates, delete stale `tests/generated/coverage-*.spec.ts` stubs and regenerate:
 
 ```bash
-zyvor-qa generate --source github --expand-coverage
+argus test generate --source github --expand-coverage
 ```
 
 Generated tests now use `playwright/fixtures/base`, `waitForPageReady`, route-specific navigation, and `toBeVisible` assertions. A post-generation quality gate rejects duplicate homepage stubs and wrong-path navigation.

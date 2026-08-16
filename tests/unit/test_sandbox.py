@@ -36,13 +36,13 @@ def test_available_false_without_namespace_env(monkeypatch):
 
 
 def test_available_false_when_namespace_set_but_no_cluster(monkeypatch):
-    monkeypatch.setenv("ZYVOR_SANDBOX_NAMESPACE", "zyvor-qa-sandbox")
+    monkeypatch.setenv("ZYVOR_SANDBOX_NAMESPACE", "argus-sandbox")
     monkeypatch.setattr(k8s_module, "_load_clients", lambda: None)
     assert sandbox.available() is False
 
 
 def test_available_true_when_namespace_set_and_cluster_reachable(monkeypatch):
-    monkeypatch.setenv("ZYVOR_SANDBOX_NAMESPACE", "zyvor-qa-sandbox")
+    monkeypatch.setenv("ZYVOR_SANDBOX_NAMESPACE", "argus-sandbox")
     monkeypatch.setattr(k8s_module, "_load_clients", lambda: {"core": object(), "batch": object()})
     assert sandbox.available() is True
 
@@ -122,7 +122,7 @@ class _FakePodList:
 
 
 def test_run_python_happy_path_creates_and_cleans_up_job(monkeypatch):
-    monkeypatch.setenv("ZYVOR_SANDBOX_NAMESPACE", "zyvor-qa-sandbox")
+    monkeypatch.setenv("ZYVOR_SANDBOX_NAMESPACE", "argus-sandbox")
 
     fake_batch = MagicMock()
     fake_batch.read_namespaced_job_status.return_value = _FakeJobStatusResponse(_FakeStatus(succeeded=1))
@@ -149,7 +149,7 @@ def test_run_python_sets_image_pull_policy_if_not_present(monkeypatch):
     locally-built/imported image (e.g. host_pentest's paramiko image) tagged
     ':latest' defaults to imagePullPolicy Always, which tries (and fails) to
     pull from a registry even though the image is already on the node."""
-    monkeypatch.setenv("ZYVOR_SANDBOX_NAMESPACE", "zyvor-qa-sandbox")
+    monkeypatch.setenv("ZYVOR_SANDBOX_NAMESPACE", "argus-sandbox")
 
     fake_batch = MagicMock()
     fake_batch.read_namespaced_job_status.return_value = _FakeJobStatusResponse(_FakeStatus(succeeded=1))
@@ -173,7 +173,7 @@ def test_run_python_normalizes_str_of_bytes_pod_log(monkeypatch):
     dashboard/k8s.py::_normalize_log_text` already exists to fix exactly
     this for the dashboard's own pod-log viewer; run_python() must reuse it,
     not read_namespaced_pod_log()'s raw return value."""
-    monkeypatch.setenv("ZYVOR_SANDBOX_NAMESPACE", "zyvor-qa-sandbox")
+    monkeypatch.setenv("ZYVOR_SANDBOX_NAMESPACE", "argus-sandbox")
 
     fake_batch = MagicMock()
     fake_batch.read_namespaced_job_status.return_value = _FakeJobStatusResponse(_FakeStatus(succeeded=1))
@@ -190,7 +190,7 @@ def test_run_python_normalizes_str_of_bytes_pod_log(monkeypatch):
 
 
 def test_run_python_marks_timed_out_when_job_never_completes(monkeypatch):
-    monkeypatch.setenv("ZYVOR_SANDBOX_NAMESPACE", "zyvor-qa-sandbox")
+    monkeypatch.setenv("ZYVOR_SANDBOX_NAMESPACE", "argus-sandbox")
 
     fake_batch = MagicMock()
     fake_batch.read_namespaced_job_status.return_value = _FakeJobStatusResponse(_FakeStatus())  # never finishes

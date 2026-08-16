@@ -1,13 +1,13 @@
 // Copy into your own repo as Jenkinsfile (or merge the stage into an existing pipeline).
 // Full env var / exit-code / summary.json contract:
-// https://github.com/hypersdk/ZyAIQAAgent/blob/main/docs/tutorials/15-external-cicd-integration.md
+// https://github.com/hypersdk/zyvor-argus/blob/main/docs/tutorials/15-external-cicd-integration.md
 //
 // `args '--entrypoint=""'` clears the image's baked-in ENTRYPOINT so the `sh`
 // step below runs directly instead of being appended as args to it.
 pipeline {
   agent {
     docker {
-      image 'ghcr.io/hypersdk/zyaiqaagent:v0.3.0'
+      image 'ghcr.io/hypersdk/zyvor-argus:v0.7.0'
       args '--entrypoint=""'
     }
   }
@@ -18,7 +18,7 @@ pipeline {
   stages {
     stage('QA Smoke') {
       steps {
-        sh 'zyvor-qa test --grep @smoke'
+        sh 'argus test exec --grep @smoke'
       }
     }
   }

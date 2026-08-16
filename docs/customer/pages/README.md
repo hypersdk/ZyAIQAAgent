@@ -19,7 +19,7 @@ Every route is also listed in the [complete page index](../PAGE_INDEX.md).
 | [AI test](journeys/dashboard-actions-ai-test.md) | Describe a goal; the autonomous browser agent drives the app toward it. |
 | [Flow test](journeys/dashboard-actions-flow.md) | Multi-step user journey (English or step DSL) with optional login/session, video, and Playwright `trace.zip`. |
 | [HAR record / replay](journeys/dashboard-actions-har.md) | Record a HAR while browsing routes, or replay the UI against a captured HAR (offline / deterministic network). |
-| [Import codegen](journeys/dashboard-actions-import-codegen.md) | Paste Playwright codegen JS/TS and convert it into ZyAIQAAgent flow steps (optionally run immediately). |
+| [Import codegen](journeys/dashboard-actions-import-codegen.md) | Paste Playwright codegen JS/TS and convert it into Zyvor Argus flow steps (optionally run immediately). |
 
 ## Operations
 
@@ -38,7 +38,7 @@ Every route is also listed in the [complete page index](../PAGE_INDEX.md).
 | [Hero status](overview/dashboard-hero.md) | Cluster/app health banner with pods, replicas, last QA run, pass rate, and next scheduled smoke. |
 | [Live job panel](overview/dashboard-job-live.md) | Live panel for the running job — elapsed time, per-test chips, streaming log, Stop / download. |
 | [Pods](overview/dashboard-pods.md) | Pod cards with phase, restarts, and click-through logs; optional cluster events toggle. |
-| [Workloads](overview/dashboard-workloads.md) | Deployment and CronJob strip for the zyvor-qa namespace (when kube access is available). |
+| [Workloads](overview/dashboard-workloads.md) | Deployment and CronJob strip for the argus namespace (when kube access is available). |
 | [Mission Control](overview/dashboard.md) | Live Mission Control console — status hero, workloads, pods, action cards, schedules, findings, and QA run history. |
 | [Login](overview/login.md) | Session login gate for Mission Control when DASHBOARD_PASSWORD is configured. |
 

@@ -37,25 +37,25 @@ install:
 	npx playwright install --with-deps chromium
 
 test:
-	zyvor-qa test
+	argus test exec
 
 generate:
-	zyvor-qa generate --spec prompts/examples/vm-create.md
+	argus test generate --spec prompts/examples/vm-create.md
 
 create:
-	zyvor-qa create "Verify homepage loads and shows product suite"
+	argus test create "Verify homepage loads and shows product suite"
 
 run:
-	zyvor-qa run --source local
+	argus test run --source local
 
 regression:
-	ENABLE_REGRESSION=true zyvor-qa regression
+	ENABLE_REGRESSION=true argus vision regression
 
 regression-update:
-	ENABLE_REGRESSION=true zyvor-qa regression --update-baselines
+	ENABLE_REGRESSION=true argus vision regression --update-baselines
 
 serve:
-	zyvor-qa serve --port 8080
+	argus serve --port 8080
 
 desktop-dev:
 	cd desktop && npm install && npm run tauri dev
@@ -80,8 +80,8 @@ rust:
 	cd rust && cargo build --release
 
 docker:
-	docker build -f docker/Dockerfile -t zyvor-qa-agent .
-	docker run --env-file .env zyvor-qa-agent
+	docker build -f docker/Dockerfile -t zyvor-argus .
+	docker run --env-file .env zyvor-argus
 
 lint:
 	ruff check orchestrator agents github_integration

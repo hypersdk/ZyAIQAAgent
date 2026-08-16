@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: zyvor-qa-reports
+  name: argus-reports
   labels:
-    app: zyvor-qa-agent
+    app: argus
 spec:
   # k3s ships the local-path provisioner by default
   accessModes:

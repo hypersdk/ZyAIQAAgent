@@ -42,7 +42,7 @@ fn open_settings_window(app: &AppHandle) {
         return;
     }
     let _ = WebviewWindowBuilder::new(app, "settings", WebviewUrl::App("settings.html".into()))
-        .title("Zyvor QA Agent Settings")
+        .title("Zyvor Argus Settings")
         .inner_size(440.0, 300.0)
         .resizable(false)
         .build();
@@ -55,7 +55,7 @@ fn open_settings_window(app: &AppHandle) {
 fn setup_menu(app: &AppHandle) -> tauri::Result<()> {
     let app_menu = Submenu::with_items(
         app,
-        "Zyvor QA Agent",
+        "Zyvor Argus",
         true,
         &[
             &PredefinedMenuItem::about(app, None, None)?,
@@ -121,13 +121,13 @@ pub fn run() {
         .setup(|app| {
             setup_menu(app.handle())?;
             let settings = paths::load_settings();
-            server::start_in_background(app.handle().clone(), settings.zyvor_qa_bin);
+            server::start_in_background(app.handle().clone(), settings.argus_bin);
             Ok(())
         })
         .build(tauri::generate_context!())
-        .expect("error while building the Zyvor QA Agent desktop app");
+        .expect("error while building the Zyvor Argus desktop app");
 
-    // Killing the spawned `zyvor-qa serve` child needs to survive every way
+    // Killing the spawned `argus serve` child needs to survive every way
     // this single-window app can end, not just one of them — verified live
     // that only handling the window's own CloseRequested event (via
     // `on_window_event`) misses Cmd+Q / Dock "Quit" / the app-menu Quit
@@ -143,7 +143,7 @@ pub fn run() {
             // checked by `label` above, since a second window (added for
             // Settings) means this event now fires for either one. Closing
             // the *main* window quits the whole app: there's no tray icon
-            // and nothing else to show, so leaving `zyvor-qa serve` running
+            // and nothing else to show, so leaving `argus serve` running
             // invisibly after the only real window closes would just be an
             // orphaned process with no way back to it.
             server::shutdown(&app_handle.state::<ServerState>());

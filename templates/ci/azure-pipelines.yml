@@ -1,24 +1,24 @@
 # Copy into your own repo as azure-pipelines.yml (or merge the step into an existing job).
 # Full env var / exit-code / summary.json contract:
-# https://github.com/hypersdk/ZyAIQAAgent/blob/main/docs/tutorials/15-external-cicd-integration.md
+# https://github.com/hypersdk/zyvor-argus/blob/main/docs/tutorials/15-external-cicd-integration.md
 trigger:
   - main
 
 pool:
   vmImage: 'ubuntu-latest'
 
-container: ghcr.io/hypersdk/zyaiqaagent:v0.4.0
+container: ghcr.io/hypersdk/zyvor-argus:v0.7.0
 
 variables:
   ZYVOR_BASE_URL: $(STAGING_URL)   # define STAGING_URL as a pipeline variable/secret
   ZYVOR_ENV: development           # 'production' enforces ZYVOR_TARGET_ALLOWLIST for private targets
 
 steps:
-  - script: zyvor-qa test --grep @smoke
-    displayName: 'Run zyvor-qa smoke tests'
+  - script: argus test exec --grep @smoke
+    displayName: 'Run argus smoke tests'
 
   - task: PublishBuildArtifacts@1
     condition: always()
     inputs:
       pathToPublish: 'reports'
-      artifactName: 'zyvor-qa-report'
+      artifactName: 'argus-report'

@@ -1,10 +1,10 @@
 # Test zyvor.dev (with recording)
 
-Canonical how-to for pointing ZyAIQAAgent at **[https://zyvor.dev](https://zyvor.dev)**. **Watch the journey video first**, then re-run the same flow locally.
+Canonical how-to for pointing Zyvor Argus at **[https://zyvor.dev](https://zyvor.dev)**. **Watch the journey video first**, then re-run the same flow locally.
 
 ## Watch the recording
 
-[![ZyAIQAAgent · Mission Control → GuestKit](https://img.youtube.com/vi/ys7SvKKqf9w/maxresdefault.jpg)](https://youtu.be/ys7SvKKqf9w)
+[![Zyvor Argus · Mission Control → GuestKit](https://img.youtube.com/vi/ys7SvKKqf9w/maxresdefault.jpg)](https://youtu.be/ys7SvKKqf9w)
 
 <video src="../assets/zyvor-dev-mission-control-demo.webm" controls width="720" title="zyvor.dev journey recording"></video>
 
@@ -23,8 +23,8 @@ ZYVOR_BASE_URL=https://zyvor.dev
 ## Re-run the same recording
 
 ```bash
-zyvor-qa test --grep @smoke
-zyvor-qa flow https://zyvor.dev --steps docs/assets/zyvor-dev-demo.steps --video
+argus test exec --grep @smoke
+argus flow run https://zyvor.dev --steps docs/assets/zyvor-dev-demo.steps --video
 ```
 
 Journey video lands under `reports/artifacts/flows/cli/journey.webm` (or Mission Control → 🎬 Videos).
@@ -32,12 +32,12 @@ Journey video lands under `reports/artifacts/flows/cli/journey.webm` (or Mission
 ## Mission Control
 
 ```bash
-zyvor-qa serve --port 8080
+argus serve --port 8080
 # → http://localhost:8080/dashboard
 ```
 
 1. ▶ **Smoke**
-2. 🎬 **Flow test** — URL `https://zyvor.dev`, paste [`zyvor-dev-demo.steps`](https://github.com/hypersdk/ZyAIQAAgent/blob/main/docs/assets/zyvor-dev-demo.steps), **record video** on
+2. 🎬 **Flow test** — URL `https://zyvor.dev`, paste [`zyvor-dev-demo.steps`](https://github.com/hypersdk/zyvor-argus/blob/main/docs/assets/zyvor-dev-demo.steps), **record video** on
 3. 📼 **HAR** — optional record `/` then replay
 
 ### UX cues

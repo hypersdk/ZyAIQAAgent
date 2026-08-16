@@ -1,16 +1,16 @@
 {
-  "name": "zyvor-qa-agent",
+  "name": "zyvor-argus",
   "version": "0.6.0",
   "private": true,
-  "description": "Playwright test execution layer for Zyvor QA Agent",
+  "description": "Playwright test execution layer for Zyvor Argus",
   "workspaces": [
     "desktop"
   ],
   "scripts": {
-    "desktop": "zyvor-qa-desktop dev",
-    "desktop:dev": "zyvor-qa-desktop dev",
-    "desktop:build": "zyvor-qa-desktop build",
-    "desktop:run": "zyvor-qa-desktop run",
+    "desktop": "zyvor-argus-desktop dev",
+    "desktop:dev": "zyvor-argus-desktop dev",
+    "desktop:build": "zyvor-argus-desktop build",
+    "desktop:run": "zyvor-argus-desktop run",
     "test": "playwright test --config=playwright/playwright.config.ts",
     "test:manual": "playwright test --config=playwright/playwright.config.ts tests/manual",
     "test:generated": "playwright test --config=playwright/playwright.config.ts tests/generated",

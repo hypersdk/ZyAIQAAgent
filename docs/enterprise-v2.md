@@ -1,4 +1,4 @@
-# ZyAIQAAgent Enterprise v2
+# Zyvor Argus Enterprise v2
 
 Integration guide for the enterprise security and durable control-plane overlay.
 
@@ -152,7 +152,7 @@ also needs a real sandbox backend configured:
 
 ```bash
 kubectl apply -f kubernetes/sandbox.yaml   # dedicated namespace + RBAC + default-deny egress
-export ZYVOR_SANDBOX_NAMESPACE=zyvor-qa-sandbox
+export ZYVOR_SANDBOX_NAMESPACE=argus-sandbox
 export ZYVOR_EXPLOIT_EXECUTION_ENABLED=true
 ```
 
@@ -243,7 +243,7 @@ reports/mission-control.db
 Override:
 
 ```bash
-export ZYVOR_STATE_DB=/var/lib/zyvor-qa/mission-control.db
+export ZYVOR_STATE_DB=/var/lib/argus/mission-control.db
 ```
 
 SQLite is appropriate for one control-plane replica. Use PostgreSQL and an external queue before scaling control-plane replicas horizontally.

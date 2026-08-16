@@ -74,7 +74,7 @@ def generate_summary_stub(test_results: TestResult) -> str:
     """Fallback summary without LLM."""
     status = "PASSED" if test_results.all_passed else "FAILED"
     lines = [
-        f"**Zyvor QA Report** — {status}",
+        f"**Zyvor Argus Report** — {status}",
         "",
         f"- Passed: {test_results.passed}",
         f"- Failed: {test_results.failed}",

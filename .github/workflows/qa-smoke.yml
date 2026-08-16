@@ -39,7 +39,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run smoke tests (shard ${{ matrix.shard }}/2)
-        run: zyvor-qa test --grep @smoke --shard ${{ matrix.shard }}/2
+        run: argus test exec --grep @smoke --shard ${{ matrix.shard }}/2
         env:
           ZYVOR_BASE_URL: https://zyvor.dev
           ENABLE_API_VALIDATION: true

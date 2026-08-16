@@ -13,5 +13,5 @@
 // limitations under the License.
 
 fn main() {
-    zyvor_qa_desktop_lib::run()
+    zyvor_argus_desktop_lib::run()
 }

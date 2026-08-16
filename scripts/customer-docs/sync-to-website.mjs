@@ -20,9 +20,9 @@ import { fileURLToPath } from 'node:url'
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const CUSTOMER = resolve(ROOT, 'docs/customer')
 const SITE = resolve(process.argv[2] ?? resolve(ROOT, '../hypersdk-web'))
-const PRODUCT = process.env.CUSTOMER_DOCS_PRODUCT || 'ZyAIQAAgent'
-const SLUG = (process.env.CUSTOMER_DOCS_SLUG || 'zyaiqaagent').toLowerCase().replace(/\s+/g, '-')
-const PDF_PREFIX = process.env.CUSTOMER_DOCS_PDF_PREFIX || 'ZyAIQAAgent'
+const PRODUCT = process.env.CUSTOMER_DOCS_PRODUCT || 'Zyvor Argus'
+const SLUG = (process.env.CUSTOMER_DOCS_SLUG || 'zyvor-argus').toLowerCase().replace(/\s+/g, '-')
+const PDF_PREFIX = process.env.CUSTOMER_DOCS_PDF_PREFIX || 'ZyvorArgus'
 const MANUAL_DIR = process.env.CUSTOMER_DOCS_MANUAL_DIR || `${SLUG}-manual`
 const TARGET = join(SITE, `docs/${MANUAL_DIR}`)
 const PDF_TARGET = join(SITE, `static/downloads/${SLUG}-docs`)
@@ -46,7 +46,7 @@ const REPO_ONLY = new RegExp(
   [
     '(\\.\\./)+(handbook|guides|architecture|admin-guide|user-guide|getting-started|developer-guide|legal|client)/',
     `${SLUG}-customer-feature-guide`,
-    'zyvor-qa-agent-customer-feature-guide',
+    'zyvor-argus-customer-feature-guide',
     '(\\.\\./)+(architecture|configuration|troubleshooting|remote-deploy|test-authoring|releases|tutorials)/',
     'DEPLOYMENT_GUIDE',
     'AIRGAP_INSTALL',

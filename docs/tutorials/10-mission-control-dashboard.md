@@ -6,7 +6,7 @@ A live, self-refreshing operations console served by the webhook server. It show
 
 **Watch:** Mission Control → GuestKit flow demo
 
-[![ZyAIQAAgent Mission Control demo](https://img.youtube.com/vi/ys7SvKKqf9w/maxresdefault.jpg)](https://youtu.be/ys7SvKKqf9w)
+[![Zyvor Argus Mission Control demo](https://img.youtube.com/vi/ys7SvKKqf9w/maxresdefault.jpg)](https://youtu.be/ys7SvKKqf9w)
 
 **Prerequisites:** [Tutorial 1](01-getting-started.md). A Kubernetes cluster is optional — without one the pod panel shows an offline state and everything else still works. To practice against the public site with video + HAR, see [Tutorial 13](13-test-zyvor-dev-recording.md).
 
@@ -15,7 +15,7 @@ A live, self-refreshing operations console served by the webhook server. It show
 ## 1. Open it locally
 
 ```bash
-zyvor-qa serve --port 8080
+argus serve --port 8080
 # then browse to:
 open http://localhost:8080/dashboard
 ```
@@ -37,10 +37,10 @@ Keyboard: `r` refreshes immediately, `esc` closes the log drawer, `` ` `` warps,
 
 ## 2. Where run history comes from
 
-Every pipeline run (`zyvor-qa run`, webhook-triggered runs) appends one JSON entry to `reports/history/` (kept to the most recent 200). Generate some data:
+Every pipeline run (`argus test run`, webhook-triggered runs) appends one JSON entry to `reports/history/` (kept to the most recent 200). Generate some data:
 
 ```bash
-zyvor-qa run --source local
+argus test run --source local
 ```
 
 Refresh the dashboard — the run appears in the table and the sparkline.
@@ -50,25 +50,25 @@ Refresh the dashboard — the run appears in the table and the sparkline.
 The Kubernetes panel activates automatically when an API is reachable, in this order:
 
 1. **In-cluster** service account (when running as the K8s webhook Deployment)
-2. **Local kubeconfig** (`~/.kube/config` or `KUBECONFIG`) — so `zyvor-qa serve` on your laptop can watch any cluster you can
+2. **Local kubeconfig** (`~/.kube/config` or `KUBECONFIG`) — so `argus serve` on your laptop can watch any cluster you can
 
 Configuration:
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `DASHBOARD_NAMESPACE` | in-cluster namespace, else `default` | Namespace to inspect |
-| `DASHBOARD_POD_SELECTOR` | *(all pods in namespace)* | Label selector, e.g. `app=zyvor-qa-agent` |
+| `DASHBOARD_POD_SELECTOR` | *(all pods in namespace)* | Label selector, e.g. `app=zyvor-argus` |
 
 Try it with a local cluster:
 
 ```bash
-kind create cluster --name zyvor-qa
-DASHBOARD_NAMESPACE=kube-system zyvor-qa serve --port 8080
+kind create cluster --name argus
+DASHBOARD_NAMESPACE=kube-system argus serve --port 8080
 ```
 
 ## 4. Deploy on Kubernetes
 
-The manifests already wire this up: `kubernetes/rbac.yaml` grants the `zyvor-qa` service account read-only access (pods, logs, events, deployments, cronjobs) and the webhook Deployment uses it.
+The manifests already wire this up: `kubernetes/rbac.yaml` grants the `argus` service account read-only access (pods, logs, events, deployments, cronjobs) and the webhook Deployment uses it.
 
 ```bash
 make k8s-validate
@@ -78,7 +78,7 @@ make k8s-apply
 **Access is deliberately not exposed through the ingress** — the dashboard can read pod logs, which don't belong on the public internet. Use a port-forward:
 
 ```bash
-kubectl port-forward svc/zyvor-qa-webhook 8080:80
+kubectl port-forward svc/argus-webhook 8080:80
 open http://localhost:8080/dashboard
 ```
 
@@ -88,7 +88,7 @@ If you do want it on the ingress, add an authenticated path — see [`kubernetes
 
 Set `DASHBOARD_PASSWORD` (and optionally `DASHBOARD_USER`, default `admin`) to put the dashboard, its API, and all artifacts behind the Zyvor premium login screen — `/health` and the HMAC-verified `/webhook/github` stay open. Without a password, the dashboard is open (local-dev mode).
 
-`deploy-remote.sh` handles this automatically: it generates a random password once per host, persists it (`.zyvor-qa-auth` next to the port file), injects it into the remote `.env` / K8s secret, and prints the credentials in the deploy summary. Pass `--no-auth` to skip.
+`deploy-remote.sh` handles this automatically: it generates a random password once per host, persists it (`.argus-auth` next to the port file), injects it into the remote `.env` / K8s secret, and prints the credentials in the deploy summary. Pass `--no-auth` to skip.
 
 Sessions are signed cookies (12 h, or 30 days with "remember me"); sign out from the chip in the header.
 
@@ -106,16 +106,16 @@ A green run pops confetti and a rising sound cue (both mutable / reduced-motion 
 
 | Card | CLI equivalent |
 |------|----------------|
-| ▶ Smoke | `zyvor-qa test` |
-| ▶ Full pipeline | `zyvor-qa run [--source --spec --pr-number --expand-coverage]` |
-| ⚙ Generate | `zyvor-qa generate [--source --spec --expand-coverage]` |
-| 🔎 Discover | `zyvor-qa discover` |
-| ✨ Create from English | `zyvor-qa create "…" [--execute]` — LLM when a key is set, heuristic parser otherwise |
-| 👁 Visual regression | `zyvor-qa regression [--update-baselines]` |
-| 🎬 Flow test | `zyvor-qa flow <url> --describe "…" \| --steps <file> [--video/--no-video --insecure --username --password]` |
-| 📼 HAR record / replay | `zyvor-qa har-replay <url> --mode record\|replay --har <path> [--routes …]` |
-| 📥 Import codegen | `zyvor-qa import-codegen <file> [--run --url …]` |
-| 🗺 Route sweep | `zyvor-qa route-sweep <url> --routes "/,/pricing" [--mobile --update-baselines --insecure]` |
+| ▶ Smoke | `argus test exec` |
+| ▶ Full pipeline | `argus test run [--source --spec --pr-number --expand-coverage]` |
+| ⚙ Generate | `argus test generate [--source --spec --expand-coverage]` |
+| 🔎 Discover | `argus test discover` |
+| ✨ Create from English | `argus test create "…" [--execute]` — LLM when a key is set, heuristic parser otherwise |
+| 👁 Visual regression | `argus vision regression [--update-baselines]` |
+| 🎬 Flow test | `argus flow run <url> --describe "…" \| --steps <file> [--video/--no-video --insecure --username --password]` |
+| 📼 HAR record / replay | `argus api har-replay <url> --mode record\|replay --har <path> [--routes …]` |
+| 📥 Import codegen | `argus test import-codegen <file> [--run --url …]` |
+| 🗺 Route sweep | `argus vision route-sweep <url> --routes "/,/pricing" [--mobile --update-baselines --insecure]` |
 
 ### Web-quality & site actions
 

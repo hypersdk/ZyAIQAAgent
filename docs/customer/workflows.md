@@ -2,12 +2,12 @@
 
 ## Smoke after a deploy
 
-1. [Run tests](pages/pipeline/dashboard-actions-run-tests.md) → ▶ Smoke (or `zyvor-qa test --grep @smoke`)
+1. [Run tests](pages/pipeline/dashboard-actions-run-tests.md) → ▶ Smoke (or `argus test exec --grep @smoke`)
 2. Check [Findings](pages/operations/dashboard-findings.md) and [QA Runs](pages/operations/dashboard-runs.md)
 
 ## Spec → tests → report
 
-1. [Generate tests](pages/pipeline/dashboard-actions-generate.md) or CLI `zyvor-qa run --source local --spec …`
+1. [Generate tests](pages/pipeline/dashboard-actions-generate.md) or CLI `argus test run --source local --spec …`
 2. [Run tests](pages/pipeline/dashboard-actions-run-tests.md) → Full pipeline
 3. Optional: enable autofix via `ENABLE_AUTOFIX` (see Admin basics)
 

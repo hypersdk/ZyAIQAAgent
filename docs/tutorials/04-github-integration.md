@@ -44,10 +44,10 @@ curl -s -H "Authorization: Bearer $(gh auth token)" \
 
 ```bash
 # Repo-relative path
-zyvor-qa run --source github --spec docs/specs/my-feature.md
+argus test run --source github --spec docs/specs/my-feature.md
 
 # Blob and raw URLs also work
-zyvor-qa run --source github \
+argus test run --source github \
   --spec https://github.com/ssahani/hypersdk-web/blob/main/docs/specs/my-feature.md
 ```
 
@@ -56,7 +56,7 @@ The file is downloaded to `tests/fixtures/fetched/`, then the normal parse → g
 ## 4. Run from everything (no --spec)
 
 ```bash
-zyvor-qa run --source github
+argus test run --source github
 ```
 
 Without `--spec`, the agent fetches **all default sources**:
@@ -72,7 +72,7 @@ Without `--spec`, the agent fetches **all default sources**:
 ## 5. Post results to a pull request
 
 ```bash
-zyvor-qa run --source github --spec docs/specs/my-feature.md --pr-number 42
+argus test run --source github --spec docs/specs/my-feature.md --pr-number 42
 ```
 
 After the run, the agent comments on PR #42 with pass/fail counts, the LLM summary (when enabled), failure analysis, coverage stats, and suggested fixes. The PR body itself is also fetched and parsed as an additional spec source, and the PR's changed files scope coverage discovery (see [Tutorial 5](05-coverage-expansion.md)).
@@ -85,7 +85,7 @@ For push/PR/deploy-triggered runs without CI wiring:
 # In .env — reject unsigned payloads:
 GITHUB_WEBHOOK_SECRET=<random-string>
 
-zyvor-qa serve --port 8080
+argus serve --port 8080
 ```
 
 On your product repo: **Settings → Webhooks → Add webhook**
@@ -106,7 +106,7 @@ Behavior per event:
 Local testing without a public host:
 
 ```bash
-zyvor-qa serve --port 8080 &
+argus serve --port 8080 &
 curl -s http://localhost:8080/health          # {"status":"ok"}
 # then use a tunnel (e.g. `ssh -R`, ngrok, cloudflared) for real GitHub delivery
 ```
@@ -124,7 +124,7 @@ gh api repos/$ZYVOR_PRODUCT_REPO/dispatches \
 To review generated tests before ever running them:
 
 ```bash
-zyvor-qa generate --source github --spec docs/specs/my-feature.md
+argus test generate --source github --spec docs/specs/my-feature.md
 git diff tests/generated/
 ```
 

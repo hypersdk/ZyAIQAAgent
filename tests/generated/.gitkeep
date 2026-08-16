@@ -1,2 +1,2 @@
 # Generated tests are written here by the Test Generator agent.
-# Do not edit manually — regenerate via: zyvor-qa generate --spec <path>
+# Do not edit manually — regenerate via: argus test generate --spec <path>

@@ -23,7 +23,7 @@ assert /products
 Run it against any site:
 
 ```bash
-zyvor-qa flow https://zyvor.dev --steps journey.flow --video
+argus flow run https://zyvor.dev --steps journey.flow --video
 ```
 
 You get per-step pass/fail on the console and, when `--video` is set, a `journey.webm` recorded from the very first navigation to the last assertion:
@@ -41,7 +41,7 @@ You get per-step pass/fail on the console and, when `--video` is set, a `journey
 Skip the file and describe the journey:
 
 ```bash
-zyvor-qa flow https://zyvor.dev \
+argus flow run https://zyvor.dev \
   --describe "Go to the home page, click Products, then verify the Pro plan is visible"
 ```
 
@@ -50,7 +50,7 @@ When an LLM key is configured (`ANTHROPIC_API_KEY`) the description is parsed by
 ### Logging in first
 
 ```bash
-zyvor-qa flow https://app.example.com --steps checkout.flow \
+argus flow run https://app.example.com --steps checkout.flow \
   --username qa@example.com --password 's3cret' --insecure
 ```
 
@@ -88,7 +88,7 @@ A bare line with no verb is treated as `assert "<that text>"`. A step **fails** 
 
 The prose parser also detects negatives — "the spinner is **no longer** visible", "the error **should not** appear" become `assert_not` steps.
 
-Import a Playwright codegen recording with `zyvor-qa import-codegen script.js` (or Mission Control's 📥 Import codegen card). Local headed recording: `npm run record-flow -- https://app.example.com out.flow.json`.
+Import a Playwright codegen recording with `argus test import-codegen script.js` (or Mission Control's 📥 Import codegen card). Local headed recording: `npm run record-flow -- https://app.example.com out.flow.json`.
 
 ### Robustness
 
@@ -127,20 +127,20 @@ On Kubernetes the video and report persist on the PVC-backed `reports/`, so they
 
 ## 4. Route sweep — visual coverage across many pages
 
-The **🗺 Route sweep** card (and `zyvor-qa route-sweep`) screenshots a list of routes at chosen viewports and, on later runs, diffs them against baselines.
+The **🗺 Route sweep** card (and `argus vision route-sweep`) screenshots a list of routes at chosen viewports and, on later runs, diffs them against baselines.
 
 ```bash
 # first run captures baselines
-zyvor-qa route-sweep https://zyvor.dev --routes "/,/products,/pricing" --mobile
+argus vision route-sweep https://zyvor.dev --routes "/,/products,/pricing" --mobile
 
 # later runs diff against them; flags any route over the threshold
-zyvor-qa route-sweep https://zyvor.dev --routes "/,/products,/pricing" --mobile
+argus vision route-sweep https://zyvor.dev --routes "/,/products,/pricing" --mobile
 
 # accept the new look as the baseline
-zyvor-qa route-sweep https://zyvor.dev --routes "/,/products,/pricing" --update-baselines
+argus vision route-sweep https://zyvor.dev --routes "/,/products,/pricing" --update-baselines
 
 # don't type routes at all — crawl the site and sweep whatever it finds
-zyvor-qa route-sweep https://zyvor.dev --auto --max-pages 20 --mobile
+argus vision route-sweep https://zyvor.dev --auto --max-pages 20 --mobile
 ```
 
 Tick **auto-discover (crawl)** in the 🗺 card to do the same from the dashboard. Every sweep also writes a downloadable **HTML / PDF / Markdown / CSV** report (route × viewport matrix with thumbnails), same as flow tests.
@@ -176,11 +176,11 @@ Both flow tests and route sweeps are **schedulable**. Fill in the 🎬 or 🗺 c
 The dashboard is served over plain HTTP by default. For anything reachable beyond localhost, serve it over TLS:
 
 ```bash
-# self-signed cert, auto-generated under ~/.zyvor-qa/tls
-zyvor-qa serve --port 8090 --tls
+# self-signed cert, auto-generated under ~/.zyvor-argus/tls
+argus serve --port 8090 --tls
 
 # or bring your own
-zyvor-qa serve --port 8090 --tls-cert /path/cert.pem --tls-key /path/key.pem
+argus serve --port 8090 --tls-cert /path/cert.pem --tls-key /path/key.pem
 ```
 
 Over HTTPS the session cookie is marked **Secure**. The deploy script takes `--tls` to do this on a host (`deploy-remote.sh <host> <user> --service --tls`). Login is also **rate-limited** — 8 failed attempts from an IP within 5 minutes triggers a 5-minute lockout — so a default password isn't a free brute-force target. Still, change `DASHBOARD_PASSWORD` from the default for any real deployment.
@@ -205,4 +205,4 @@ Relevant environment variables (see [configuration](../configuration.md)):
 | `DASHBOARD_PASSWORD` | enables dashboard login (rate-limited); change from the default |
 | `DASHBOARD_SECRET` | explicit session-signing secret (else derived from credentials) |
 
-The flow trace is on by default; pass `--no-trace` to the CLI to skip it. Serve over HTTPS with `zyvor-qa serve --tls` (self-signed) — see section 7.
+The flow trace is on by default; pass `--no-trace` to the CLI to skip it. Serve over HTTPS with `argus serve --tls` (self-signed) — see section 7.

@@ -11,7 +11,7 @@ on:
         required: true
 
 env:
-  IMAGE: ghcr.io/hypersdk/zyaiqaagent
+  IMAGE: ghcr.io/hypersdk/zyvor-argus
 
 jobs:
   publish-image:
@@ -78,9 +78,9 @@ jobs:
       # runtime dependency of the shell itself — but gives the artifact a
       # .venv it can find via the same dev-checkout auto-detection a local
       # `make desktop-build` would use, so this exact build is smoke-tested
-      # end to end (spawns a real `zyvor-qa serve` and hits /health) rather
+      # end to end (spawns a real `argus serve` and hits /health) rather
       # than only compiled.
-      - name: Install zyvor-qa into a .venv
+      - name: Install argus into a .venv
         run: |
           python3 -m venv .venv
           .venv/bin/pip install -e .
@@ -91,10 +91,10 @@ jobs:
       - name: Build desktop app
         run: cd desktop && npm run tauri build
 
-      - name: Smoke-test the built app spawns zyvor-qa serve
+      - name: Smoke-test the built app spawns argus serve
         run: |
           set -euo pipefail
-          BIN="desktop/src-tauri/target/release/zyvor-qa-desktop"
+          BIN="desktop/src-tauri/target/release/zyvor-argus-desktop"
           test -x "$BIN"
           "$BIN" > /tmp/desktop-app.log 2>&1 &
           APP_PID=$!
@@ -108,20 +108,20 @@ jobs:
           done
 
           if [ -z "$PORT" ] || ! curl -sf "http://127.0.0.1:$PORT/health" >/dev/null; then
-            echo "::error::desktop app never brought up a healthy zyvor-qa serve"
+            echo "::error::desktop app never brought up a healthy argus serve"
             cat /tmp/desktop-app.log
             kill "$APP_PID" 2>/dev/null || true
             exit 1
           fi
 
-          echo "zyvor-qa serve is up on port $PORT"
+          echo "argus serve is up on port $PORT"
           kill "$APP_PID"
 
       - name: Rename dmg with version
         run: |
           mkdir -p dist
           cp desktop/src-tauri/target/release/bundle/dmg/*.dmg \
-            "dist/ZyvorQAAgent-${{ needs.publish-image.outputs.tag }}-macos-arm64.dmg"
+            "dist/ZyvorArgus-${{ needs.publish-image.outputs.tag }}-macos-arm64.dmg"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -148,10 +148,10 @@ jobs:
           generate_release_notes: true
           files: dist/*.dmg
           body: |
-            Image: `ghcr.io/hypersdk/zyaiqaagent:${{ needs.publish-image.outputs.tag }}`
+            Image: `ghcr.io/hypersdk/zyvor-argus:${{ needs.publish-image.outputs.tag }}`
 
             ```bash
-            docker pull ghcr.io/hypersdk/zyaiqaagent:${{ needs.publish-image.outputs.tag }}
+            docker pull ghcr.io/hypersdk/zyvor-argus:${{ needs.publish-image.outputs.tag }}
             ```
 
-            macOS desktop app: download the `.dmg` below (unsigned — right-click → Open on first launch). See [Tutorial 17](https://github.com/hypersdk/ZyAIQAAgent/blob/main/docs/tutorials/17-desktop-app.md) and `desktop/README.md`.
+            macOS desktop app: download the `.dmg` below (unsigned — right-click → Open on first launch). See [Tutorial 17](https://github.com/hypersdk/zyvor-argus/blob/main/docs/tutorials/17-desktop-app.md) and `desktop/README.md`.

@@ -2,7 +2,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: zyvor-qa-pod-restarter
+  name: argus-pod-restarter
 rules:
   - apiGroups: [""]
     resources: ["pods"]
@@ -11,11 +11,11 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: zyvor-qa-pod-restarter
+  name: argus-pod-restarter
 subjects:
   - kind: ServiceAccount
-    name: zyvor-qa
+    name: argus
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: zyvor-qa-pod-restarter
+  name: argus-pod-restarter

@@ -1,6 +1,6 @@
-# Zyvor QA Agent
+# Zyvor Argus
 
-[![ZyAIQAAgent Mission Control — Full KT Walkthrough](https://i.ytimg.com/vi/-_2jph4jW7c/maxresdefault.jpg)](https://youtu.be/-_2jph4jW7c)
+[![Zyvor Argus Mission Control — Full KT Walkthrough](https://i.ytimg.com/vi/-_2jph4jW7c/maxresdefault.jpg)](https://youtu.be/-_2jph4jW7c)
 
 **Full KT walkthrough (YouTube):** sign-in → status hero & pod fleet → the 20+ capability Actions panel → a live Smoke test run → a Flow test result → a Site audit grade → network & security probes → Ask Zyvor Q&A → NOC wall mode — [watch](https://youtu.be/-_2jph4jW7c)
 
@@ -42,18 +42,18 @@
 </table>
 
 ```bash
-zyvor-qa flow https://zyvor.dev --steps docs/assets/zyvor-dev-demo.steps --video
+argus flow run https://zyvor.dev --steps docs/assets/zyvor-dev-demo.steps --video
 ```
 
 ## 📖 Feature Guide
 
-**[Wiki](https://github.com/hypersdk/ZyAIQAAgent/wiki)** — operator cheat sheets (CLI, Mission Control, journeys, CI/CD, deploy).
+**[Wiki](https://github.com/hypersdk/zyvor-argus/wiki)** — operator cheat sheets (CLI, Mission Control, journeys, CI/CD, deploy).
 
-**[Zyvor QA Agent — Customer Feature Guide](docs/zyvor-qa-agent-customer-feature-guide.md)** — a complete, customer-facing reference covering **Mission Control**, journeys, probes, and optional **Ask Zyvor** knowledge Q&A. Also available as a print-ready **[PDF](docs/zyvor-qa-agent-customer-feature-guide.pdf)**.
+**[Zyvor Argus — Customer Feature Guide](docs/zyvor-argus-customer-feature-guide.md)** — a complete, customer-facing reference covering **Mission Control**, journeys, probes, and optional **Ask Zyvor** knowledge Q&A. Also available as a print-ready **[PDF](docs/zyvor-argus-customer-feature-guide.pdf)**.
 
 Autonomous AI testing agent for [Zyvor](https://zyvor.dev) — an AI-first infrastructure platform. Continuously validates the Zyvor platform by reading requirements from GitHub, generating Playwright tests, executing them after deployments, detecting regressions, and producing actionable reports.
 
-Ships with **Mission Control** — a live web console (`zyvor-qa serve` → `/dashboard`) that runs 20+ QA capabilities on demand with streamed output and HTML/PDF/Markdown/CSV reports: the full test pipeline, **E2E flow tests** (multi-step journey → one video + Playwright trace, cross-browser/device/throttle), **HAR record / replay**, **Playwright codegen import**, **API contract tests** (OpenAPI schema validation + multi-step workflows), **auth & session** tests (reusable login), **live-data** tests (WebSocket/SSE assertions), **Core Web Vitals**, **route sweeps** (visual diff at desktop/mobile), site audits (a11y/SEO/perf/security with an A–F grade), ten network & security probes, load and TLS checks, flaky detection, screenshots, and recurring monitors. **Security testing** — misconfig/recon scanning, read-only CVE lookups, and LLM red-teaming against Ask Zyvor — is gated behind an authorized security engagement (`POST /api/v2/engagements`); see [`docs/architecture.md`](docs/architecture.md) and `ROADMAP.md` for what's built vs. deliberately deferred. Optionally enable **Ask Zyvor** — a citation-first LangChain knowledge agent (Qdrant hybrid retrieval) for product docs Q&A inside the same console ([Tutorial 14](docs/tutorials/14-ask-zyvor-knowledge.md)). See [`docs/tutorials/10-mission-control-dashboard.md`](docs/tutorials/10-mission-control-dashboard.md), [`11-flow-tests.md`](docs/tutorials/11-flow-tests.md), and [`12-api-auth-realtime.md`](docs/tutorials/12-api-auth-realtime.md).
+Ships with **Mission Control** — a live web console (`argus serve` → `/dashboard`) that runs 20+ QA capabilities on demand with streamed output and HTML/PDF/Markdown/CSV reports: the full test pipeline, **E2E flow tests** (multi-step journey → one video + Playwright trace, cross-browser/device/throttle), **HAR record / replay**, **Playwright codegen import**, **API contract tests** (OpenAPI schema validation + multi-step workflows), **auth & session** tests (reusable login), **live-data** tests (WebSocket/SSE assertions), **Core Web Vitals**, **route sweeps** (visual diff at desktop/mobile), site audits (a11y/SEO/perf/security with an A–F grade), ten network & security probes, load and TLS checks, flaky detection, screenshots, and recurring monitors. **Security testing** — misconfig/recon scanning, read-only CVE lookups, and LLM red-teaming against Ask Zyvor — is gated behind an authorized security engagement (`POST /api/v2/engagements`); see [`docs/architecture.md`](docs/architecture.md) and `ROADMAP.md` for what's built vs. deliberately deferred. Optionally enable **Ask Zyvor** — a citation-first LangChain knowledge agent (Qdrant hybrid retrieval) for product docs Q&A inside the same console ([Tutorial 14](docs/tutorials/14-ask-zyvor-knowledge.md)). See [`docs/tutorials/10-mission-control-dashboard.md`](docs/tutorials/10-mission-control-dashboard.md), [`11-flow-tests.md`](docs/tutorials/11-flow-tests.md), and [`12-api-auth-realtime.md`](docs/tutorials/12-api-auth-realtime.md).
 
 ### Mission Control UX
 
@@ -85,15 +85,15 @@ LangGraph Orchestrator (Python)
 ### Container (v0.4.0)
 
 ```bash
-docker pull ghcr.io/hypersdk/zyaiqaagent:v0.4.0
+docker pull ghcr.io/hypersdk/zyvor-argus:v0.4.0
 # or
-docker pull ghcr.io/hypersdk/zyaiqaagent:latest
+docker pull ghcr.io/hypersdk/zyvor-argus:latest
 
-docker run --rm --env-file .env ghcr.io/hypersdk/zyaiqaagent:v0.4.0 test --grep @smoke
-docker run --rm -p 8080:8080 --env-file .env ghcr.io/hypersdk/zyaiqaagent:v0.4.0 serve --port 8080 --host 0.0.0.0
+docker run --rm --env-file .env ghcr.io/hypersdk/zyvor-argus:v0.4.0 test --grep @smoke
+docker run --rm -p 8080:8080 --env-file .env ghcr.io/hypersdk/zyvor-argus:v0.4.0 serve --port 8080 --host 0.0.0.0
 ```
 
-Release notes: [v0.4.0](https://github.com/hypersdk/ZyAIQAAgent/releases/tag/v0.4.0) · full pull/run guide: [docs/releases.md](docs/releases.md)
+Release notes: [v0.4.0](https://github.com/hypersdk/zyvor-argus/releases/tag/v0.4.0) · full pull/run guide: [docs/releases.md](docs/releases.md)
 
 ### Prerequisites
 
@@ -111,7 +111,7 @@ make install
 ### Run smoke tests (no LLM required)
 
 ```bash
-zyvor-qa test --grep @smoke
+argus test exec --grep @smoke
 ```
 
 Against the public demo site (video + HAR): [Tutorial 13](docs/tutorials/13-test-zyvor-dev-recording.md).
@@ -123,17 +123,17 @@ Against the public demo site (video + HAR): [Tutorial 13](docs/tutorials/13-test
 gh auth login
 
 # Generate + run tests from a specific markdown file in the repo
-zyvor-qa run --source github --spec docs/specs/my-feature.md
+argus test run --source github --spec docs/specs/my-feature.md
 
 # Generate tests only
-zyvor-qa generate --source github --spec docs/specs/my-feature.md
+argus test generate --source github --spec docs/specs/my-feature.md
 ```
 
 See [**Writing Tests & GitHub Integration**](docs/test-authoring.md) for the full command reference.
 
 ## Documentation
 
-**Operator wiki:** [https://github.com/hypersdk/ZyAIQAAgent/wiki](https://github.com/hypersdk/ZyAIQAAgent/wiki)
+**Operator wiki:** [https://github.com/hypersdk/zyvor-argus/wiki](https://github.com/hypersdk/zyvor-argus/wiki)
 
 **Customer manual (page-by-page Mission Control):** [`docs/customer/`](docs/customer/README.md) — regenerate guides / PDFs / website sync with `scripts/customer-docs/` (same pattern as Zeus OS).
 
@@ -144,8 +144,8 @@ See [**Writing Tests & GitHub Integration**](docs/test-authoring.md) for the ful
 | [**Customer docs**](docs/customer/README.md) | Mission Control page-by-page manual · PDFs · `sync-to-website.mjs` |
 | [**Enterprise v2**](docs/enterprise-v2.md) | Fail-closed security, SSRF allowlists, durable SQLite jobs, `/api/v2`, RBAC |
 | [**Tutorials**](docs/tutorials/README.md) | Getting started, spec-to-test, NL tests, GitHub, coverage, regression, autofix, notifications, CI/CD, dashboard, E2E flow tests |
-| [**External CI/CD integration**](docs/tutorials/15-external-cicd-integration.md) | Drop zyvor-qa into *any* project's pipeline via the reusable [GitHub Action](action.yml), or GitLab/CircleCI/Jenkins/Azure [templates](templates/ci/README.md) |
-| [**MCP server (chat-ops)**](docs/mcp-server.md) | `zyvor-qa-mcp` — trigger and poll QA jobs from any MCP-capable chat agent (e.g. Hermes Agent) over Telegram/Discord/Slack/CLI |
+| [**External CI/CD integration**](docs/tutorials/15-external-cicd-integration.md) | Drop argus into *any* project's pipeline via the reusable [GitHub Action](action.yml), or GitLab/CircleCI/Jenkins/Azure [templates](templates/ci/README.md) |
+| [**MCP server (chat-ops)**](docs/mcp-server.md) | `argus-mcp` — trigger and poll QA jobs from any MCP-capable chat agent (e.g. Hermes Agent) over Telegram/Discord/Slack/CLI |
 | [**DevOps runbooks**](docs/devops/README.md) | CI gates, secrets/target policy, product specs, Mission Control ops, on-call triage, pipeline tiers |
 | [**Architecture**](docs/architecture.md) | Pipeline internals: LangGraph nodes, state, agents, fallback design |
 | [**Configuration**](docs/configuration.md) | Complete environment variable reference with defaults |
@@ -168,29 +168,29 @@ Full examples: [**docs/test-authoring.md**](docs/test-authoring.md)
 
 | Command | Description |
 |---------|-------------|
-| `zyvor-qa test` | Run hand-written smoke tests only |
-| `zyvor-qa run --source local --spec <path>` | Full pipeline from a local markdown spec |
-| `zyvor-qa run --source github --spec <path>` | Full pipeline from a GitHub markdown file |
-| `zyvor-qa run --source github` | Full pipeline from all GitHub specs/issues |
-| `zyvor-qa generate --spec <path>` | Generate tests from local spec (no run) |
-| `zyvor-qa generate --source github --spec <path>` | Generate tests from GitHub `.md` (no run) |
-| `zyvor-qa discover --source github` | List coverage candidates and gaps (no generation) |
-| `zyvor-qa run --source github --expand-coverage` | Pipeline + generate tests for uncovered routes/pages |
-| `zyvor-qa create "description"` | Generate tests from plain English |
-| `zyvor-qa create "description" --execute` | Generate and run NL tests |
-| `zyvor-qa regression` | Visual regression check |
-| `zyvor-qa regression --update-baselines` | Capture new screenshot baselines |
-| `zyvor-qa flow <url> --steps <file>` | Drive a multi-step journey, recorded as one video + trace |
-| `zyvor-qa flow <url> --describe "…"` | Same, from a plain-English journey |
-| `zyvor-qa har-replay <url> --mode record\|replay --har <path>` | Capture network as HAR, then drive the UI against it |
-| `zyvor-qa import-codegen <file>` | Convert Playwright codegen JS/TS into flow steps |
-| `zyvor-qa route-sweep <url> --auto` | Screenshot every crawled route (desktop/mobile), diff vs baselines |
-| `zyvor-qa api-test <base> --spec <url>` | Validate REST endpoints against their OpenAPI schema; `--workflow` for multi-step API flows |
-| `zyvor-qa auth-test <base> --api-login <path>` | Log in, save a reusable session, assert logout/expiry/negative-auth |
-| `zyvor-qa realtime <url> --ws <path>` | Assert WebSocket/SSE streams are live (+ reconnect, live-view) |
-| `zyvor-qa vitals <url>` | Core Web Vitals (LCP/CLS/INP) with device + network throttle |
-| `zyvor-qa serve` | GitHub webhook server + Mission Control dashboard (`/dashboard`) |
-| `zyvor-qa serve --tls` | Serve the dashboard over HTTPS (self-signed) |
+| `argus test exec` | Run hand-written smoke tests only |
+| `argus test run --source local --spec <path>` | Full pipeline from a local markdown spec |
+| `argus test run --source github --spec <path>` | Full pipeline from a GitHub markdown file |
+| `argus test run --source github` | Full pipeline from all GitHub specs/issues |
+| `argus test generate --spec <path>` | Generate tests from local spec (no run) |
+| `argus test generate --source github --spec <path>` | Generate tests from GitHub `.md` (no run) |
+| `argus test discover --source github` | List coverage candidates and gaps (no generation) |
+| `argus test run --source github --expand-coverage` | Pipeline + generate tests for uncovered routes/pages |
+| `argus test create "description"` | Generate tests from plain English |
+| `argus test create "description" --execute` | Generate and run NL tests |
+| `argus vision regression` | Visual regression check |
+| `argus vision regression --update-baselines` | Capture new screenshot baselines |
+| `argus flow run <url> --steps <file>` | Drive a multi-step journey, recorded as one video + trace |
+| `argus flow run <url> --describe "…"` | Same, from a plain-English journey |
+| `argus api har-replay <url> --mode record\|replay --har <path>` | Capture network as HAR, then drive the UI against it |
+| `argus test import-codegen <file>` | Convert Playwright codegen JS/TS into flow steps |
+| `argus vision route-sweep <url> --auto` | Screenshot every crawled route (desktop/mobile), diff vs baselines |
+| `argus api test <base> --spec <url>` | Validate REST endpoints against their OpenAPI schema; `--workflow` for multi-step API flows |
+| `argus api auth-test <base> --api-login <path>` | Log in, save a reusable session, assert logout/expiry/negative-auth |
+| `argus flow realtime <url> --ws <path>` | Assert WebSocket/SSE streams are live (+ reconnect, live-view) |
+| `argus watch vitals <url>` | Core Web Vitals (LCP/CLS/INP) with device + network throttle |
+| `argus serve` | GitHub webhook server + Mission Control dashboard (`/dashboard`) |
+| `argus serve --tls` | Serve the dashboard over HTTPS (self-signed) |
 
 ## Phase Features
 
@@ -234,17 +234,17 @@ make k8s-apply      # apply to cluster
 |---------|------|-------------|
 | Autofix suggestions | `ENABLE_AUTOFIX=true` | LLM-powered selector repair after failures |
 | Autofix apply + re-run | `ENABLE_AUTOFIX_APPLY=true` | Patch spec files and re-execute (self-healing) |
-| NL test creation | `zyvor-qa create` | Generate tests from plain English |
+| NL test creation | `argus test create` | Generate tests from plain English |
 | Multi-browser | `ENABLE_MULTI_BROWSER=true` | Chromium + Firefox + WebKit |
 | Rust diff processor | `ENABLE_RUST_PROCESSOR=true` | Fast screenshot diff via `zyvor-diff` binary |
 | Coverage expansion | `ENABLE_COVERAGE_EXPANSION=true` | Discover untested routes/pages from repo code/docs |
 | Live site crawl | `ENABLE_LIVE_CRAWL=true` | BFS crawl of the deployed site into coverage inventory |
 | V8 JS coverage | `ENABLE_V8_COVERAGE=true` | Measure JS coverage of test runs, reported as % |
-| Mission Control dashboard | `zyvor-qa serve` → `/dashboard` | Live K8s pod health, log tails, QA run history + trends |
+| Mission Control dashboard | `argus serve` → `/dashboard` | Live K8s pod health, log tails, QA run history + trends |
 
 ```bash
 # Natural language test
-zyvor-qa create "Verify homepage shows all 14 products" --execute
+argus test create "Verify homepage shows all 14 products" --execute
 
 # Build Rust diff tool
 make rust
@@ -310,7 +310,7 @@ This repo tests itself the same way it tests any product — every push/PR to `m
 - **Smoke tests**: `.github/workflows/qa-smoke.yml` — push, PR, nightly
 - **Multi-browser**: manual `workflow_dispatch` trigger in same workflow
 - **Post-deploy**: `.github/workflows/qa-post-deploy.yml` — `repository_dispatch: staging-deployed`
-- **Release**: `.github/workflows/release.yml` — on tag push `v*.*.*`, builds and pushes `ghcr.io/hypersdk/zyaiqaagent:v0.4.0` (+ `:latest`), builds + smoke-tests the macOS desktop app, and creates a GitHub Release; see [docs/releases.md](docs/releases.md)
+- **Release**: `.github/workflows/release.yml` — on tag push `v*.*.*`, builds and pushes `ghcr.io/hypersdk/zyvor-argus:v0.4.0` (+ `:latest`), builds + smoke-tests the macOS desktop app, and creates a GitHub Release; see [docs/releases.md](docs/releases.md)
 
 Run the unit suite locally:
 

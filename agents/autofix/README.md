@@ -11,7 +11,7 @@ be re-derived by the LLM on the next run.
 | `ENABLE_AUTOFIX=true` | Generate selector fix suggestions on failure |
 | `ENABLE_AUTOFIX_APPLY=true` | Patch `tests/manual/` and `tests/generated/` specs and re-run |
 | `AUTOFIX_MAX_RETRIES=2` | Max self-heal re-execution attempts |
-| `SKILLS_PATH=.zyvor-qa/skills.json` | Where confirmed fixes are remembered |
+| `SKILLS_PATH=.zyvor-argus/skills.json` | Where confirmed fixes are remembered |
 
 ## Flow
 

@@ -1,11 +1,11 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: zyvor-qa-default-deny
+  name: argus-default-deny
 spec:
   podSelector:
     matchLabels:
-      app.kubernetes.io/name: zyvor-qa-agent
+      app.kubernetes.io/name: argus
   policyTypes: [Ingress, Egress]
   ingress:
     - from:

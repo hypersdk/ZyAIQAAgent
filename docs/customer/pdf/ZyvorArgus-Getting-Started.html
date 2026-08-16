@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><title>Getting Started — ZyAIQAAgent</title>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><title>Getting Started — Zyvor Argus</title>
 <style>
 @page{size:A4;margin:15mm 16mm}*{margin:0;padding:0;box-sizing:border-box}
 html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -53,16 +53,16 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 </tbody></table>
 <p>Full env table: <a href="admin-basics.md">Admin basics</a> · repo <a href="../../.env.example"><code>.env.example</code></a>.</p>
 <h2>1. Install</h2>
-<pre><code class="language-bash">git clone https://github.com/hypersdk/ZyAIQAAgent.git
-cd ZyAIQAAgent
+<pre><code class="language-bash">git clone https://github.com/hypersdk/zyvor-argus.git
+cd Zyvor Argus
 cp .env.example .env   # set ZYVOR_BASE_URL at minimum
-make install           # zyvor-qa CLI + Playwright browsers
+make install           # argus CLI + Playwright browsers
 </code></pre>
 <h2>2. First smoke (no LLM required)</h2>
-<pre><code class="language-bash">zyvor-qa test --grep @smoke
+<pre><code class="language-bash">argus test exec --grep @smoke
 </code></pre>
 <h2>3. Open Mission Control</h2>
-<pre><code class="language-bash">zyvor-qa serve --port 8080
+<pre><code class="language-bash">argus serve --port 8080
 # → http://localhost:8080/dashboard
 </code></pre>
 <p>When <code>DASHBOARD_PASSWORD</code> is set, sign in at <code>/login</code> (defaults often <code>admin</code> / <code>Admin@321</code> on lab hosts — override via env).</p>
@@ -81,11 +81,11 @@ make install           # zyvor-qa CLI + Playwright browsers
 <p>Actions → 🎬 Flow test — paste steps or English, run with video recording.</p>
 <p>Against the public demo site:</p>
 <pre><code class="language-bash">ZYVOR_BASE_URL=https://zyvor.dev
-zyvor-qa flow https://zyvor.dev --steps /tmp/zyvor-home.steps --video
+argus flow run https://zyvor.dev --steps /tmp/zyvor-home.steps --video
 </code></pre>
 <p>Full recipe + <strong>watch the journey video</strong>: <a href="test-zyvor-dev.md">Test zyvor.dev</a>.</p>
 <h3>C. Full pipeline from a spec</h3>
-<pre><code class="language-bash">zyvor-qa run --source local --spec path/to/spec.md
+<pre><code class="language-bash">argus test run --source local --spec path/to/spec.md
 </code></pre>
 <h2>Related</h2>
 <ul>
@@ -96,7 +96,7 @@ zyvor-qa flow https://zyvor.dev --steps /tmp/zyvor-home.steps --video
 <li><a href="pages/README.md">Page-by-page guides</a></li>
 </ul>
 <hr>
-<p>ZyAIQAAgent’s <strong>Mission Control</strong> is a single live console at <code>/dashboard</code> (login at <code>/login</code> when password auth is on).</p>
+<p>Zyvor Argus’s <strong>Mission Control</strong> is a single live console at <code>/dashboard</code> (login at <code>/login</code> when password auth is on).</p>
 <h2>Surfaces</h2>
 <table>
 <thead>
@@ -187,9 +187,9 @@ zyvor-qa flow https://zyvor.dev --steps /tmp/zyvor-home.steps --video
 <li><a href="workflows.md">Common workflows</a></li>
 </ul>
 <hr>
-<p>Canonical how-to for pointing ZyAIQAAgent at <strong><a href="https://zyvor.dev">https://zyvor.dev</a></strong>. <strong>Watch the journey video first</strong>, then re-run the same flow locally.</p>
+<p>Canonical how-to for pointing Zyvor Argus at <strong><a href="https://zyvor.dev">https://zyvor.dev</a></strong>. <strong>Watch the journey video first</strong>, then re-run the same flow locally.</p>
 <h2>Watch the recording</h2>
-<p><a href="https://youtu.be/ys7SvKKqf9w"><img src="https://img.youtube.com/vi/ys7SvKKqf9w/maxresdefault.jpg" alt="ZyAIQAAgent · Mission Control → GuestKit"></a></p>
+<p><a href="https://youtu.be/ys7SvKKqf9w"><img src="https://img.youtube.com/vi/ys7SvKKqf9w/maxresdefault.jpg" alt="Zyvor Argus · Mission Control → GuestKit"></a></p>
 <p><video src="../assets/zyvor-dev-mission-control-demo.webm" controls width="720" title="zyvor.dev journey recording"></video></p>
 <ul>
 <li><strong>YouTube (with thumbnail):</strong> <a href="https://youtu.be/ys7SvKKqf9w">https://youtu.be/ys7SvKKqf9w</a></li>
@@ -202,17 +202,17 @@ zyvor-qa flow https://zyvor.dev --steps /tmp/zyvor-home.steps --video
 ZYVOR_BASE_URL=https://zyvor.dev
 </code></pre>
 <h2>Re-run the same recording</h2>
-<pre><code class="language-bash">zyvor-qa test --grep @smoke
-zyvor-qa flow https://zyvor.dev --steps docs/assets/zyvor-dev-demo.steps --video
+<pre><code class="language-bash">argus test exec --grep @smoke
+argus flow run https://zyvor.dev --steps docs/assets/zyvor-dev-demo.steps --video
 </code></pre>
 <p>Journey video lands under <code>reports/artifacts/flows/cli/journey.webm</code> (or Mission Control → 🎬 Videos).</p>
 <h2>Mission Control</h2>
-<pre><code class="language-bash">zyvor-qa serve --port 8080
+<pre><code class="language-bash">argus serve --port 8080
 # → http://localhost:8080/dashboard
 </code></pre>
 <ol>
 <li>▶ <strong>Smoke</strong></li>
-<li>🎬 <strong>Flow test</strong> — URL <code>https://zyvor.dev</code>, paste <a href="https://github.com/hypersdk/ZyAIQAAgent/blob/main/docs/assets/zyvor-dev-demo.steps"><code>zyvor-dev-demo.steps</code></a>, <strong>record video</strong> on</li>
+<li>🎬 <strong>Flow test</strong> — URL <code>https://zyvor.dev</code>, paste <a href="https://github.com/hypersdk/zyvor-argus/blob/main/docs/assets/zyvor-dev-demo.steps"><code>zyvor-dev-demo.steps</code></a>, <strong>record video</strong> on</li>
 <li>📼 <strong>HAR</strong> — optional record <code>/</code> then replay</li>
 </ol>
 <h3>UX cues</h3>
@@ -254,12 +254,12 @@ zyvor-qa flow https://zyvor.dev --steps docs/assets/zyvor-dev-demo.steps --video
 <hr>
 <h2>Smoke after a deploy</h2>
 <ol>
-<li><a href="pages/pipeline/dashboard-actions-run-tests.md">Run tests</a> → ▶ Smoke (or <code>zyvor-qa test --grep @smoke</code>)</li>
+<li><a href="pages/pipeline/dashboard-actions-run-tests.md">Run tests</a> → ▶ Smoke (or <code>argus test exec --grep @smoke</code>)</li>
 <li>Check <a href="pages/operations/dashboard-findings.md">Findings</a> and <a href="pages/operations/dashboard-runs.md">QA Runs</a></li>
 </ol>
 <h2>Spec → tests → report</h2>
 <ol>
-<li><a href="pages/pipeline/dashboard-actions-generate.md">Generate tests</a> or CLI <code>zyvor-qa run --source local --spec …</code></li>
+<li><a href="pages/pipeline/dashboard-actions-generate.md">Generate tests</a> or CLI <code>argus test run --source local --spec …</code></li>
 <li><a href="pages/pipeline/dashboard-actions-run-tests.md">Run tests</a> → Full pipeline</li>
 <li>Optional: enable autofix via <code>ENABLE_AUTOFIX</code> (see Admin basics)</li>
 </ol>

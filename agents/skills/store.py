@@ -29,7 +29,8 @@ from typing import Optional
 
 from agents.common.models import AutofixSuggestion, Skill
 
-DEFAULT_SKILLS_PATH = Path(".zyvor-qa/skills.json")
+DEFAULT_SKILLS_PATH = Path(".zyvor-argus/skills.json")
+_LEGACY_SKILLS_PATH = Path(".zyvor-qa/skills.json")
 
 
 def _resolve_path(path: Optional[Path] = None) -> Path:
@@ -42,6 +43,15 @@ def _resolve_path(path: Optional[Path] = None) -> Path:
 def load_skills(path: Optional[Path] = None) -> list[Skill]:
     """Load the skill store, or an empty list if it doesn't exist yet."""
     resolved = _resolve_path(path)
+    if (
+        not resolved.exists()
+        and path is None
+        and not os.environ.get("SKILLS_PATH")
+        and _LEGACY_SKILLS_PATH.exists()
+    ):
+        # One-time fallback so skills learned under the old .zyvor-qa/ dir
+        # aren't silently lost after the rename to .zyvor-argus/.
+        resolved = _LEGACY_SKILLS_PATH
     if not resolved.exists():
         return []
     data = json.loads(resolved.read_text(encoding="utf-8"))

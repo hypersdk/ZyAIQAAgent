@@ -1,4 +1,4 @@
-# Getting Started with ZyAIQAAgent
+# Getting Started with Zyvor Argus
 
 ## What you need
 
@@ -14,22 +14,22 @@ Full env table: [Admin basics](admin-basics.md) · repo [`.env.example`](../../.
 ## 1. Install
 
 ```bash
-git clone https://github.com/hypersdk/ZyAIQAAgent.git
-cd ZyAIQAAgent
+git clone https://github.com/hypersdk/zyvor-argus.git
+cd Zyvor Argus
 cp .env.example .env   # set ZYVOR_BASE_URL at minimum
-make install           # zyvor-qa CLI + Playwright browsers
+make install           # argus CLI + Playwright browsers
 ```
 
 ## 2. First smoke (no LLM required)
 
 ```bash
-zyvor-qa test --grep @smoke
+argus test exec --grep @smoke
 ```
 
 ## 3. Open Mission Control
 
 ```bash
-zyvor-qa serve --port 8080
+argus serve --port 8080
 # → http://localhost:8080/dashboard
 ```
 
@@ -57,7 +57,7 @@ Against the public demo site:
 
 ```bash
 ZYVOR_BASE_URL=https://zyvor.dev
-zyvor-qa flow https://zyvor.dev --steps /tmp/zyvor-home.steps --video
+argus flow run https://zyvor.dev --steps /tmp/zyvor-home.steps --video
 ```
 
 Full recipe + **watch the journey video**: [Test zyvor.dev](test-zyvor-dev.md).
@@ -65,7 +65,7 @@ Full recipe + **watch the journey video**: [Test zyvor.dev](test-zyvor-dev.md).
 ### C. Full pipeline from a spec
 
 ```bash
-zyvor-qa run --source local --spec path/to/spec.md
+argus test run --source local --spec path/to/spec.md
 ```
 
 ## Related

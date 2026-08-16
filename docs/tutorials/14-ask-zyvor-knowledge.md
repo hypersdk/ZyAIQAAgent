@@ -31,7 +31,7 @@ docker compose -f docker/docker-compose.yml up -d qdrant
 ## 3. Ingest sample docs
 
 ```bash
-zyvor-qa knowledge-ingest knowledge_docs/sample \
+argus ask ingest knowledge_docs/sample \
   --tenant-id public \
   --access-level public
 ```
@@ -40,7 +40,7 @@ Sample corpus includes manuals, migration guides, API reference, known issues, r
 ## 4. Serve Mission Control
 
 ```bash
-zyvor-qa serve --port 8080
+argus serve --port 8080
 ```
 
 Open `/dashboard` → **Ask Zyvor**.
@@ -72,7 +72,7 @@ Health: `GET /v1/knowledge/health` or `GET /health` (includes a `knowledge` / `q
 ## 6. Evaluate
 
 ```bash
-zyvor-qa knowledge-evaluate \
+argus ask evaluate \
   --base-url http://localhost:8080 \
   --api-key change-me \
   --tenant-id public \
@@ -85,7 +85,7 @@ and p50/p95 latency. Optional LangSmith tracing:
 
 ```bash
 export LANGSMITH_API_KEY=...
-zyvor-qa knowledge-evaluate --langsmith --base-url http://localhost:8080 --api-key change-me
+argus ask evaluate --langsmith --base-url http://localhost:8080 --api-key change-me
 ```
 
 ## 7. Optional live cluster diagnostics
