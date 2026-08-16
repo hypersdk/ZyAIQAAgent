@@ -441,3 +441,124 @@ def test_api_check_extra_fields():
     assert clean["expect_status"] == 201
     assert clean["json_path"] == "data.id"
     assert clean["contains"] == "ok"
+
+
+# --- Elevated-risk kinds (misconfig_scan / cve_lookup / llm_redteam) -------
+# These all require a live, sufficiently-scoped security engagement
+# (orchestrator/security/engagement_policy.py) — fake the store so _validate()
+# doesn't need a real SQLite DB.
+
+import orchestrator.persistence.store as _store_module  # noqa: E402
+
+
+class _FakeEngagementStore:
+    def __init__(self, engagement):
+        self._engagement = engagement
+
+    def get_engagement(self, engagement_id):
+        return self._engagement if engagement_id == "eng-1" else None
+
+    def audit(self, action, **kwargs):
+        pass
+
+
+def _allow_engagement(monkeypatch, *, target_pattern="*", tier="active_recon"):
+    engagement = {
+        "id": "eng-1", "target_pattern": target_pattern, "scope_statement": "authorized",
+        "tier": tier, "authorized_by": "admin", "created_at": "2026-01-01T00:00:00+00:00",
+        "expires_at": None, "revoked_at": None, "revoked_by": None,
+    }
+    monkeypatch.setattr(_store_module, "get_store", lambda: _FakeEngagementStore(engagement))
+
+
+@pytest.mark.parametrize("kind", ["misconfig_scan", "cve_lookup", "llm_redteam"])
+def test_elevated_kinds_registered(kind):
+    assert kind in VALID_KINDS
+
+
+@pytest.mark.parametrize("kind", ["misconfig_scan", "cve_lookup"])
+def test_elevated_kinds_require_url_scheme(monkeypatch, kind):
+    _allow_engagement(monkeypatch)
+    with pytest.raises(ValueError, match="http"):
+        _validate(kind, {"url": "not-a-url", "engagement_id": "eng-1"})
+
+
+@pytest.mark.parametrize("kind", ["misconfig_scan", "cve_lookup", "llm_redteam"])
+def test_elevated_kinds_reject_missing_engagement(monkeypatch, kind):
+    monkeypatch.setattr(_store_module, "get_store", lambda: _FakeEngagementStore(None))
+    params = {"url": "https://x.io"} if kind != "llm_redteam" else {}
+    with pytest.raises(ValueError, match="authorized security engagement"):
+        _validate(kind, params)
+
+
+@pytest.mark.parametrize("kind", ["misconfig_scan", "cve_lookup"])
+def test_elevated_kinds_reject_out_of_scope_target(monkeypatch, kind):
+    _allow_engagement(monkeypatch, target_pattern="only-this.example.com")
+    with pytest.raises(ValueError, match="outside engagement scope"):
+        _validate(kind, {"url": "https://x.io", "engagement_id": "eng-1"})
+
+
+def test_misconfig_scan_caps_max_paths(monkeypatch):
+    _allow_engagement(monkeypatch)
+    clean = _validate("misconfig_scan", {"url": "https://x.io", "max_paths": 99999, "engagement_id": "eng-1"})
+    assert clean["max_paths"] == 300
+
+
+def test_misconfig_scan_clean_defaults(monkeypatch):
+    _allow_engagement(monkeypatch)
+    clean = _validate("misconfig_scan", {"url": "https://x.io", "engagement_id": "eng-1"})
+    assert clean["max_paths"] == 60
+    assert clean["insecure"] is False
+
+
+def test_cve_lookup_clean_defaults(monkeypatch):
+    _allow_engagement(monkeypatch)
+    clean = _validate("cve_lookup", {"url": "https://x.io", "engagement_id": "eng-1"})
+    assert clean["url"].startswith("https://x.io")
+
+
+def test_llm_redteam_dashboard_ask_needs_no_url(monkeypatch):
+    _allow_engagement(monkeypatch, target_pattern="dashboard_ask")
+    clean = _validate("llm_redteam", {"engagement_id": "eng-1"})
+    assert clean["target"] == "dashboard_ask"
+    assert clean["url"] == "dashboard_ask"
+    assert clean["categories"]  # defaults to all valid categories
+
+
+def test_llm_redteam_v1_qa_requires_base_url_and_api_key(monkeypatch):
+    _allow_engagement(monkeypatch)
+    with pytest.raises(ValueError, match="base_url"):
+        _validate("llm_redteam", {"target": "v1_qa", "engagement_id": "eng-1"})
+    with pytest.raises(ValueError, match="api_key"):
+        _validate("llm_redteam", {"target": "v1_qa", "base_url": "https://x.io", "engagement_id": "eng-1"})
+
+
+def test_llm_redteam_v1_qa_valid_params(monkeypatch):
+    _allow_engagement(monkeypatch)
+    clean = _validate(
+        "llm_redteam",
+        {"target": "v1_qa", "base_url": "https://x.io", "api_key": "k", "engagement_id": "eng-1"},
+    )
+    assert clean["target"] == "v1_qa"
+    assert clean["url"].startswith("https://x.io")
+    assert clean["api_key"] == "k"
+
+
+def test_llm_redteam_invalid_target_rejected(monkeypatch):
+    _allow_engagement(monkeypatch)
+    with pytest.raises(ValueError, match="target"):
+        _validate("llm_redteam", {"target": "not-a-real-target", "engagement_id": "eng-1"})
+
+
+def test_llm_redteam_categories_filtered_to_valid_set(monkeypatch):
+    _allow_engagement(monkeypatch, target_pattern="dashboard_ask")
+    clean = _validate(
+        "llm_redteam", {"categories": ["jailbreak", "not-a-real-category"], "engagement_id": "eng-1"}
+    )
+    assert clean["categories"] == ["jailbreak"]
+
+
+def test_llm_redteam_max_prompts_capped(monkeypatch):
+    _allow_engagement(monkeypatch, target_pattern="dashboard_ask")
+    clean = _validate("llm_redteam", {"max_prompts": 9999, "engagement_id": "eng-1"})
+    assert clean["max_prompts"] == 40

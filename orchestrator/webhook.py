@@ -166,6 +166,9 @@ def create_app() -> FastAPI:
         target = repo_root / directory
         target.mkdir(parents=True, exist_ok=True)
         app.mount(mount, StaticFiles(directory=target), name=directory)
+    # Same-origin vendored assets (e.g. mermaid.min.js for the attack-graph
+    # report) — the CSP's script-src 'self' blocks a CDN <script src>.
+    app.mount("/static/vendor", StaticFiles(directory=repo_root / "templates" / "vendor"), name="vendor")
 
     @app.get("/health")
     async def health() -> dict[str, Any]:

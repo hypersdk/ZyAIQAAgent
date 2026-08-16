@@ -322,9 +322,15 @@ def build_route_sweep_bundle(url: str, rows: list[dict[str, Any]], summary: dict
 
 
 def build_audit_bundle(
-    url: str, checks: list[str], pages: list[dict[str, Any]], summary: dict[str, Any]
+    url: str,
+    checks: list[str],
+    pages: list[dict[str, Any]],
+    summary: dict[str, Any],
+    findings: list[dict[str, Any]] | None = None,
 ) -> dict[str, str]:
     """Write audit report.html / report.csv / report.pdf into a PVC-backed dir."""
+    from agents.reporter.attack_graph import build_mermaid_graph
+
     reports = _repo_root() / "reports" / "jobs"
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     job_dir = reports / f"{stamp}-audit"
@@ -338,6 +344,7 @@ def build_audit_bundle(
         pages=pages,
         summary=summary,
         generated_at=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
+        mermaid_graph=build_mermaid_graph(findings or []),
     )
     html_path = job_dir / "report.html"
     html_path.write_text(html, encoding="utf-8")

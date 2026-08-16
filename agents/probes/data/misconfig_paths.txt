@@ -1,0 +1,116 @@
+# Common admin-panel / debug / CMS / secret-file paths for the misconfig_scan
+# job (agents/probes/misconfig_scan.py::discover_paths). One path per line,
+# `#`-prefixed lines and blanks ignored. Kept to detection-only signatures —
+# no credential guessing, no exploitation.
+
+# Secrets / env / VCS
+/.env
+/.env.local
+/.env.production
+/.env.backup
+/.git/config
+/.git/HEAD
+/.svn/entries
+/.hg/hgrc
+/.htaccess
+/.htpasswd
+/.aws/credentials
+/.ssh/id_rsa
+/config.json
+/config.yaml
+/config.yml
+/secrets.json
+/credentials.json
+/appsettings.json
+/web.config
+/wp-config.php
+/wp-config.php.bak
+/configuration.php
+/settings.py
+/database.yml
+/docker-compose.yml
+/docker-compose.override.yml
+/Dockerfile
+/.dockerignore
+/id_rsa
+/id_rsa.pub
+/backup.sql
+/backup.zip
+/backup.tar.gz
+/dump.sql
+/database.sql
+/db.sqlite3
+/site.sqlite
+
+# Debug / dev endpoints
+/debug
+/__debug__
+/_debug
+/phpinfo.php
+/info.php
+/test.php
+/server-status
+/server-info
+/.well-known/security.txt
+/trace.axd
+/elmah.axd
+/console
+/_profiler
+
+# Actuator / management (Spring Boot etc.)
+/actuator
+/actuator/health
+/actuator/env
+/actuator/beans
+/actuator/mappings
+/actuator/heapdump
+/management/health
+/metrics
+/debug/vars
+/healthz
+/readyz
+
+# Admin panels / dashboards
+/admin
+/admin/
+/administrator
+/admin.php
+/admin/login
+/wp-admin
+/wp-login.php
+/user/login
+/login
+/signin
+/cpanel
+/phpmyadmin
+/pma
+/adminer
+/adminer.php
+/grafana
+/kibana
+/jenkins
+/rabbitmq
+/solr/admin
+/manager/html
+/console/login
+
+# API / GraphQL introspection
+/graphql
+/graphiql
+/api
+/api/v1
+/api/docs
+/swagger
+/swagger-ui
+/swagger.json
+/openapi.json
+/redoc
+
+# Cloud / CI metadata left on disk
+/.circleci/config.yml
+/.github/workflows
+/.travis.yml
+/.gitlab-ci.yml
+/serverless.yml
+/terraform.tfstate
+/.terraform

@@ -46,6 +46,28 @@ def _load_env() -> None:
     load_dotenv(repo_root / ".env")
 
 
+def _findings_severity_summary(items: list[dict]) -> tuple[dict[str, int], Optional[str]]:
+    """Severity counts + the single highest severity, for --fail-on gating
+    and reports/summary.json — over *this run's* findings, not the
+    (potentially stale) historical findings store."""
+    from orchestrator.dashboard.findings import SEVERITY_RANK
+
+    counts: dict[str, int] = {}
+    for item in items:
+        sev = item.get("severity", "medium")
+        counts[sev] = counts.get(sev, 0) + 1
+    max_severity = max(counts, key=lambda s: SEVERITY_RANK.get(s, 0)) if counts else None
+    return counts, max_severity
+
+
+def _exceeds_fail_on(max_severity: Optional[str], fail_on: str) -> bool:
+    from orchestrator.dashboard.findings import SEVERITY_RANK
+
+    if not max_severity:
+        return False
+    return SEVERITY_RANK.get(max_severity, 0) >= SEVERITY_RANK.get(fail_on, 3)
+
+
 def _initial_state(
     source: str = "local",
     spec: Optional[str] = None,
@@ -775,6 +797,198 @@ def vitals(
     )
     if failed > 0:
         raise typer.Exit(code=1)
+
+
+@app.command()
+def audit(
+    url: str = typer.Argument(..., help="Site to audit"),
+    max_pages: int = typer.Option(10, help="Max pages to crawl"),
+    checks: Optional[str] = typer.Option(None, help="Comma-separated checks (default: a11y,seo,console,links,perf,headers)"),
+    insecure: bool = typer.Option(False, help="Accept self-signed TLS"),
+    fail_on: str = typer.Option("high", "--fail-on", help="Exit 1 if any finding is at/above this severity"),
+) -> None:
+    """Crawl a site and run per-page QA checks (a11y/SEO/perf/security), A-F graded."""
+    _load_env()
+    t0 = time.time()
+    started_at = datetime.fromtimestamp(t0, tz=timezone.utc).isoformat()
+    from agents.reporter.summary import write_ci_summary
+    from orchestrator.dashboard.jobs import _job_audit
+
+    result = _job_audit({
+        "url": url, "max_pages": max_pages,
+        "checks": [c.strip() for c in (checks or "").split(",") if c.strip()] or None,
+        "insecure": insecure,
+    })
+    typer.echo(f"Grade: {result['grade']} ({result['score']}/100) — {result['fail_count']} failing, {result['warn_count']} warning checks")
+    counts, max_severity = _findings_severity_summary(result.get("findings") or [])
+    gate = _exceeds_fail_on(max_severity, fail_on)
+    write_ci_summary(
+        command="audit", target_url=url,
+        passed=result["pages_audited"] - result["fail_count"], failed=result["fail_count"], total=result["pages_audited"],
+        exit_code=1 if gate else 0, started_at=started_at, duration_s=time.time() - t0,
+        artifacts={"report_html": (result.get("report") or {}).get("html")},
+        findings_by_severity=counts, max_severity=max_severity,
+        extra={"grade": result["grade"], "score": result["score"]},
+    )
+    if gate:
+        raise typer.Exit(code=1)
+
+
+@app.command(name="misconfig-scan")
+def misconfig_scan(
+    url: str = typer.Argument(..., help="Site to scan"),
+    engagement_id: str = typer.Option(..., "--engagement-id", help="Authorized security engagement id (POST /api/v2/engagements)"),
+    max_paths: int = typer.Option(60, help="Max wordlist paths to probe (capped at 300)"),
+    insecure: bool = typer.Option(False, help="Accept self-signed TLS"),
+    fail_on: str = typer.Option("high", "--fail-on", help="Exit 1 if any finding is at/above this severity"),
+) -> None:
+    """Deeper misconfig/recon: tech fingerprinting, path discovery, header grading, DNS hygiene."""
+    _load_env()
+    t0 = time.time()
+    started_at = datetime.fromtimestamp(t0, tz=timezone.utc).isoformat()
+    from agents.reporter.summary import write_ci_summary
+    from orchestrator.dashboard.jobs import _job_misconfig_scan, _validate
+
+    params = _validate("misconfig_scan", {
+        "url": url, "max_paths": max_paths, "insecure": insecure, "engagement_id": engagement_id,
+    })
+    result = _job_misconfig_scan(params)
+    exposed = len(result["paths"]["exposed"])
+    typer.echo(f"Grade: {result['grade']} ({result['score']}/100) — {exposed} exposed path(s), headers {result['headers']['status']}")
+    counts, max_severity = _findings_severity_summary(result.get("findings") or [])
+    gate = _exceeds_fail_on(max_severity, fail_on)
+    write_ci_summary(
+        command="misconfig-scan", target_url=url,
+        passed=0 if exposed else 1, failed=1 if exposed else 0, total=1,
+        exit_code=1 if gate else 0, started_at=started_at, duration_s=time.time() - t0,
+        findings_by_severity=counts, max_severity=max_severity,
+        extra={"grade": result["grade"], "score": result["score"]},
+    )
+    if gate:
+        raise typer.Exit(code=1)
+
+
+@app.command(name="cve-lookup")
+def cve_lookup(
+    url: str = typer.Argument(..., help="Site to fingerprint"),
+    engagement_id: str = typer.Option(..., "--engagement-id", help="Authorized security engagement id (POST /api/v2/engagements)"),
+    insecure: bool = typer.Option(False, help="Accept self-signed TLS"),
+    fail_on: str = typer.Option("high", "--fail-on", help="Exit 1 if any finding is at/above this severity"),
+) -> None:
+    """Read-only CVE lookup: fingerprint tech/versions, check against OSV.dev. No PoC generated or run."""
+    _load_env()
+    t0 = time.time()
+    started_at = datetime.fromtimestamp(t0, tz=timezone.utc).isoformat()
+    from agents.reporter.summary import write_ci_summary
+    from orchestrator.dashboard.jobs import _job_cve_lookup, _validate
+
+    params = _validate("cve_lookup", {"url": url, "insecure": insecure, "engagement_id": engagement_id})
+    result = _job_cve_lookup(params)
+    typer.echo(f"{result['total_matches']} known advisory match(es) across {len(result['identified'])} identified component(s)")
+    for item in result["identified"]:
+        typer.echo(f"  {item['product']} {item['version']} (via {item['source']})")
+    counts, max_severity = _findings_severity_summary(result.get("findings") or [])
+    gate = _exceeds_fail_on(max_severity, fail_on)
+    write_ci_summary(
+        command="cve-lookup", target_url=url,
+        passed=0 if result["total_matches"] else 1, failed=1 if result["total_matches"] else 0, total=1,
+        exit_code=1 if gate else 0, started_at=started_at, duration_s=time.time() - t0,
+        findings_by_severity=counts, max_severity=max_severity,
+        extra={"total_matches": result["total_matches"]},
+    )
+    if gate:
+        raise typer.Exit(code=1)
+
+
+@app.command(name="llm-redteam")
+def llm_redteam(
+    engagement_id: str = typer.Option(..., "--engagement-id", help="Authorized security engagement id (POST /api/v2/engagements)"),
+    target: str = typer.Option("dashboard_ask", help="dashboard_ask (in-process) or v1_qa (external)"),
+    base_url: Optional[str] = typer.Option(None, "--base-url", help="Required for target=v1_qa"),
+    api_key: Optional[str] = typer.Option(None, "--api-key", help="Required for target=v1_qa"),
+    categories: Optional[str] = typer.Option(None, help="Comma-separated categories (default: all)"),
+    max_prompts: int = typer.Option(40, help="Max battery prompts to run (capped at 40)"),
+    fail_on: str = typer.Option("high", "--fail-on", help="Exit 1 if any finding is at/above this severity"),
+) -> None:
+    """Attacker/judge red-team loop against Ask Zyvor — jailbreak, prompt-injection, system-prompt-leak resistance."""
+    _load_env()
+    t0 = time.time()
+    started_at = datetime.fromtimestamp(t0, tz=timezone.utc).isoformat()
+    from agents.reporter.summary import write_ci_summary
+    from orchestrator.dashboard.jobs import _job_llm_redteam, _validate
+
+    params = _validate("llm_redteam", {
+        "target": target, "base_url": base_url or "", "api_key": api_key or "",
+        "categories": [c.strip() for c in (categories or "").split(",") if c.strip()] or None,
+        "max_prompts": max_prompts, "engagement_id": engagement_id,
+    })
+    result = _job_llm_redteam(params)
+    typer.echo(f"Grade: {result['grade']} ({result['score']}/100) — {result['resisted']}/{result['total']} prompts resisted")
+    counts, max_severity = _findings_severity_summary(result.get("findings") or [])
+    gate = _exceeds_fail_on(max_severity, fail_on)
+    write_ci_summary(
+        command="llm-redteam", target_url=target,
+        passed=result["resisted"], failed=result["total"] - result["resisted"], total=result["total"],
+        exit_code=1 if gate else 0, started_at=started_at, duration_s=time.time() - t0,
+        findings_by_severity=counts, max_severity=max_severity,
+        extra={"grade": result["grade"], "score": result["score"]},
+    )
+    if gate:
+        raise typer.Exit(code=1)
+
+
+@app.command(name="pr-gate")
+def pr_gate(
+    repo: str = typer.Argument(..., help="owner/repo"),
+    pr_number: int = typer.Argument(..., help="Pull request number"),
+    fail_on: str = typer.Option("high", "--fail-on", help="Block the PR if any finding is at/above this severity"),
+    summary_path: str = typer.Option("reports/summary.json", "--summary", help="Path to a summary.json from a prior run"),
+) -> None:
+    """Post a GitHub PR review + commit status from a prior run's reports/summary.json.
+
+    Mirrors `neurosploit pr <repo> <n> --fail-on critical`: REQUEST_CHANGES + a
+    failing commit status on a confirmed finding at/above --fail-on, APPROVE
+    otherwise. Run the actual scan first (e.g. `zyvor-qa audit ... --fail-on
+    <sev>`) so reports/summary.json reflects this PR's code.
+    """
+    _load_env()
+    import json as _json
+
+    from github_integration.client import GitHubClient
+
+    path = Path(summary_path)
+    if not path.is_file():
+        typer.echo(f"no summary file at {summary_path} — run a scan command first", err=True)
+        raise typer.Exit(code=2)
+    summary = _json.loads(path.read_text(encoding="utf-8"))
+    max_severity = summary.get("max_severity")
+    counts = summary.get("findings_by_severity") or {}
+    gate = _exceeds_fail_on(max_severity, fail_on)
+
+    client = GitHubClient()
+    if not client.available:
+        typer.echo("GitHub token required. Set GITHUB_TOKEN or run `gh auth login`.", err=True)
+        raise typer.Exit(code=2)
+
+    body_lines = [
+        f"**zyvor-qa security gate** — command `{summary.get('command')}` on `{summary.get('target_url')}`",
+        f"Findings by severity: {counts or 'none'}",
+    ]
+    sha = client.get_pr_head_sha(repo, pr_number)
+    if gate:
+        body_lines.append(f"❌ Blocked: highest severity `{max_severity}` meets/exceeds `--fail-on {fail_on}`.")
+        client.create_pr_review(repo, pr_number, event="REQUEST_CHANGES", body="\n\n".join(body_lines))
+        client.set_commit_status(
+            repo, sha, state="failure", context="zyvor-qa/security",
+            description=f"blocked: {max_severity} finding(s) present",
+        )
+        typer.echo(f"PR #{pr_number} blocked — {max_severity} finding(s) at/above {fail_on}")
+        raise typer.Exit(code=1)
+
+    body_lines.append("✅ No findings at/above the configured threshold.")
+    client.create_pr_review(repo, pr_number, event="APPROVE", body="\n\n".join(body_lines))
+    client.set_commit_status(repo, sha, state="success", context="zyvor-qa/security", description="no blocking findings")
+    typer.echo(f"PR #{pr_number} passed the security gate")
 
 
 @app.command()

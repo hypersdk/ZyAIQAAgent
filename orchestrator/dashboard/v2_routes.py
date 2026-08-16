@@ -128,6 +128,51 @@ async def delete_schedule(request: Request, schedule_id: str) -> dict[str, Any]:
     return {"removed": True}
 
 
+@router.get("/engagements")
+async def list_engagements(request: Request) -> dict[str, Any]:
+    require_scope(request, "engagements:read")
+    return {"engagements": get_store().list_engagements()}
+
+
+@router.post("/engagements", status_code=201)
+async def create_engagement(request: Request, payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
+    identity = require_scope(request, "engagements:write")
+    target_pattern = str(payload.get("target_pattern", "")).strip()
+    scope_statement = str(payload.get("scope_statement", "")).strip()
+    tier = str(payload.get("tier", "")).strip()
+    if not target_pattern:
+        raise HTTPException(status_code=400, detail="target_pattern is required")
+    if not scope_statement:
+        raise HTTPException(status_code=400, detail="scope_statement is required")
+    if tier not in ("active_recon", "exploit"):
+        raise HTTPException(status_code=400, detail="tier must be 'active_recon' or 'exploit'")
+    engagement = get_store().create_engagement(
+        target_pattern,
+        scope_statement,
+        tier,
+        authorized_by=identity.subject,
+        expires_at=payload.get("expires_at"),
+    )
+    get_store().audit(
+        "engagement.create", actor=identity.subject, resource_type="engagement",
+        resource_id=engagement["id"], detail={"target_pattern": target_pattern, "tier": tier},
+    )
+    return engagement
+
+
+@router.delete("/engagements/{engagement_id}")
+async def revoke_engagement(request: Request, engagement_id: str) -> dict[str, Any]:
+    identity = require_scope(request, "engagements:write")
+    revoked = get_store().revoke_engagement(engagement_id, revoked_by=identity.subject)
+    get_store().audit(
+        "engagement.revoke", actor=identity.subject, resource_type="engagement",
+        resource_id=engagement_id, outcome="success" if revoked else "ignored",
+    )
+    if not revoked:
+        raise HTTPException(status_code=404, detail="engagement not found or already revoked")
+    return {"revoked": True}
+
+
 @router.get("/findings")
 async def list_findings(
     request: Request,

@@ -44,5 +44,7 @@ def validate_runtime_security() -> None:
         "ZYVOR_ALLOW_UNRESTRICTED_AGENT_IN_PRODUCTION", "false"
     ).lower() not in {"1", "true", "yes", "on"}:
         problems.append("unrestricted AI-agent mode is disabled in production")
+    if os.environ.get("ZYVOR_ENGAGEMENT_ENFORCEMENT", "required").strip().lower() == "disabled":
+        problems.append("engagement enforcement must not be disabled in production")
     if problems:
         raise SecurityConfigurationError("unsafe production configuration: " + "; ".join(problems))

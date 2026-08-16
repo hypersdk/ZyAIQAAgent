@@ -34,7 +34,7 @@ from typing import Any, Iterator
 from orchestrator.security.redaction import redact
 from orchestrator.security.secrets import assert_persistable
 
-_SCHEMA_VERSION = 1
+_SCHEMA_VERSION = 2
 
 DEFAULT_MAX_JOB_ATTEMPTS = 3
 
@@ -135,6 +135,7 @@ class MissionControlStore:
                     detail TEXT,
                     url TEXT,
                     location TEXT,
+                    category TEXT NOT NULL DEFAULT '',
                     status TEXT NOT NULL DEFAULT 'open',
                     first_seen TEXT NOT NULL,
                     last_seen TEXT NOT NULL,
@@ -144,6 +145,20 @@ class MissionControlStore:
                     ON findings(fingerprint) WHERE fingerprint IS NOT NULL;
                 CREATE INDEX IF NOT EXISTS findings_status_severity_idx
                     ON findings(status, severity, last_seen);
+
+                CREATE TABLE IF NOT EXISTS engagements (
+                    id TEXT PRIMARY KEY,
+                    target_pattern TEXT NOT NULL,
+                    scope_statement TEXT NOT NULL,
+                    tier TEXT NOT NULL CHECK(tier IN ('active_recon','exploit')),
+                    authorized_by TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    expires_at TEXT,
+                    revoked_at TEXT,
+                    revoked_by TEXT
+                );
+                CREATE INDEX IF NOT EXISTS engagements_target_idx
+                    ON engagements(target_pattern, revoked_at, expires_at);
 
                 CREATE TABLE IF NOT EXISTS audit_events (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -168,6 +183,12 @@ class MissionControlStore:
                 CREATE INDEX IF NOT EXISTS webhook_received_idx ON webhook_deliveries(received_at);
                 """
             )
+            # `CREATE TABLE IF NOT EXISTS` above is a no-op against a findings
+            # table that already existed pre-v2 (schema_meta.version < 2) — add
+            # the new column explicitly for those databases.
+            existing_columns = {row["name"] for row in conn.execute("PRAGMA table_info(findings)")}
+            if "category" not in existing_columns:
+                conn.execute("ALTER TABLE findings ADD COLUMN category TEXT NOT NULL DEFAULT ''")
             conn.execute("UPDATE schema_meta SET version=?", (_SCHEMA_VERSION,))
 
     # Jobs -----------------------------------------------------------------
@@ -406,27 +427,29 @@ class MissionControlStore:
         url: str = "",
         location: str = "",
         fingerprint: str | None = None,
+        category: str = "",
     ) -> int:
         now = _iso()
         title = str(redact(title))
         detail = str(redact(detail))
         url = str(redact(url))
         location = str(redact(location))
+        category = category[:100]
         with self.connect() as conn:
             if fingerprint:
                 existing = conn.execute("SELECT id FROM findings WHERE fingerprint=?", (fingerprint,)).fetchone()
                 if existing:
                     conn.execute(
-                        """UPDATE findings SET severity=?, title=?, detail=?, url=?, location=?,
+                        """UPDATE findings SET severity=?, title=?, detail=?, url=?, location=?, category=?,
                         last_seen=?, occurrences=occurrences+1, status='open' WHERE id=?""",
-                        (severity, title[:200], detail[:2000], url[:1000], location[:500], now, existing["id"]),
+                        (severity, title[:200], detail[:2000], url[:1000], location[:500], category, now, existing["id"]),
                     )
                     return int(existing["id"])
             cur = conn.execute(
                 """INSERT INTO findings
-                (fingerprint, source, severity, title, detail, url, location, status, first_seen, last_seen)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 'open', ?, ?)""",
-                (fingerprint, source, severity, title[:200], detail[:2000], url[:1000], location[:500], now, now),
+                (fingerprint, source, severity, title, detail, url, location, category, status, first_seen, last_seen)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?)""",
+                (fingerprint, source, severity, title[:200], detail[:2000], url[:1000], location[:500], category, now, now),
             )
             assert cur.lastrowid is not None
             return cur.lastrowid
@@ -457,6 +480,53 @@ class MissionControlStore:
     def clear_findings(self) -> int:
         with self.connect() as conn:
             return conn.execute("UPDATE findings SET status='closed' WHERE status='open'").rowcount
+
+    # Engagements ------------------------------------------------------------
+    def create_engagement(
+        self,
+        target_pattern: str,
+        scope_statement: str,
+        tier: str,
+        *,
+        authorized_by: str,
+        expires_at: str | None = None,
+    ) -> dict[str, Any]:
+        engagement_id = str(uuid.uuid4())
+        now = _iso()
+        with self.connect() as conn:
+            conn.execute(
+                """INSERT INTO engagements
+                (id, target_pattern, scope_statement, tier, authorized_by, created_at, expires_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    engagement_id,
+                    target_pattern[:500],
+                    str(redact(scope_statement))[:2000],
+                    tier,
+                    authorized_by,
+                    now,
+                    expires_at,
+                ),
+            )
+        return self.get_engagement(engagement_id)  # type: ignore[return-value]
+
+    def get_engagement(self, engagement_id: str) -> dict[str, Any] | None:
+        with self.connect() as conn:
+            row = conn.execute("SELECT * FROM engagements WHERE id=?", (engagement_id,)).fetchone()
+        return dict(row) if row else None
+
+    def list_engagements(self) -> list[dict[str, Any]]:
+        with self.connect() as conn:
+            rows = conn.execute("SELECT * FROM engagements ORDER BY created_at DESC").fetchall()
+        return [dict(row) for row in rows]
+
+    def revoke_engagement(self, engagement_id: str, *, revoked_by: str) -> bool:
+        with self.connect() as conn:
+            changed = conn.execute(
+                "UPDATE engagements SET revoked_at=?, revoked_by=? WHERE id=? AND revoked_at IS NULL",
+                (_iso(), revoked_by, engagement_id),
+            ).rowcount
+        return changed == 1
 
     # Audit ----------------------------------------------------------------
     def audit(

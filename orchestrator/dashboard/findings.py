@@ -29,11 +29,20 @@ def _fingerprint(source: str, title: str, url: str, where: str) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
-def add(source: str, severity: str, title: str, detail: str = "", url: str = "", where: str = "") -> None:
+def add(
+    source: str,
+    severity: str,
+    title: str,
+    detail: str = "",
+    url: str = "",
+    where: str = "",
+    category: str = "",
+) -> None:
     sev = severity if severity in SEVERITY_RANK else "medium"
     get_store().add_finding(
         source, sev, title, detail, url, where,
         fingerprint=_fingerprint(source, title, url, where),
+        category=category,
     )
 
 
@@ -46,6 +55,7 @@ def record_batch(source: str, url: str, items: list[dict[str, Any]]) -> int:
             item.get("detail", ""),
             url,
             item.get("where", ""),
+            item.get("category", ""),
         )
     return len(items)
 
