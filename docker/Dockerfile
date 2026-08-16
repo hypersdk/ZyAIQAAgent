@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:20-bookworm AS node-base
+FROM node:26-bookworm AS node-base
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm install
