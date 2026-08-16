@@ -186,7 +186,7 @@ GitHub repo ──► download discovery files ──► extract candidates ─�
 ## Security testing
 
 Beyond the 10 read-only network/security probes and the `audit` site grade,
-four job kinds do deeper, potentially-invasive security testing and are
+seven job kinds do deeper, potentially-invasive security testing and are
 gated behind an authorized **security engagement**:
 
 | Job kind | Tier | What it does |
@@ -196,6 +196,8 @@ gated behind an authorized **security engagement**:
 | `llm_redteam` | `active_recon` | Attacker→judge loop against Ask Zyvor (curated battery, `agents/redteam/`) — prompt injection, system-prompt exfiltration, excessive agency, jailbreaks, PII/secret exfiltration |
 | `exploit_poc` | `exploit` | Generates a non-destructive verification script via LLM for a described finding and runs it in a sandboxed Kubernetes Job (`orchestrator/security/sandbox.py`, `kubernetes/sandbox.yaml`) — never in-process. Also requires `ZYVOR_EXPLOIT_EXECUTION_ENABLED=true` |
 | `attack_chain` | `exploit` | Repeatedly plan-and-verifies one escalation step at a time (LLM planner + `exploit_poc`'s exact PoC-generation/sandbox machinery), stopping the moment a step fails or the planner has nothing safe left to propose (max 5 steps). Same gates as `exploit_poc` |
+| `host_pentest` | `exploit` | Non-destructive SSH enumeration (`paramiko`) via a specially-imaged sandbox (`ZYVOR_SANDBOX_HOST_IMAGE`). Also requires `ZYVOR_CREDENTIALED_PENTEST_ENABLED=true`; creds must be `$secret` refs |
+| `cloud_pentest` | `exploit` | Non-destructive `aws`/`gcloud`/`az` CLI enumeration via a specially-imaged sandbox (`ZYVOR_SANDBOX_CLOUD_IMAGE`). Same additional credentialed-pentest gate as `host_pentest` |
 
 **Engagement gating** (`orchestrator/security/engagement_policy.py`): an
 admin creates a target-scoped, tier-ranked attestation via

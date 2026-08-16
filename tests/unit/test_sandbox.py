@@ -144,6 +144,28 @@ def test_run_python_happy_path_creates_and_cleans_up_job(monkeypatch):
     assert fake_core.delete_namespaced_config_map.call_count == 1
 
 
+def test_run_python_sets_image_pull_policy_if_not_present(monkeypatch):
+    """Regression: found live against a real k3s cluster — a custom,
+    locally-built/imported image (e.g. host_pentest's paramiko image) tagged
+    ':latest' defaults to imagePullPolicy Always, which tries (and fails) to
+    pull from a registry even though the image is already on the node."""
+    monkeypatch.setenv("ZYVOR_SANDBOX_NAMESPACE", "zyvor-qa-sandbox")
+
+    fake_batch = MagicMock()
+    fake_batch.read_namespaced_job_status.return_value = _FakeJobStatusResponse(_FakeStatus(succeeded=1))
+    fake_core = MagicMock()
+    fake_core.list_namespaced_pod.return_value = _FakePodList([_FakePod("zyvor-poc-abc-xyz", 0)])
+    fake_core.read_namespaced_pod_log.return_value = "VERIFIED: true - ok\n"
+    monkeypatch.setattr(k8s_module, "_load_clients", lambda: {"core": fake_core, "batch": fake_batch})
+
+    sandbox.run_python("print('hi')", timeout_s=10, image="localhost/custom-image:latest")
+
+    job = fake_batch.create_namespaced_job.call_args[0][1]
+    container = job.spec.template.spec.containers[0]
+    assert container.image == "localhost/custom-image:latest"
+    assert container.image_pull_policy == "IfNotPresent"
+
+
 def test_run_python_normalizes_str_of_bytes_pod_log(monkeypatch):
     """Regression: found live against a real k3s cluster — the kubernetes
     client sometimes returns a pod log as the *string representation* of a

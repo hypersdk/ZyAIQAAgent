@@ -94,14 +94,16 @@ The live-crawl agent (`playwright/scripts/crawl-site.mjs`) has its own, narrower
 
 ## Security engagements
 
-Five job kinds do deeper, potentially-invasive security testing —
+Seven job kinds do deeper, potentially-invasive security testing —
 `misconfig_scan` (misconfig/recon beyond the static probes), `cve_lookup`
 (read-only, checks fingerprinted versions against OSV.dev), `llm_redteam`
 (adversarial-prompt battery against Ask Zyvor), `exploit_poc`
 (LLM-generated, sandboxed, non-destructive verification of a described
-finding), and `attack_chain` (repeated `exploit_poc` steps chained by an
-LLM planner) — and are refused (`400`) unless the request cites a live,
-sufficiently-scoped **security engagement**: an `admin`-issued attestation
+finding), `attack_chain` (repeated `exploit_poc` steps chained by an LLM
+planner), and `host_pentest`/`cloud_pentest` (credentialed, sandboxed,
+non-destructive SSH/cloud-CLI enumeration) — and are refused (`400`) unless
+the request cites a live, sufficiently-scoped **security engagement**: an
+`admin`-issued attestation
 that the target is actually authorized for testing. This is separate from
 (and in addition to) the SSRF-focused [target policy](#target-policy)
 above — target policy blocks *unsafe* destinations (private ranges, cloud
@@ -175,6 +177,44 @@ verify or the planner has nothing safe left to propose (capped at 5 steps):
 curl -X POST https://qa.example.com/api/v2/jobs \
   -H 'Content-Type: application/json' \
   -d '{"kind": "attack_chain", "params": {"url": "https://app.example.com", "objective": "escalate SQLi to RCE", "engagement_id": "<exploit-tier id>"}}'
+```
+
+### host_pentest / cloud_pentest: credentialed pentesting
+
+Both need everything `exploit_poc` needs, **plus** a third, independent
+opt-in — `ZYVOR_CREDENTIALED_PENTEST_ENABLED=true` — and a specially-imaged
+sandbox backend, since the default `python:3.12-slim` image has neither
+`paramiko` (for `host_pentest`) nor the `aws`/`gcloud`/`az` CLIs (for
+`cloud_pentest`):
+
+```bash
+export ZYVOR_CREDENTIALED_PENTEST_ENABLED=true
+export ZYVOR_SANDBOX_HOST_IMAGE=your-registry/zyvor-sandbox-host:latest    # python:3.12-slim + paramiko
+export ZYVOR_SANDBOX_CLOUD_IMAGE=your-registry/zyvor-sandbox-cloud:latest  # + aws-cli/gcloud/az
+```
+
+Without the relevant image env var set, both job kinds refuse to run — same
+"fail closed rather than silently downgrade" posture as everywhere else in
+this feature set. **Credentials are never accepted as raw values** — every
+field in `creds` that looks secret-shaped (`password`, `private_key`,
+`secret_access_key`, etc.) must be a `{"$secret": "env:NAME"}` reference
+(`orchestrator/security/secrets.py`), resolved only at execution time and
+injected straight into that one ephemeral sandbox Job's environment — never
+logged, never embedded in the LLM-generated verification script, never
+present in the job result:
+
+```bash
+curl -X POST https://qa.example.com/api/v2/jobs \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "kind": "host_pentest",
+    "params": {
+      "host": "internal-host.example.com",
+      "finding_description": "SSH allows password auth with a weak default credential",
+      "creds": {"username": "admin", "password": {"$secret": "env:TARGET_SSH_PASSWORD"}},
+      "engagement_id": "<exploit-tier id>"
+    }
+  }'
 ```
 
 ## Autonomous-agent modes

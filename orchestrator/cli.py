@@ -1020,6 +1020,108 @@ def attack_chain(
         raise typer.Exit(code=1)
 
 
+@app.command(name="host-pentest")
+def host_pentest(
+    host: str = typer.Argument(..., help="Bare hostname or IP, e.g. host.example.com"),
+    finding_description: str = typer.Option(..., "--finding", help="Describe what to verify over SSH"),
+    creds_json: str = typer.Option(..., "--creds", help='JSON creds dict, e.g. \'{"username":"admin","password":{"$secret":"env:SSH_PW"}}\''),
+    engagement_id: str = typer.Option(..., "--engagement-id", help="Must be an 'exploit'-tier engagement"),
+    port: int = typer.Option(22, help="SSH port"),
+    timeout_s: int = typer.Option(60, "--timeout", help="Sandbox execution timeout in seconds (capped at 300)"),
+    fail_on: str = typer.Option("high", "--fail-on", help="Exit 1 if any finding is at/above this severity"),
+) -> None:
+    """Generate a non-destructive SSH verification PoC via LLM and run it sandboxed (paramiko).
+
+    Requires ZYVOR_EXPLOIT_EXECUTION_ENABLED=true, ZYVOR_CREDENTIALED_PENTEST_ENABLED=true,
+    ZYVOR_SANDBOX_HOST_IMAGE (a sandbox image with paramiko installed), and an
+    exploit-tier engagement — see docs/enterprise-v2.md. Secrets in --creds must
+    use {"$secret": "env:NAME"} references, never raw values.
+    """
+    _load_env()
+    import json as _json
+
+    t0 = time.time()
+    started_at = datetime.fromtimestamp(t0, tz=timezone.utc).isoformat()
+    from agents.reporter.summary import write_ci_summary
+    from orchestrator.dashboard.jobs import _job_host_pentest, _validate
+
+    try:
+        creds = _json.loads(creds_json)
+    except _json.JSONDecodeError as exc:
+        typer.echo(f"--creds is not valid JSON: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+    params = _validate("host_pentest", {
+        "host": host, "port": port, "finding_description": finding_description,
+        "creds": creds, "timeout_s": timeout_s, "engagement_id": engagement_id,
+    })
+    result = _job_host_pentest(params)
+    typer.echo(f"{'VERIFIED' if result['verified'] else 'not verified'}" + (f" — {result['reason']}" if result['reason'] else ""))
+    typer.echo(f"PoC: {result['poc_path']} (sha256 {result['code_sha256'][:12]}…)")
+    counts, max_severity = _findings_severity_summary(result.get("findings") or [])
+    gate = _exceeds_fail_on(max_severity, fail_on)
+    write_ci_summary(
+        command="host-pentest", target_url=host,
+        passed=0 if result["verified"] else 1, failed=1 if result["verified"] else 0, total=1,
+        exit_code=1 if gate else 0, started_at=started_at, duration_s=time.time() - t0,
+        findings_by_severity=counts, max_severity=max_severity,
+        extra={"verified": result["verified"]},
+    )
+    if gate:
+        raise typer.Exit(code=1)
+
+
+@app.command(name="cloud-pentest")
+def cloud_pentest(
+    target: str = typer.Argument(..., help="Account/project identifier, e.g. aws-prod-123456789012"),
+    provider: str = typer.Option(..., "--provider", help="'aws', 'gcp', or 'azure'"),
+    finding_description: str = typer.Option(..., "--finding", help="Describe what to verify"),
+    creds_json: str = typer.Option(..., "--creds", help='JSON creds dict, e.g. \'{"secret_access_key":{"$secret":"env:AWS_SECRET"}}\''),
+    engagement_id: str = typer.Option(..., "--engagement-id", help="Must be an 'exploit'-tier engagement"),
+    timeout_s: int = typer.Option(60, "--timeout", help="Sandbox execution timeout in seconds (capped at 300)"),
+    fail_on: str = typer.Option("high", "--fail-on", help="Exit 1 if any finding is at/above this severity"),
+) -> None:
+    """Generate a non-destructive cloud-CLI verification PoC via LLM and run it sandboxed.
+
+    Requires ZYVOR_EXPLOIT_EXECUTION_ENABLED=true, ZYVOR_CREDENTIALED_PENTEST_ENABLED=true,
+    ZYVOR_SANDBOX_CLOUD_IMAGE (a sandbox image with the aws/gcloud/az CLIs installed),
+    and an exploit-tier engagement — see docs/enterprise-v2.md. Secrets in --creds
+    must use {"$secret": "env:NAME"} references, never raw values.
+    """
+    _load_env()
+    import json as _json
+
+    t0 = time.time()
+    started_at = datetime.fromtimestamp(t0, tz=timezone.utc).isoformat()
+    from agents.reporter.summary import write_ci_summary
+    from orchestrator.dashboard.jobs import _job_cloud_pentest, _validate
+
+    try:
+        creds = _json.loads(creds_json)
+    except _json.JSONDecodeError as exc:
+        typer.echo(f"--creds is not valid JSON: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+    params = _validate("cloud_pentest", {
+        "provider": provider, "target": target, "finding_description": finding_description,
+        "creds": creds, "timeout_s": timeout_s, "engagement_id": engagement_id,
+    })
+    result = _job_cloud_pentest(params)
+    typer.echo(f"{'VERIFIED' if result['verified'] else 'not verified'}" + (f" — {result['reason']}" if result['reason'] else ""))
+    typer.echo(f"PoC: {result['poc_path']} (sha256 {result['code_sha256'][:12]}…)")
+    counts, max_severity = _findings_severity_summary(result.get("findings") or [])
+    gate = _exceeds_fail_on(max_severity, fail_on)
+    write_ci_summary(
+        command="cloud-pentest", target_url=target,
+        passed=0 if result["verified"] else 1, failed=1 if result["verified"] else 0, total=1,
+        exit_code=1 if gate else 0, started_at=started_at, duration_s=time.time() - t0,
+        findings_by_severity=counts, max_severity=max_severity,
+        extra={"verified": result["verified"]},
+    )
+    if gate:
+        raise typer.Exit(code=1)
+
+
 @app.command(name="pr-gate")
 def pr_gate(
     repo: str = typer.Argument(..., help="owner/repo"),

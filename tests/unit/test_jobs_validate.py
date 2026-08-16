@@ -668,3 +668,151 @@ def test_attack_chain_max_steps_capped(monkeypatch):
     )
     assert clean["max_steps"] == 5
     monkeypatch.delenv("ZYVOR_EXPLOIT_EXECUTION_ENABLED", raising=False)
+
+
+# --- host_pentest / cloud_pentest: exploit-tier engagement, the same
+# ZYVOR_EXPLOIT_EXECUTION_ENABLED opt-in, PLUS a second, independent
+# ZYVOR_CREDENTIALED_PENTEST_ENABLED opt-in, PLUS creds must use $secret refs.
+
+def _enable_exploit_env(monkeypatch):
+    monkeypatch.setenv("ZYVOR_EXPLOIT_EXECUTION_ENABLED", "true")
+    monkeypatch.setenv("ZYVOR_CREDENTIALED_PENTEST_ENABLED", "true")
+
+
+def _disable_exploit_env(monkeypatch):
+    monkeypatch.delenv("ZYVOR_EXPLOIT_EXECUTION_ENABLED", raising=False)
+    monkeypatch.delenv("ZYVOR_CREDENTIALED_PENTEST_ENABLED", raising=False)
+
+
+@pytest.mark.parametrize("kind", ["host_pentest", "cloud_pentest"])
+def test_pentest_kinds_registered(kind):
+    assert kind in VALID_KINDS
+
+
+def test_host_pentest_requires_credentialed_opt_in_even_with_exploit_enabled(monkeypatch):
+    monkeypatch.setenv("ZYVOR_EXPLOIT_EXECUTION_ENABLED", "true")
+    monkeypatch.delenv("ZYVOR_CREDENTIALED_PENTEST_ENABLED", raising=False)
+    _allow_engagement(monkeypatch, tier="exploit")
+    with pytest.raises(ValueError, match="ZYVOR_CREDENTIALED_PENTEST_ENABLED"):
+        _validate(
+            "host_pentest",
+            {
+                "host": "zyvor.dev", "finding_description": "weak SSH config",
+                "creds": {"username": "admin", "password": {"$secret": "env:X"}},
+                "engagement_id": "eng-1",
+            },
+        )
+    monkeypatch.delenv("ZYVOR_EXPLOIT_EXECUTION_ENABLED", raising=False)
+
+
+def test_host_pentest_rejects_raw_password_in_creds(monkeypatch):
+    _enable_exploit_env(monkeypatch)
+    _allow_engagement(monkeypatch, tier="exploit")
+    with pytest.raises(ValueError, match="secret"):
+        _validate(
+            "host_pentest",
+            {
+                "host": "zyvor.dev", "finding_description": "weak SSH config",
+                "creds": {"username": "admin", "password": "hunter2"},  # raw, not a $secret ref
+                "engagement_id": "eng-1",
+            },
+        )
+    _disable_exploit_env(monkeypatch)
+
+
+def test_host_pentest_requires_username(monkeypatch):
+    _enable_exploit_env(monkeypatch)
+    _allow_engagement(monkeypatch, tier="exploit")
+    with pytest.raises(ValueError, match="username"):
+        _validate(
+            "host_pentest",
+            {
+                "host": "zyvor.dev", "finding_description": "x",
+                "creds": {"password": {"$secret": "env:X"}},
+                "engagement_id": "eng-1",
+            },
+        )
+    _disable_exploit_env(monkeypatch)
+
+
+def test_host_pentest_requires_password_or_private_key(monkeypatch):
+    _enable_exploit_env(monkeypatch)
+    _allow_engagement(monkeypatch, tier="exploit")
+    with pytest.raises(ValueError, match="password.*private_key|private_key.*password"):
+        _validate(
+            "host_pentest",
+            {
+                "host": "zyvor.dev", "finding_description": "x",
+                "creds": {"username": "admin"},
+                "engagement_id": "eng-1",
+            },
+        )
+    _disable_exploit_env(monkeypatch)
+
+
+def test_host_pentest_happy_path(monkeypatch):
+    _enable_exploit_env(monkeypatch)
+    _allow_engagement(monkeypatch, tier="exploit", target_pattern="*.dev")
+    clean = _validate(
+        "host_pentest",
+        {
+            "host": "zyvor.dev", "port": 2222,
+            "finding_description": "weak SSH config",
+            "creds": {"username": "admin", "password": {"$secret": "env:SSH_PW"}},
+            "engagement_id": "eng-1",
+        },
+    )
+    assert clean["host"] == "zyvor.dev"
+    assert clean["port"] == 2222
+    assert clean["creds"]["password"] == {"$secret": "env:SSH_PW"}
+    _disable_exploit_env(monkeypatch)
+
+
+def test_cloud_pentest_rejects_invalid_provider(monkeypatch):
+    _enable_exploit_env(monkeypatch)
+    _allow_engagement(monkeypatch, tier="exploit")
+    with pytest.raises(ValueError, match="provider"):
+        _validate(
+            "cloud_pentest",
+            {
+                "provider": "not-a-real-provider", "target": "acct-123",
+                "finding_description": "x", "creds": {"api_key": {"$secret": "env:X"}},
+                "engagement_id": "eng-1",
+            },
+        )
+    _disable_exploit_env(monkeypatch)
+
+
+def test_cloud_pentest_rejects_raw_secret_in_creds(monkeypatch):
+    _enable_exploit_env(monkeypatch)
+    _allow_engagement(monkeypatch, tier="exploit")
+    with pytest.raises(ValueError, match="secret"):
+        _validate(
+            "cloud_pentest",
+            {
+                "provider": "aws", "target": "acct-123", "finding_description": "x",
+                "creds": {"secret_access_key": "raw-value-not-a-ref"},
+                "engagement_id": "eng-1",
+            },
+        )
+    _disable_exploit_env(monkeypatch)
+
+
+def test_cloud_pentest_happy_path(monkeypatch):
+    _enable_exploit_env(monkeypatch)
+    _allow_engagement(monkeypatch, tier="exploit", target_pattern="*")
+    clean = _validate(
+        "cloud_pentest",
+        {
+            "provider": "aws", "target": "aws-prod-123456789012",
+            "finding_description": "overly permissive S3 bucket policy",
+            "creds": {
+                "access_key_id": "AKIA...",
+                "secret_access_key": {"$secret": "env:AWS_SECRET"},
+            },
+            "engagement_id": "eng-1",
+        },
+    )
+    assert clean["provider"] == "aws"
+    assert clean["target"] == "aws-prod-123456789012"
+    _disable_exploit_env(monkeypatch)
