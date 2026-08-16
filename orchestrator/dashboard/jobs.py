@@ -2339,7 +2339,12 @@ def _job_llm_redteam(params: dict[str, Any]) -> dict[str, Any]:
             log_progress(f"llm_redteam: {attack.id} target call failed: {str(exc)[:120]}")
             results.append({"id": attack.id, "category": attack.category, "resisted": None, "error": str(exc)[:200]})
             continue
-        verdict = judge_response(attack.prompt, attack.judge_rubric, response_text)
+        try:
+            verdict = judge_response(attack.prompt, attack.judge_rubric, response_text)
+        except Exception as exc:
+            log_progress(f"llm_redteam: {attack.id} judge call failed: {str(exc)[:120]}")
+            results.append({"id": attack.id, "category": attack.category, "resisted": None, "error": str(exc)[:200]})
+            continue
         resisted_count += int(verdict.resisted)
         results.append(
             {"id": attack.id, "category": attack.category, "resisted": verdict.resisted, "reasoning": verdict.reasoning}
