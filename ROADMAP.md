@@ -95,18 +95,18 @@ this session doesn't have — so it's configured, not done. Still fully
 open: a Windows/NSIS build (hypercluster's `desktop-pkg-windows` target is
 the template if this becomes worth doing).
 
-## Active exploitation (PoC generation/execution, attack chaining, host/cloud pentesting)
+## ~~Active exploitation~~ — done (PoC generation/execution, attack chaining, host/cloud pentesting)
 
-Scoped in three stages during a security-testing feature pass rather than
-built all at once. Foundation: a general-purpose security-engagement
-authorization primitive (`orchestrator/security/engagement_policy.py`,
+Built in four stages during a security-testing feature pass rather than all
+at once. Foundation: a general-purpose security-engagement authorization
+primitive (`orchestrator/security/engagement_policy.py`,
 `orchestrator/persistence/store.py`'s `engagements` table,
 `POST/GET/DELETE /api/v2/engagements`) that gates elevated-risk job kinds
 behind an admin-issued, target-scoped, tier-ranked attestation — mirroring
 `orchestrator/security/agent_policy.py`'s mode/approved-risks/fail-closed-
-in-production shape. Four job kinds sit behind it today: `misconfig_scan`,
-`cve_lookup`, `llm_redteam` at the `active_recon` tier, and `exploit_poc`
-(below) at the `exploit` tier.
+in-production shape. Seven job kinds sit behind it: `misconfig_scan`,
+`cve_lookup`, `llm_redteam` at the `active_recon` tier, and `exploit_poc`,
+`attack_chain`, `host_pentest`, `cloud_pentest` at the `exploit` tier.
 
 ### ~~PoC generation/execution~~ — done, verification-only
 
@@ -173,15 +173,48 @@ naming collisions. The LLM planning loop itself
 (`plan_next_chain_step`/`generate_verification_poc` deciding what to
 verify next) is unit-tested with a mocked model only, same caveat as above.
 
-### Still not built: credentialed host/AD/cloud pentesting
+### ~~Credentialed host/cloud pentesting~~ — done (host SSH; cloud AD/WinRM not included)
 
-The last piece from the original NeuroSploit-inspired scope. Needs a
-credential-handling story (reusing `orchestrator/security/secrets.py`'s
-`{"$secret": "env:..."}` reference pattern rather than ever accepting raw
-creds in a job param) and either SSH/WinRM libraries or shelling out to the
-`aws`/`gcloud`/`az` CLIs from inside the sandbox image (extending
-`orchestrator/security/sandbox.py`'s image rather than adding new SDK
-dependencies to the main application).
+`host_pentest` (SSH, via `paramiko`) and `cloud_pentest` (`aws`/`gcloud`/`az`
+CLIs) close out the full NeuroSploit-inspired scope. Credentials are never
+accepted as raw job params — `orchestrator/security/secrets.py`'s
+`{"$secret": "env:..."}` reference pattern is required (enforced via
+`assert_persistable()` in `_validate()`), resolved only at execution time,
+and injected directly into the one ephemeral sandbox Job's environment —
+never logged, never embedded in LLM-generated code, never present in the
+job result (verified by dedicated unit tests, `tests/unit/
+test_pentest_jobs.py`, that plant a real-looking secret value and assert it
+never appears in the returned result or any audit-log call).
+
+The default sandbox image (`python:3.12-slim`) has neither `paramiko` nor
+the cloud CLIs, so `sandbox.py` gained an `image` override
+(`ZYVOR_SANDBOX_HOST_IMAGE`/`ZYVOR_SANDBOX_CLOUD_IMAGE`) — both job kinds
+fail closed with a clear error if the relevant image env var isn't set,
+same "refuse rather than silently downgrade" posture as everywhere else in
+this feature set. A **third**, independent opt-in —
+`ZYVOR_CREDENTIALED_PENTEST_ENABLED=true` — gates these on top of
+`exploit_poc`'s existing two gates (exploit-tier engagement +
+`ZYVOR_EXPLOIT_EXECUTION_ENABLED`), since using real credentials against
+real infrastructure is a materially bigger step than generating/running a
+verification script against a URL.
+
+**Live-verified** the custom-image mechanic against the real k3s cluster:
+built a minimal `python:3.12-slim` + `paramiko` image, imported it into the
+cluster, and ran it as a real sandboxed Job — which caught and fixed a real
+bug (Kubernetes defaults `:latest`-tagged images to `imagePullPolicy:
+Always`, so it tried to pull the locally-built image from a registry
+instead of using what was already on the node; `sandbox.py` now sets
+`IfNotPresent` explicitly). Did **not** live-test an actual SSH connection
+end-to-end — that would have required adding a new key to the test host's
+`authorized_keys`, a standing access-control change judged out of scope for
+a one-off verification pass. `cloud_pentest` is code-complete and
+unit-tested only; no cloud credentials were available in this pass to
+verify it live.
+
+Not included: Active Directory-specific tooling (Kerberos/LDAP enumeration,
+WinRM) beyond generic SSH, and any lateral-movement/persistence logic — the
+scope here is read-only enumeration and non-destructive verification, same
+as every other job kind in this feature set.
 
 ## ~~CSRF~~ — done
 

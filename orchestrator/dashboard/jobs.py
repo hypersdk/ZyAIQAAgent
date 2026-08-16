@@ -45,6 +45,7 @@ VALID_KINDS = {
     "api_contract", "auth_test", "realtime", "vitals", "ai_flow",
     "har_replay", "import_codegen",
     "misconfig_scan", "cve_lookup", "llm_redteam", "exploit_poc", "attack_chain",
+    "host_pentest", "cloud_pentest",
 } | PROBE_KINDS
 
 # Job kinds gated behind an authorized security engagement
@@ -57,6 +58,8 @@ ELEVATED_RISK_KINDS: dict[str, str] = {
     "llm_redteam": "active_recon",
     "exploit_poc": "exploit",
     "attack_chain": "exploit",
+    "host_pentest": "exploit",
+    "cloud_pentest": "exploit",
 }
 
 _lock = threading.Lock()
@@ -494,6 +497,52 @@ def _validate(kind: str, params: dict[str, Any]) -> dict[str, Any]:
         clean["objective"] = objective[:1000]
         clean["max_steps"] = max(1, min(int(params.get("max_steps") or 5), 5))
         clean["timeout_s"] = max(5, min(int(params.get("timeout_s") or 60), 300))
+    if kind in ("host_pentest", "cloud_pentest"):
+        from orchestrator.security.secrets import SecretReferenceError, assert_persistable
+
+        # Two independent fail-closed opt-ins, on top of the exploit-tier
+        # engagement check below: using real credentials against real
+        # infrastructure is a materially bigger step than generating/running
+        # a verification script against a URL (exploit_poc/attack_chain).
+        if os.environ.get("ZYVOR_EXPLOIT_EXECUTION_ENABLED", "false").strip().lower() not in {"1", "true", "yes", "on"}:
+            raise ValueError(f"{kind} is disabled — set ZYVOR_EXPLOIT_EXECUTION_ENABLED=true to enable it")
+        if os.environ.get("ZYVOR_CREDENTIALED_PENTEST_ENABLED", "false").strip().lower() not in {"1", "true", "yes", "on"}:
+            raise ValueError(f"{kind} is disabled — set ZYVOR_CREDENTIALED_PENTEST_ENABLED=true to enable it")
+        description = (params.get("finding_description") or "").strip()
+        if not description:
+            raise ValueError("finding_description is required — describe what to verify")
+        clean["finding_description"] = description[:2000]
+        clean["timeout_s"] = max(5, min(int(params.get("timeout_s") or 60), 300))
+        creds = params.get("creds")
+        if not isinstance(creds, dict) or not creds:
+            raise ValueError("creds is required — a dict of credential fields (secrets must use {'$secret': 'env:NAME'})")
+        try:
+            assert_persistable(creds, parent_key="creds")
+        except SecretReferenceError as exc:
+            raise ValueError(str(exc)) from exc
+        clean["creds"] = creds
+    if kind == "host_pentest":
+        host = (params.get("host") or "").strip()
+        if not host or any(ch in host for ch in "/?#@ "):
+            raise ValueError("provide a bare hostname or IP, e.g. host.example.com")
+        clean["host"] = host[:255]
+        clean["port"] = max(1, min(int(params.get("port") or 22), 65535))
+        clean["url"] = clean["host"]  # engagement target-pattern matches on this
+        host_creds = clean["creds"]
+        if "username" not in host_creds or not str(host_creds.get("username") or "").strip():
+            raise ValueError("creds.username is required")
+        if "password" not in host_creds and "private_key" not in host_creds:
+            raise ValueError("creds must include either 'password' or 'private_key'")
+    if kind == "cloud_pentest":
+        provider = (params.get("provider") or "").strip().lower()
+        if provider not in ("aws", "gcp", "azure"):
+            raise ValueError("provider must be 'aws', 'gcp', or 'azure'")
+        clean["provider"] = provider
+        target = (params.get("target") or "").strip()
+        if not target:
+            raise ValueError("target is required — an account/project identifier, e.g. 'aws-prod-123456789012'")
+        clean["target"] = target[:200]
+        clean["url"] = clean["target"]  # engagement target-pattern matches on this
     if kind in PROBE_KINDS:
         target = (params.get("url") or params.get("host") or "").strip()
         if kind == "dns_records":
@@ -523,6 +572,18 @@ def _validate(kind: str, params: dict[str, Any]) -> dict[str, Any]:
         clean["spec"] = policy.validate_url(spec_value)
     if kind == "tls" and clean.get("host"):
         clean["host"] = policy.validate_host(clean["host"], int(clean.get("port") or 443))
+    if kind == "host_pentest" and clean.get("host"):
+        # SSRF-style guard: same private/loopback/link-local/metadata-IP
+        # check every other network-capable job gets — credentials don't
+        # exempt a target from the allowlist/private-range policy. Port
+        # restriction is deliberately lifted (policy.allowed_ports defaults
+        # to 80/443, which is meaningless for SSH — a bare validate_host()
+        # call would wrongly reject the default port 22).
+        import dataclasses
+
+        ssh_policy = dataclasses.replace(policy, allowed_ports=())
+        clean["host"] = ssh_policy.validate_host(clean["host"], int(clean.get("port") or 22))
+        clean["url"] = clean["host"]
 
     if kind in ELEVATED_RISK_KINDS:
         from orchestrator.security.engagement_policy import EngagementPolicy
@@ -2413,6 +2474,20 @@ def _job_llm_redteam(params: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _parse_verified_output(stdout: str) -> tuple[bool, str]:
+    """Parse a sandboxed PoC/verification script's mandated final
+    'VERIFIED: true/false - reason' line. Shared by exploit_poc,
+    attack_chain, host_pentest, and cloud_pentest."""
+    for line in (stdout or "").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("VERIFIED:"):
+            rest = stripped[len("VERIFIED:"):].strip()
+            verified = rest.lower().startswith("true")
+            reason = rest.split("-", 1)[1].strip() if "-" in rest else rest
+            return verified, reason
+    return False, ""
+
+
 def _job_exploit_poc(params: dict[str, Any]) -> dict[str, Any]:
     """Generate a non-destructive verification PoC via LLM and run it inside
     the Kubernetes sandbox (orchestrator/security/sandbox.py) — never in
@@ -2459,15 +2534,7 @@ def _job_exploit_poc(params: dict[str, Any]) -> dict[str, Any]:
     result = sandbox.run_python(generated.code, timeout_s=params["timeout_s"], egress_hosts=[host])
     _check_cancel()
 
-    verified = False
-    reason = ""
-    for line in (result.stdout or "").splitlines():
-        stripped = line.strip()
-        if stripped.startswith("VERIFIED:"):
-            rest = stripped[len("VERIFIED:"):].strip()
-            verified = rest.lower().startswith("true")
-            reason = rest.split("-", 1)[1].strip() if "-" in rest else rest
-            break
+    verified, reason = _parse_verified_output(result.stdout)
 
     log_progress(
         f"exploit_poc: {'VERIFIED' if verified else 'not verified'}"
@@ -2559,15 +2626,7 @@ def _job_attack_chain(params: dict[str, Any]) -> dict[str, Any]:
         result = sandbox.run_python(generated.code, timeout_s=params["timeout_s"], egress_hosts=[host])
         _check_cancel()
 
-        verified = False
-        reason = ""
-        for line in (result.stdout or "").splitlines():
-            stripped = line.strip()
-            if stripped.startswith("VERIFIED:"):
-                rest = stripped[len("VERIFIED:"):].strip()
-                verified = rest.lower().startswith("true")
-                reason = rest.split("-", 1)[1].strip() if "-" in rest else rest
-                break
+        verified, reason = _parse_verified_output(result.stdout)
 
         steps.append({
             "step": i + 1, "description": plan.description, "verified": verified,
@@ -2619,6 +2678,208 @@ def _job_attack_chain(params: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _job_host_pentest(params: dict[str, Any]) -> dict[str, Any]:
+    """Generate a non-destructive SSH enumeration script via LLM and run it
+    in a specially-imaged sandbox Job (paramiko pre-installed, via
+    ZYVOR_SANDBOX_HOST_IMAGE). Credentials are resolved from $secret refs
+    and injected as env vars into that one ephemeral Job only — never
+    logged, never embedded in the generated code."""
+    import hashlib
+    import time as _time
+    import uuid as _uuid
+
+    from agents.common.models import PipelineReport
+    from agents.exploit.pentest_generator import generate_host_verification
+    from orchestrator.dashboard import findings, history
+    from orchestrator.persistence.store import get_store
+    from orchestrator.security import sandbox
+    from orchestrator.security.secrets import resolve_secret_refs
+
+    t0 = _time.time()
+    host = params["host"]
+    port = params["port"]
+    description = params["finding_description"]
+    creds = params["creds"]
+
+    if not sandbox.available():
+        raise RuntimeError(
+            "exploit sandbox unavailable — set ZYVOR_SANDBOX_NAMESPACE and ensure "
+            "the cluster is reachable (see kubernetes/sandbox.yaml)"
+        )
+    image = sandbox.host_pentest_image()
+    if not image:
+        raise RuntimeError(
+            "host_pentest needs a sandbox image with paramiko installed — set "
+            "ZYVOR_SANDBOX_HOST_IMAGE (see docs/enterprise-v2.md)"
+        )
+
+    resolved = resolve_secret_refs(creds)
+    env = {"ZYVOR_SSH_HOST": host, "ZYVOR_SSH_PORT": str(port), "ZYVOR_SSH_USER": str(resolved.get("username", ""))}
+    credential_env_vars = ["ZYVOR_SSH_HOST", "ZYVOR_SSH_PORT", "ZYVOR_SSH_USER"]
+    if resolved.get("password"):
+        env["ZYVOR_SSH_PASSWORD"] = str(resolved["password"])
+        credential_env_vars.append("ZYVOR_SSH_PASSWORD")
+    if resolved.get("private_key"):
+        env["ZYVOR_SSH_PRIVATE_KEY"] = str(resolved["private_key"])
+        credential_env_vars.append("ZYVOR_SSH_PRIVATE_KEY")
+
+    log_progress(f"host_pentest: generating verification script for {host}")
+    generated = generate_host_verification(description, host, credential_env_vars)
+    code_hash = hashlib.sha256(generated.code.encode("utf-8")).hexdigest()
+
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    poc_dir = _repo_root() / "reports" / "pocs" / f"{stamp}-host-{_uuid.uuid4().hex[:8]}"
+    poc_dir.mkdir(parents=True, exist_ok=True)
+    (poc_dir / "poc.py").write_text(generated.code, encoding="utf-8")
+
+    get_store().audit(
+        "host_pentest.generate", resource_type="poc", resource_id=code_hash,
+        detail={
+            "host": host, "sha256": code_hash, "path": str(poc_dir / "poc.py"),
+            "credential_fields": sorted(creds.keys()),  # field names only, never values
+        },
+    )
+    log_progress(f"host_pentest: PoC written to {poc_dir / 'poc.py'} (sha256 {code_hash[:12]}…)")
+
+    log_progress(f"host_pentest: running in sandbox (timeout {params['timeout_s']}s)…")
+    result = sandbox.run_python(
+        generated.code, timeout_s=params["timeout_s"], env=env, egress_hosts=[host], image=image,
+    )
+    _check_cancel()
+
+    verified, reason = _parse_verified_output(result.stdout)
+    log_progress(
+        f"host_pentest: {'VERIFIED' if verified else 'not verified'}"
+        + (f" — {reason}" if reason else "")
+        + (" (timed out)" if result.timed_out else "")
+    )
+
+    raised: list[dict[str, Any]] = []
+    if verified:
+        title = f"host_pentest confirmed on {host}: {description[:100]}"
+        findings.add(
+            "host_pentest", "critical", title, detail=reason, url=host,
+            where=poc_dir.name, category="confirmed-vulnerability",
+        )
+        raised.append({
+            "severity": "critical", "title": title, "detail": reason,
+            "where": poc_dir.name, "category": "confirmed-vulnerability",
+        })
+
+    hist = PipelineReport(
+        summary=f"host_pentest for {host}: {'verified' if verified else 'not verified'}",
+        passed=0 if verified else 1, failed=1 if verified else 0, total=1,
+    )
+    history.append_run(hist, source="dashboard-host-pentest", duration_s=_time.time() - t0)
+
+    return {
+        "host": host, "verified": verified, "reason": reason, "timed_out": result.timed_out,
+        "exit_code": result.exit_code, "stdout": (result.stdout or "")[:4000],
+        "code_sha256": code_hash, "poc_path": str(poc_dir / "poc.py"), "findings": raised,
+    }
+
+
+def _job_cloud_pentest(params: dict[str, Any]) -> dict[str, Any]:
+    """Generate a non-destructive cloud-CLI enumeration script via LLM and
+    run it in a specially-imaged sandbox Job (aws/gcloud/az CLIs
+    pre-installed, via ZYVOR_SANDBOX_CLOUD_IMAGE). Credentials are resolved
+    from $secret refs and injected as env vars into that one ephemeral Job
+    only — never logged, never embedded in the generated code."""
+    import hashlib
+    import time as _time
+    import uuid as _uuid
+
+    from agents.common.models import PipelineReport
+    from agents.exploit.pentest_generator import generate_cloud_verification
+    from orchestrator.dashboard import findings, history
+    from orchestrator.persistence.store import get_store
+    from orchestrator.security import sandbox
+    from orchestrator.security.secrets import resolve_secret_refs
+
+    t0 = _time.time()
+    provider = params["provider"]
+    target = params["target"]
+    description = params["finding_description"]
+    creds = params["creds"]
+
+    if not sandbox.available():
+        raise RuntimeError(
+            "exploit sandbox unavailable — set ZYVOR_SANDBOX_NAMESPACE and ensure "
+            "the cluster is reachable (see kubernetes/sandbox.yaml)"
+        )
+    image = sandbox.cloud_pentest_image()
+    if not image:
+        raise RuntimeError(
+            "cloud_pentest needs a sandbox image with the aws/gcloud/az CLIs "
+            "installed — set ZYVOR_SANDBOX_CLOUD_IMAGE (see docs/enterprise-v2.md)"
+        )
+
+    resolved = resolve_secret_refs(creds)
+    env: dict[str, str] = {}
+    credential_env_vars: list[str] = []
+    for key, value in resolved.items():
+        env_name = f"ZYVOR_CLOUD_{key.upper()}"
+        env[env_name] = str(value)
+        credential_env_vars.append(env_name)
+
+    log_progress(f"cloud_pentest: generating verification script for {provider}:{target}")
+    generated = generate_cloud_verification(description, provider, target, credential_env_vars)
+    code_hash = hashlib.sha256(generated.code.encode("utf-8")).hexdigest()
+
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    poc_dir = _repo_root() / "reports" / "pocs" / f"{stamp}-cloud-{_uuid.uuid4().hex[:8]}"
+    poc_dir.mkdir(parents=True, exist_ok=True)
+    (poc_dir / "poc.py").write_text(generated.code, encoding="utf-8")
+
+    get_store().audit(
+        "cloud_pentest.generate", resource_type="poc", resource_id=code_hash,
+        detail={
+            "provider": provider, "target": target, "sha256": code_hash,
+            "path": str(poc_dir / "poc.py"), "credential_fields": sorted(creds.keys()),
+        },
+    )
+    log_progress(f"cloud_pentest: PoC written to {poc_dir / 'poc.py'} (sha256 {code_hash[:12]}…)")
+
+    # No egress_hosts: the sandbox talks to the provider's control-plane API,
+    # not a single resolvable target host — best-effort NetworkPolicy scoping
+    # doesn't apply the way it does for a URL/host target.
+    log_progress(f"cloud_pentest: running in sandbox (timeout {params['timeout_s']}s)…")
+    result = sandbox.run_python(generated.code, timeout_s=params["timeout_s"], env=env, image=image)
+    _check_cancel()
+
+    verified, reason = _parse_verified_output(result.stdout)
+    log_progress(
+        f"cloud_pentest: {'VERIFIED' if verified else 'not verified'}"
+        + (f" — {reason}" if reason else "")
+        + (" (timed out)" if result.timed_out else "")
+    )
+
+    raised: list[dict[str, Any]] = []
+    if verified:
+        title = f"cloud_pentest confirmed on {provider}:{target}: {description[:100]}"
+        findings.add(
+            "cloud_pentest", "critical", title, detail=reason, url=target,
+            where=poc_dir.name, category="confirmed-vulnerability",
+        )
+        raised.append({
+            "severity": "critical", "title": title, "detail": reason,
+            "where": poc_dir.name, "category": "confirmed-vulnerability",
+        })
+
+    hist = PipelineReport(
+        summary=f"cloud_pentest for {provider}:{target}: {'verified' if verified else 'not verified'}",
+        passed=0 if verified else 1, failed=1 if verified else 0, total=1,
+    )
+    history.append_run(hist, source="dashboard-cloud-pentest", duration_s=_time.time() - t0)
+
+    return {
+        "provider": provider, "target": target, "verified": verified, "reason": reason,
+        "timed_out": result.timed_out, "exit_code": result.exit_code,
+        "stdout": (result.stdout or "")[:4000], "code_sha256": code_hash,
+        "poc_path": str(poc_dir / "poc.py"), "findings": raised,
+    }
+
+
 _JOBS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "smoke": _job_smoke,
     "flow": _job_flow,
@@ -2648,6 +2909,8 @@ _JOBS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "llm_redteam": _job_llm_redteam,
     "exploit_poc": _job_exploit_poc,
     "attack_chain": _job_attack_chain,
+    "host_pentest": _job_host_pentest,
+    "cloud_pentest": _job_cloud_pentest,
 }
 
 

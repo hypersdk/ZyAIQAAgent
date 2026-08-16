@@ -66,6 +66,20 @@ def _sandbox_image() -> str:
     return os.environ.get("ZYVOR_SANDBOX_IMAGE", _DEFAULT_IMAGE).strip() or _DEFAULT_IMAGE
 
 
+def host_pentest_image() -> str | None:
+    """Image for `host_pentest` (needs `paramiko` — not in the default
+    image). None if not configured — host_pentest fails closed rather than
+    running with a generic image that lacks SSH tooling."""
+    return os.environ.get("ZYVOR_SANDBOX_HOST_IMAGE", "").strip() or None
+
+
+def cloud_pentest_image() -> str | None:
+    """Image for `cloud_pentest` (needs the `aws`/`gcloud`/`az` CLIs — not
+    in the default image). None if not configured — cloud_pentest fails
+    closed rather than running with a generic image that lacks them."""
+    return os.environ.get("ZYVOR_SANDBOX_CLOUD_IMAGE", "").strip() or None
+
+
 def available() -> bool:
     """True when a cluster is reachable AND a dedicated sandbox namespace is
     explicitly configured. The namespace requirement is deliberate: refusing
@@ -133,8 +147,17 @@ def run_python(
     timeout_s: int = 60,
     env: dict[str, str] | None = None,
     egress_hosts: list[str] | None = None,
+    image: str | None = None,
 ) -> SandboxResult:
     """Run `code` as a one-shot Job in the sandbox namespace.
+
+    `image` overrides the default `ZYVOR_SANDBOX_IMAGE` — used by job kinds
+    that need tooling the default `python:3.12-slim` doesn't have (e.g.
+    `host_pentest`'s `paramiko`, `cloud_pentest`'s `aws`/`gcloud`/`az` CLIs).
+    `env` is the one place secret VALUES ever appear — they go straight into
+    the ephemeral Job's container env, never into `code` or any persisted
+    record; callers must resolve `{"$secret": ...}` references before
+    calling this, and must never log the resolved values themselves.
 
     Raises SandboxUnavailable if no sandbox backend is configured/reachable
     — callers must not fall back to any other execution path on this error."""
@@ -177,7 +200,14 @@ def run_python(
     )
     container = client.V1Container(
         name="poc",
-        image=_sandbox_image(),
+        image=image or _sandbox_image(),
+        # Kubernetes defaults to Always for ':latest'-tagged images, which
+        # tries to pull from a registry even for images pre-loaded onto the
+        # node (e.g. a custom host_pentest/cloud_pentest image built and
+        # `ctr images import`-ed locally, never pushed anywhere) — that
+        # fails with ErrImagePull. IfNotPresent uses what's already on the
+        # node first, which is the common case for this sandbox.
+        image_pull_policy="IfNotPresent",
         command=["python3", "/code/poc.py"],
         env=[client.V1EnvVar(name=k, value=v) for k, v in (env or {}).items()],
         security_context=security_context,
