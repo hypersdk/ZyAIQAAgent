@@ -2,7 +2,7 @@
 
 Tagged releases are published automatically by [`.github/workflows/release.yml`](../.github/workflows/release.yml).
 
-**Current release:** [v0.5.1](https://github.com/hypersdk/ZyAIQAAgent/releases/tag/v0.5.1)
+**Current release:** [v0.6.0](https://github.com/hypersdk/ZyAIQAAgent/releases/tag/v0.6.0)
 
 ## What happens on a release
 
@@ -45,10 +45,10 @@ GHCR packages inherit repo visibility by default — if the repo is private, `do
 
 ```bash
 # bump pyproject.toml / package.json first, then:
-git tag v0.5.1
-git push hypersdk v0.5.1
+git tag v0.6.0
+git push hypersdk v0.6.0
 # or, to also create the GitHub Release explicitly:
-gh release create v0.5.1 --repo hypersdk/ZyAIQAAgent --generate-notes
+gh release create v0.6.0 --repo hypersdk/ZyAIQAAgent --generate-notes
 ```
 
-Either the tag push or the `gh release create` triggers the workflow (it also accepts `workflow_dispatch` with an existing tag, for re-publishing an image without cutting a new release). Version numbers follow `pyproject.toml` / `package.json` (currently `0.5.1`); bump those alongside the tag. See [CHANGELOG.md](../CHANGELOG.md).
+Either the tag push or the `gh release create` triggers the workflow (it also accepts `workflow_dispatch` with an existing tag, for re-publishing an image without cutting a new release). Version numbers follow `pyproject.toml` / `package.json` (currently `0.6.0`); bump those alongside the tag. See [CHANGELOG.md](../CHANGELOG.md).
