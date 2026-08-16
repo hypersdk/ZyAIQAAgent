@@ -29,7 +29,7 @@ ffmpeg -y -i docs/assets/guestkit-mission-control-demo.webm -c:v libx264 -pix_fm
 Regenerate:
 
 ```bash
-zyvor-qa flow https://zyvor.dev --steps docs/assets/zyvor-dev-demo.steps --video
+argus flow run https://zyvor.dev --steps docs/assets/zyvor-dev-demo.steps --video
 cp reports/artifacts/flows/cli/journey.webm docs/assets/zyvor-dev-mission-control-demo.webm
 ffmpeg -y -i docs/assets/zyvor-dev-mission-control-demo.webm -c:v libx264 -pix_fmt yuv420p -movflags +faststart -an docs/assets/zyvor-dev-mission-control-demo.mp4
 ffmpeg -y -i docs/assets/zyvor-dev-mission-control-demo.webm -vf "fps=8,scale=720:-1:flags=lanczos" -loop 0 docs/assets/zyvor-dev-mission-control-demo.gif

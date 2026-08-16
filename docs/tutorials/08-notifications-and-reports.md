@@ -65,7 +65,7 @@ SMTP_PASSWORD=…
 NOTIFY_EMAIL_TO=team@example.com
 ```
 
-Sends a multipart email (plain + HTML) with subject like `Zyvor QA Report — FAILED (10/12)`. When the PDF report exists, it's attached. STARTTLS + login are used when credentials are set; a local unauthenticated relay works by leaving user/password empty.
+Sends a multipart email (plain + HTML) with subject like `Zyvor Argus Report — FAILED (10/12)`. When the PDF report exists, it's attached. STARTTLS + login are used when credentials are set; a local unauthenticated relay works by leaving user/password empty.
 
 ## 6. Channel behavior
 
