@@ -6,7 +6,7 @@ COPY package.json package-lock.json* ./
 RUN npm install
 RUN npx playwright install --with-deps chromium
 
-FROM python:3.11-slim-bookworm AS python-base
+FROM python:3.14-slim-bookworm AS python-base
 WORKDIR /app
 COPY pyproject.toml ./
 COPY orchestrator/ ./orchestrator/
@@ -18,7 +18,7 @@ COPY playwright/ ./playwright/
 COPY tests/ ./tests/
 RUN pip install --no-cache-dir -e .
 
-FROM python:3.11-slim-bookworm
+FROM python:3.14-slim-bookworm
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
