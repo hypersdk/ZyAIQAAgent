@@ -86,6 +86,8 @@ spec:
                 configMapKeyRef:
                   name: zyvor-qa-config
                   key: target-allowlist
+            - name: ZYVOR_API_TOKENS_FILE
+              value: /app/secrets/api-tokens.json
           envFrom:
             - configMapRef:
                 name: zyvor-qa-config
@@ -134,10 +136,19 @@ spec:
               mountPath: /app/test-results
             - name: tmp
               mountPath: /tmp
+            - name: api-tokens
+              mountPath: /app/secrets
+              readOnly: true
       volumes:
         - name: reports
           persistentVolumeClaim:
             claimName: zyvor-qa-reports
+        - name: api-tokens
+          secret:
+            secretName: zyvor-qa-secrets
+            items:
+              - key: api-tokens.json
+                path: api-tokens.json
         - name: generated
           emptyDir: {}
         - name: fixtures

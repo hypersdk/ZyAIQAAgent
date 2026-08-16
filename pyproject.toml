@@ -51,15 +51,22 @@ knowledge = [
     "pypdf>=5.0.0,<7.0.0",
     "orjson>=3.10.0,<4.0.0",
 ]
+mcp = [
+    # Pinned below 2.0 — that major restructured mcp.server.fastmcp (module
+    # renamed, FastMCP not re-exported the same way) shortly before this was
+    # written; stay on the stable, documented 1.x API until 2.x settles.
+    "mcp>=1.8,<2.0",
+]
 
 [project.scripts]
 zyvor-qa = "orchestrator.cli:main"
 zyvor-qa-knowledge-ingest = "scripts.knowledge_ingest:main"
 zyvor-qa-knowledge-evaluate = "scripts.knowledge_evaluate:main"
+zyvor-qa-mcp = "integrations.mcp.server:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["orchestrator*", "agents*", "github_integration*", "knowledge*", "scripts*"]
+include = ["orchestrator*", "agents*", "github_integration*", "knowledge*", "scripts*", "integrations*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/unit"]

@@ -28,6 +28,9 @@ spec:
                 name: zyvor-qa-config
             - secretRef:
                 name: zyvor-qa-secrets
+          env:
+            - name: ZYVOR_API_TOKENS_FILE
+              value: /app/secrets/api-tokens.json
           # generous timeouts: in-pod Playwright runs briefly saturate the CPU
           # limit and must not fail probes (1s default timeout kills the pod)
           livenessProbe:
@@ -57,7 +60,16 @@ spec:
           volumeMounts:
             - name: reports
               mountPath: /app/reports
+            - name: api-tokens
+              mountPath: /app/secrets
+              readOnly: true
       volumes:
         - name: reports
           persistentVolumeClaim:
             claimName: zyvor-qa-reports
+        - name: api-tokens
+          secret:
+            secretName: zyvor-qa-secrets
+            items:
+              - key: api-tokens.json
+                path: api-tokens.json
