@@ -34,10 +34,10 @@ from typing import Any
 from fastapi import HTTPException, Request
 
 ROLE_SCOPES = {
-    "viewer": {"jobs:read", "findings:read", "schedules:read", "audit:read"},
+    "viewer": {"jobs:read", "findings:read", "schedules:read", "audit:read", "engagements:read"},
     "operator": {
         "jobs:read", "jobs:write", "findings:read", "findings:write",
-        "schedules:read", "schedules:write", "audit:read",
+        "schedules:read", "schedules:write", "audit:read", "engagements:read",
     },
     "admin": {"*"},
 }

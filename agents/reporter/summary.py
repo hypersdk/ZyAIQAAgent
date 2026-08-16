@@ -25,7 +25,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 def _repo_root() -> Path:
@@ -45,8 +45,16 @@ def write_ci_summary(
     skipped: int = 0,
     artifacts: dict[str, str | None] | None = None,
     extra: dict[str, Any] | None = None,
+    findings_by_severity: dict[str, int] | None = None,
+    max_severity: str | None = None,
 ) -> Path:
-    """Write reports/summary.json and return its path."""
+    """Write reports/summary.json and return its path.
+
+    `findings_by_severity`/`max_severity` are optional — only commands that
+    raise findings (audit, misconfig_scan, cve_lookup, llm_redteam) populate
+    them; `zyvor-qa <cmd> --fail-on <severity>` reads `max_severity` back to
+    decide whether to exit non-zero.
+    """
     summary = {
         "schema_version": SCHEMA_VERSION,
         "command": command,
@@ -60,6 +68,8 @@ def write_ci_summary(
         "exit_code": exit_code,
         "status": "passed" if failed == 0 and exit_code == 0 else "failed",
         "artifacts": artifacts or {},
+        "findings_by_severity": findings_by_severity or {},
+        "max_severity": max_severity,
         "extra": extra or {},
     }
     reports_dir = _repo_root() / "reports"

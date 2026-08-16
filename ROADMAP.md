@@ -95,6 +95,50 @@ this session doesn't have — so it's configured, not done. Still fully
 open: a Windows/NSIS build (hypercluster's `desktop-pkg-windows` target is
 the template if this becomes worth doing).
 
+## Active exploitation (PoC generation/execution, attack chaining, host/cloud pentesting)
+
+Scoped deliberately during a security-testing feature pass rather than
+built as a first pass. What shipped: a general-purpose security-engagement
+authorization primitive (`orchestrator/security/engagement_policy.py`,
+`orchestrator/persistence/store.py`'s `engagements` table,
+`POST/GET/DELETE /api/v2/engagements`) that
+gates elevated-risk job kinds behind an admin-issued, target-scoped,
+tier-ranked attestation — mirroring `orchestrator/security/agent_policy.py`'s
+mode/approved-risks/fail-closed-in-production shape; three job kinds gated at
+its `active_recon` tier (`misconfig_scan`, `cve_lookup`, `llm_redteam`, see
+`orchestrator/dashboard/jobs.py`); and `cve_lookup` itself as the narrow,
+read-only first increment — fingerprints a target's tech/versions
+(`agents/probes/misconfig_scan.py::fingerprint_tech`) and checks them against
+OSV.dev. No PoC is written or run.
+
+**Deliberately not built**: PoC generation/execution, multi-stage attack
+chaining (SQLi→RCE, upload→LFI→RCE→LPE, etc.), and credentialed host/AD/cloud
+penetration testing. The engagement schema already reserves an `'exploit'`
+tier (`TIER_RANK` in `engagement_policy.py`) as the hook point, but nothing
+requests it yet, because this repo has no execution sandbox for running
+arbitrary LLM-generated code against a live target — bolting that onto the
+existing trusted-first-party-function job runner would silently change the
+threat model for every job kind, not just a new one. Building it properly
+needs, at minimum:
+
+- A containerized, ephemeral, one-shot-per-attempt execution sandbox (Docker
+  with dropped capabilities/read-only rootfs at minimum; gVisor/Firecracker
+  preferred), torn down after each attempt.
+- Network egress locked to the engagement's `target_pattern` at the
+  container network-namespace/firewall level — not just today's app-level
+  `TargetPolicy` URL check, which validates destinations but doesn't contain
+  what a running exploit could reach.
+- A non-destructive-first default: exploit attempts confirm via
+  timing/response-diff oracles unless the engagement record is explicitly
+  `'exploit'` tier — extending `AgentPolicy`'s `allow_destructive` concept
+  into this domain.
+- PoC source + hash provenance tied to the authorizing `audit_events` row,
+  and a documented revert/cleanup story per finding class.
+
+Worth doing once there's real usage data from the `active_recon` tier
+(misconfig scanning, CVE lookup, LLM red-teaming) showing the authorization
+model holds up in practice.
+
 ## ~~CSRF~~ — done
 
 Was flagged, then reconsidered as low-value (`SameSite=Lax` + `HttpOnly`

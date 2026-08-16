@@ -343,6 +343,38 @@ class GitHubClient:
         pr: PullRequest = repo.get_pull(pr_number)
         pr.create_issue_comment(body)
 
+    def get_pr_head_sha(self, repo_full_name: str, pr_number: int) -> str:
+        """The PR's current head commit SHA — for setting a commit status."""
+        repo = self._repo(repo_full_name)
+        pr: PullRequest = repo.get_pull(pr_number)
+        return pr.head.sha
+
+    def create_pr_review(self, repo_full_name: str, pr_number: int, *, event: str, body: str) -> None:
+        """Post a formal PR review — `event` is APPROVE / REQUEST_CHANGES / COMMENT.
+
+        Used by the `pr-gate` CLI command to actually block a merge (a plain
+        issue comment, `post_pr_comment` above, does not)."""
+        repo = self._repo(repo_full_name)
+        pr: PullRequest = repo.get_pull(pr_number)
+        pr.create_review(event=event, body=body)
+
+    def set_commit_status(
+        self,
+        repo_full_name: str,
+        sha: str,
+        *,
+        state: str,
+        context: str,
+        description: str,
+        target_url: str | None = None,
+    ) -> None:
+        """Set a commit status — `state` is one of error/failure/pending/success."""
+        repo = self._repo(repo_full_name)
+        commit = repo.get_commit(sha)
+        commit.create_status(
+            state=state, context=context, description=description[:140], target_url=target_url or ""
+        )
+
     def download_spec_to_local(
         self,
         repo_full_name: str,

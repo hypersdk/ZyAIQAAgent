@@ -71,9 +71,12 @@ Example file:
 
 Roles:
 
-- `viewer`: read jobs, findings, schedules and audit
-- `operator`: run/cancel jobs and manage schedules/findings
-- `admin`: all scopes
+- `viewer`: read jobs, findings, schedules, audit and engagements
+- `operator`: run/cancel jobs, manage schedules/findings, read engagements
+- `admin`: all scopes, including creating/revoking engagements (`engagements:write`)
+
+Only `admin` can create or revoke a security engagement — see
+[Security engagements](#security-engagements) below.
 
 ## Target policy
 
@@ -88,6 +91,51 @@ export ZYVOR_ALLOW_HTTP_TARGETS=false
 Even when a hostname is allowlisted, metadata IPs remain blocked. Every resolved address and redirect destination must pass policy.
 
 The live-crawl agent (`playwright/scripts/crawl-site.mjs`) has its own, narrower guard (`playwright/scripts/lib/target-policy.mjs`) for the same purpose — it validates every page navigated to during the BFS, not just the initial URL, since the crawler follows arbitrary in-site links. It blocks the same private/loopback/link-local/metadata ranges by default; set `CRAWL_ALLOW_PRIVATE_TARGETS=true` only for local dev targets.
+
+## Security engagements
+
+Three job kinds do deeper, potentially-invasive security testing —
+`misconfig_scan` (misconfig/recon beyond the static probes), `cve_lookup`
+(read-only, checks fingerprinted versions against OSV.dev), and
+`llm_redteam` (adversarial-prompt battery against Ask Zyvor) — and are
+refused (`400`) unless the request cites a live, sufficiently-scoped
+**security engagement**: an `admin`-issued attestation that the target is
+actually authorized for testing. This is separate from (and in addition to)
+the SSRF-focused [target policy](#target-policy) above — target policy
+blocks *unsafe* destinations (private ranges, cloud metadata); engagements
+answer *is this specific test run actually authorized*.
+
+Create one (requires `engagements:write`, i.e. `admin`):
+
+```bash
+curl -X POST https://qa.example.com/api/v2/engagements \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "target_pattern": "*.example.com",
+    "scope_statement": "authorized pentest, staging + prod, 2026-Q3 engagement",
+    "tier": "active_recon",
+    "expires_at": "2026-10-01T00:00:00+00:00"
+  }'
+```
+
+Then pass its `id` as `engagement_id` in the job's params:
+
+```bash
+curl -X POST https://qa.example.com/api/v2/jobs \
+  -H 'Content-Type: application/json' \
+  -d '{"kind": "misconfig_scan", "params": {"url": "https://app.example.com", "engagement_id": "<id>"}}'
+```
+
+`target_pattern` matches the job's hostname via the same `fnmatch` glob style
+as `ZYVOR_TARGET_ALLOWLIST` (e.g. `*.example.com`, or `*` for "any host" in a
+trusted dev environment). `tier` is `active_recon` today for all three job
+kinds — `exploit` is reserved for the not-yet-built PoC-execution phase (see
+`ROADMAP.md`). Revoke with `DELETE /api/v2/engagements/{id}`; list with
+`GET /api/v2/engagements` (`engagements:read`, available to `viewer` too).
+
+`ZYVOR_ENGAGEMENT_ENFORCEMENT=disabled` turns this gate off entirely (e.g.
+for local dev) — refused at startup when `ZYVOR_ENV=production`, same
+fail-closed pattern as the unrestricted-agent-mode check below.
 
 ## Autonomous-agent modes
 

@@ -1,0 +1,10 @@
+{% if mermaid_graph %}
+  <h2>Attack Graph</h2>
+  <pre class="mermaid">{{ mermaid_graph }}</pre>
+  <script src="/static/vendor/mermaid.min.js"></script>
+  <script>
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });
+    }
+  </script>
+{% endif %}

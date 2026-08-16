@@ -183,6 +183,37 @@ GitHub repo ──► download discovery files ──► extract candidates ─�
 
 ---
 
+## Security testing
+
+Beyond the 10 read-only network/security probes and the `audit` site grade,
+three job kinds do deeper, potentially-invasive security testing and are
+gated behind an authorized **security engagement**:
+
+| Job kind | What it does |
+|----------|--------------|
+| `misconfig_scan` | Tech/version fingerprinting, wordlist-driven path discovery (`agents/probes/data/misconfig_paths.txt`), security-header *value* grading, DNS hygiene (SPF/DMARC/CAA) — `agents/probes/misconfig_scan.py` |
+| `cve_lookup` | Read-only: fingerprints tech/versions, checks them against OSV.dev — `agents/probes/cve_lookup.py`. No PoC is generated or run |
+| `llm_redteam` | Attacker→judge loop against Ask Zyvor (curated battery, `agents/redteam/`) — prompt injection, system-prompt exfiltration, excessive agency, jailbreaks, PII/secret exfiltration |
+
+**Engagement gating** (`orchestrator/security/engagement_policy.py`): an
+admin creates a target-scoped, tier-ranked attestation via
+`POST /api/v2/engagements` (`orchestrator/persistence/store.py`'s
+`engagements` table); every elevated job kind must cite its id and is
+rejected by `orchestrator/dashboard/jobs.py`'s `_validate()` — the one
+choke-point every trigger path (dashboard, CLI, `/api/v2/jobs`, schedules)
+already funnels through — if the engagement is missing, revoked, expired, an
+insufficient tier, or the target falls outside its `target_pattern`. This
+mirrors `orchestrator/security/agent_policy.py`'s mode/fail-closed-in-
+production shape rather than inventing a new one; `ZYVOR_ENGAGEMENT_ENFORCEMENT
+=disabled` is refused at startup when `ZYVOR_ENV=production`
+(`orchestrator/security/config.py`).
+
+Full design rationale — including what's deliberately *not* built (PoC
+generation/execution, attack chaining, credentialed host/cloud pentesting)
+and why — lives in `ROADMAP.md`.
+
+---
+
 ## Filesystem contract
 
 Directories the pipeline reads and writes (all relative to repo root):
