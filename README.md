@@ -300,11 +300,17 @@ See [**docs/configuration.md**](docs/configuration.md) for the complete annotate
 
 ## CI/CD
 
-- **Lint + unit tests**: `.github/workflows/ci.yml` — ruff, pytest (`tests/unit`), and `node --check` on every push/PR
+This repo tests itself the same way it tests any product — every push/PR to `main` runs:
+
+- **Lint + unit tests**: `.github/workflows/ci.yml` — ruff, pytest (`tests/unit`), `node --check` on every push/PR
+- **Docs & manifests**: same workflow — Kubernetes manifests validated offline (`scripts/validate_k8s_manifests.py`), customer docs checked for staleness against `routes.json`/`page-purposes.json` (`npm run docs:guides` must produce no diff) and broken relative links (`npm run docs:links`)
+- **Security & quality**: `.github/workflows/security.yml` — mypy + pytest with a coverage floor across Python 3.10–3.12, `pip-audit`, `bandit`, `npm audit`, `tsc --noEmit`, a Trivy container scan of `docker/Dockerfile.secure`, and a Gitleaks secret scan; also runs weekly
+- **Static analysis**: `.github/workflows/codeql.yml` — GitHub CodeQL for Python and JavaScript/TypeScript, on every push/PR and weekly
+- **Dependency updates**: `.github/dependabot.yml` — weekly PRs for pip, npm (root + `desktop/`), cargo (`desktop/src-tauri/`), Docker, and GitHub Actions — each one runs through the same CI above before merge
 - **Smoke tests**: `.github/workflows/qa-smoke.yml` — push, PR, nightly
 - **Multi-browser**: manual `workflow_dispatch` trigger in same workflow
 - **Post-deploy**: `.github/workflows/qa-post-deploy.yml` — `repository_dispatch: staging-deployed`
-- **Release**: `.github/workflows/release.yml` — on tag push `v*.*.*`, builds and pushes `ghcr.io/hypersdk/zyaiqaagent:v0.4.0` (+ `:latest`) and creates a GitHub Release; see [docs/releases.md](docs/releases.md)
+- **Release**: `.github/workflows/release.yml` — on tag push `v*.*.*`, builds and pushes `ghcr.io/hypersdk/zyaiqaagent:v0.4.0` (+ `:latest`), builds + smoke-tests the macOS desktop app, and creates a GitHub Release; see [docs/releases.md](docs/releases.md)
 
 Run the unit suite locally:
 
