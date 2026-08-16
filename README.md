@@ -1,8 +1,8 @@
 # Zyvor Argus
 
-[![Zyvor Argus Mission Control — Full KT Walkthrough](https://i.ytimg.com/vi/-_2jph4jW7c/maxresdefault.jpg)](https://youtu.be/-_2jph4jW7c)
+[![Zyvor Argus · Mission Control — KT Walkthrough](https://i.ytimg.com/vi/I985Uz8vZHk/maxresdefault.jpg)](https://youtu.be/I985Uz8vZHk)
 
-**Full KT walkthrough (YouTube):** sign-in → status hero & pod fleet → the 20+ capability Actions panel → a live Smoke test run → a Flow test result → a Site audit grade → network & security probes → Ask Zyvor Q&A → NOC wall mode — [watch](https://youtu.be/-_2jph4jW7c)
+**Full KT walkthrough (YouTube):** sign-in → the autonomous pipeline with a live Smoke test run → visual regression & quality → journeys (flow/HAR/codegen/AI test) → API/performance/realtime checks → network & security probes → security testing (misconfig scan, CVE lookup, LLM red-team, sandboxed exploit verification) → command palette → schedules & run history → Ask Zyvor — [watch](https://youtu.be/I985Uz8vZHk)
 
 ## 🎬 More recordings
 

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## [0.7.0](https://github.com/hypersdk/zyvor-argus/releases/tag/v0.7.0) — 2026-08-16
+
+### Changed
+- Renamed the project from ZyAIQAAgent / Zyvor QA Agent to **Zyvor Argus** — the tool had grown well past "QA agent" into autonomous testing, security probing, red-teaming, monitoring, and chat-ops. `Zyvor` stays the umbrella brand (company, `zyvor.dev` target platform, `ZYVOR_*` env vars); only the tool's own identity changes.
+  - CLI binary is now `argus`, restructured from 26 flat commands into grouped subcommands: `argus test` (run/exec/generate/discover/create/import-codegen), `argus flow` (run/realtime), `argus vision` (regression/route-sweep), `argus api` (test/ai-test/auth-test/har-replay), `argus watch` (vitals/audit), `argus guard` (misconfig-scan/cve-lookup/exploit-poc/attack-chain/host-pentest/cloud-pentest/pr-gate), `argus redteam llm`, `argus ask` (ingest/evaluate), and `argus serve` (unchanged, top-level). The old flat `zyvor-qa <verb>` form is kept as a deprecated alias for a transition period.
+  - Package renamed `zyvor-qa-agent` → `zyvor-argus`; MCP server identifier and console script `zyvor-qa-mcp` → `argus`/`argus-mcp` (no alias); desktop app → `Zyvor Argus`/`zyvor-argus-desktop`; Docker image `ghcr.io/hypersdk/zyaiqaagent` → `ghcr.io/hypersdk/zyvor-argus`.
+  - Docker/Kubernetes/CI manifests, deploy tooling, GitHub Action, CI/CD templates, and ~250 files of documentation updated to match. GitHub repo renamed `hypersdk/ZyAIQAAgent` → `hypersdk/zyvor-argus` (old URL redirects).
+
 ## [0.6.0](https://github.com/hypersdk/zyvor-argus/releases/tag/v0.6.0) — 2026-08-16
 
 ### Added
