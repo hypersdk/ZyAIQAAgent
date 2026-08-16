@@ -63,10 +63,10 @@ jobs:
           file: docker/Dockerfile.secure
           push: false
           load: true
-          tags: zyvor-qa-agent:test
+          tags: zyvor-argus:test
       - uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: zyvor-qa-agent:test
+          image-ref: zyvor-argus:test
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           trivyignores: .trivyignore

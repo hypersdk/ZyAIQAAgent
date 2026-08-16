@@ -1,15 +1,15 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: zyvor-qa
+  name: argus
   labels:
-    app.kubernetes.io/name: zyvor-qa-agent
+    app.kubernetes.io/name: argus
 automountServiceAccountToken: true
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: zyvor-qa-reader
+  name: argus-reader
 rules:
   - apiGroups: [""]
     resources: ["pods", "pods/log", "events"]
@@ -27,21 +27,21 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: zyvor-qa-reader
+  name: argus-reader
 subjects:
   - kind: ServiceAccount
-    name: zyvor-qa
+    name: argus
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: zyvor-qa-reader
+  name: argus-reader
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: zyvor-qa
+  name: argus
   labels:
-    app.kubernetes.io/name: zyvor-qa-agent
+    app.kubernetes.io/name: argus
     app.kubernetes.io/component: control-plane
 spec:
   replicas: 1
@@ -49,15 +49,15 @@ spec:
     type: Recreate
   selector:
     matchLabels:
-      app.kubernetes.io/name: zyvor-qa-agent
+      app.kubernetes.io/name: argus
       app.kubernetes.io/component: control-plane
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: zyvor-qa-agent
+        app.kubernetes.io/name: argus
         app.kubernetes.io/component: control-plane
     spec:
-      serviceAccountName: zyvor-qa
+      serviceAccountName: argus
       terminationGracePeriodSeconds: 45
       securityContext:
         runAsNonRoot: true
@@ -67,8 +67,8 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       containers:
-        - name: zyvor-qa
-          image: ghcr.io/hypersdk/zyaiqaagent:v0.4.0
+        - name: argus
+          image: ghcr.io/hypersdk/zyvor-argus:v0.7.0
           imagePullPolicy: IfNotPresent
           args: ["serve", "--host", "0.0.0.0", "--port", "8080"]
           ports:
@@ -84,15 +84,15 @@ spec:
             - name: ZYVOR_TARGET_ALLOWLIST
               valueFrom:
                 configMapKeyRef:
-                  name: zyvor-qa-config
+                  name: argus-config
                   key: target-allowlist
             - name: ZYVOR_API_TOKENS_FILE
               value: /app/secrets/api-tokens.json
           envFrom:
             - configMapRef:
-                name: zyvor-qa-config
+                name: argus-config
             - secretRef:
-                name: zyvor-qa-secrets
+                name: argus-secrets
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -142,10 +142,10 @@ spec:
       volumes:
         - name: reports
           persistentVolumeClaim:
-            claimName: zyvor-qa-reports
+            claimName: argus-reports
         - name: api-tokens
           secret:
-            secretName: zyvor-qa-secrets
+            secretName: argus-secrets
             items:
               - key: api-tokens.json
                 path: api-tokens.json
@@ -164,10 +164,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: zyvor-qa
+  name: argus
 spec:
   selector:
-    app.kubernetes.io/name: zyvor-qa-agent
+    app.kubernetes.io/name: argus
     app.kubernetes.io/component: control-plane
   ports:
     - name: http
@@ -177,10 +177,10 @@ spec:
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: zyvor-qa
+  name: argus
 spec:
   minAvailable: 0
   selector:
     matchLabels:
-      app.kubernetes.io/name: zyvor-qa-agent
+      app.kubernetes.io/name: argus
       app.kubernetes.io/component: control-plane

@@ -6,7 +6,7 @@ Common failures, what they mean, and how to fix them.
 
 ## Install & environment
 
-### `zyvor-qa: command not found`
+### `argus: command not found`
 
 The package isn't installed in the active environment.
 
@@ -16,7 +16,7 @@ pip install -e ".[dev]"
 make install
 ```
 
-If you use a virtualenv, activate it first. Verify with `which zyvor-qa`.
+If you use a virtualenv, activate it first. Verify with `which argus`.
 
 ### `npx playwright test` fails with "browserType.launch: Executable doesn't exist"
 
@@ -28,7 +28,7 @@ npx playwright install --with-deps chromium
 npx playwright install --with-deps
 ```
 
-### `Package 'zyvor-qa-agent' requires a different Python: 3.9.6 not in '>=3.10'`
+### `Package 'zyvor-argus' requires a different Python: 3.9.6 not in '>=3.10'`
 
 macOS ships Python 3.9.6 (Xcode CLT). Bare `pip` often points at that interpreter even when `python3 --version` is 3.10+. `make install` creates a repo-root `.venv` with the first working Python ≥ 3.10 it finds (or `uv` if present).
 
@@ -110,10 +110,10 @@ You're on the template fallback (no LLM key, or LLM output kept failing the qual
 
 ```bash
 rm tests/generated/coverage-*.spec.ts
-zyvor-qa generate --source github --expand-coverage
+argus test generate --source github --expand-coverage
 ```
 
-### `NL parsing failed` from `zyvor-qa create`
+### `NL parsing failed` from `argus test create`
 
 Natural-language creation is the one feature with **no non-LLM fallback**. Set `LLM_PROVIDER` and the matching API key.
 
@@ -183,7 +183,7 @@ Each channel activates only when its variable is set (`SLACK_WEBHOOK_URL`, `TEAM
 
 ## Coverage expansion
 
-### `zyvor-qa discover` finds 0 candidates
+### `argus test discover` finds 0 candidates
 
 - `ZYVOR_PRODUCT_REPO` repo has none of the default discovery roots (`docs/`, `src/pages/`, …). Set `COVERAGE_DISCOVERY_PATHS` to match your repo layout.
 - Discovery is capped (`COVERAGE_MAX_DISCOVERY_FILES`, `COVERAGE_MAX_DISCOVERY_BYTES`) — huge repos may need higher limits.
@@ -206,7 +206,7 @@ New coverage tests are capped by `COVERAGE_MAX_NEW_TESTS` (default 10) and dedup
 
 ### Container exits instantly
 
-Default CMD is `run --source local`. For a long-running webhook use the Deployment command (`zyvor-qa serve`). Check `kubectl logs deploy/zyvor-qa-webhook`.
+Default CMD is `run --source local`. For a long-running webhook use the Deployment command (`argus serve`). Check `kubectl logs deploy/argus-webhook`.
 
 ---
 

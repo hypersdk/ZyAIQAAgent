@@ -1,6 +1,6 @@
-# DevOps runbooks — Zyvor QA Agent
+# DevOps runbooks — Zyvor Argus
 
-Operational docs for platform / DevOps / SRE teams who wire **zyvor-qa** into product pipelines and keep Mission Control running.
+Operational docs for platform / DevOps / SRE teams who wire **argus** into product pipelines and keep Mission Control running.
 
 These are not “feature marketing.” They assume you own staging URLs, CI secrets, artifact retention, and on-call when the gate goes red.
 
@@ -22,8 +22,8 @@ DevOps owns the **runner** (Action/container image pin, secrets, target policy, 
 ## Version pin (do this once)
 
 ```text
-Image / Action:  hypersdk/ZyAIQAAgent@v0.4.0
-Container:       ghcr.io/hypersdk/zyaiqaagent:v0.4.0
+Image / Action:  hypersdk/zyvor-argus@v0.7.0
+Container:       ghcr.io/hypersdk/zyvor-argus:v0.4.0
 ```
 
 Do **not** use `:latest` in production gates. Bump the pin in a dedicated PR when you intentionally upgrade.

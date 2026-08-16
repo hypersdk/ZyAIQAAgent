@@ -15,12 +15,12 @@
 """Dashboard job runner — every CLI capability, triggerable online.
 
 Kinds mirror the CLI:
-  smoke       zyvor-qa test
-  full        zyvor-qa run [--source --spec --pr-number --expand-coverage]
-  generate    zyvor-qa generate [--source --spec --expand-coverage]
-  discover    zyvor-qa discover
-  create      zyvor-qa create "description" [--execute]
-  regression  zyvor-qa regression [--update-baselines]
+  smoke       argus test exec
+  full        argus test run [--source --spec --pr-number --expand-coverage]
+  generate    argus test generate [--source --spec --expand-coverage]
+  discover    argus test discover
+  create      argus test create "description" [--execute]
+  regression  argus vision regression [--update-baselines]
 
 One job at a time; runs on a daemon thread; kind-specific `result` payloads.
 """
@@ -2376,7 +2376,7 @@ def _job_cve_lookup(params: dict[str, Any]) -> dict[str, Any]:
 
 
 def _job_llm_redteam(params: dict[str, Any]) -> dict[str, Any]:
-    """Attacker→judge loop against zyvor-qa's own Ask Zyvor RAG agent (or an
+    """Attacker→judge loop against Zyvor Argus's own Ask Zyvor RAG agent (or an
     external /v1/qa endpoint), grading resistance to a curated adversarial
     prompt battery. First job kind that can emit `critical` severity."""
     import time as _time

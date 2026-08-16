@@ -20,7 +20,7 @@ Boolean flags accept `true`/`false` (case-insensitive).
 | `GOOGLE_API_KEY` | — | Required when `LLM_PROVIDER=google` |
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server (needs `pip install langchain-community`) |
 
-No key set? Everything still runs — parsing, generation, analysis, and summaries fall back to rule-based/template implementations. Only `zyvor-qa create` (natural-language tests) hard-requires an LLM.
+No key set? Everything still runs — parsing, generation, analysis, and summaries fall back to rule-based/template implementations. Only `argus test create` (natural-language tests) hard-requires an LLM.
 
 Consumed by: `agents/common/llm.py`, `agents/parser/agent.py`.
 
@@ -32,7 +32,7 @@ Consumed by: `agents/common/llm.py`, `agents/parser/agent.py`.
 |----------|---------|-------------|
 | `ZYVOR_PRODUCT_REPO` | — | Product repo as `owner/repo` (not a URL). Required for `--source github`. |
 | `GITHUB_TOKEN` | — | PAT with `Contents: Read` (+ `Pull requests: Write` for PR comments). Optional if `gh auth login` is configured — resolution order is `GITHUB_TOKEN` → `gh auth token`. |
-| `GITHUB_WEBHOOK_SECRET` | — | HMAC secret for `zyvor-qa serve`. If empty, signature verification is skipped (do not leave empty in production). |
+| `GITHUB_WEBHOOK_SECRET` | — | HMAC secret for `argus serve`. If empty, signature verification is skipped (do not leave empty in production). |
 
 Consumed by: `github_integration/client.py`, `orchestrator/webhook.py`, `orchestrator/nodes/fetch.py`.
 
@@ -57,7 +57,7 @@ Consumed by: `playwright/utils/target.ts`, `playwright/utils/auth.ts`, `agents/g
 |----------|---------|-------------|
 | `ENABLE_REGRESSION` | `false` | Compare screenshots against `screenshots/baselines/`. Also switches Playwright to `screenshot: 'on'`. |
 | `REGRESSION_THRESHOLD` | `1.0` | Max allowed pixel diff, percent |
-| `UPDATE_BASELINES` | `false` | Copy current screenshots as new baselines instead of failing on missing ones (set by `zyvor-qa regression --update-baselines`) |
+| `UPDATE_BASELINES` | `false` | Copy current screenshots as new baselines instead of failing on missing ones (set by `argus vision regression --update-baselines`) |
 | `ENABLE_RUST_PROCESSOR` | `false` | Use the Rust `zyvor-diff` binary instead of Pillow (build first: `make rust`) |
 | `ZYVOR_DIFF_BINARY` | — | Explicit path to `zyvor-diff` if not in `rust/target/{release,debug}/` |
 
@@ -113,9 +113,9 @@ Consumed by: `orchestrator/graph.py`, `orchestrator/nodes/autofix.py`, `orchestr
 | `ENABLE_AUTH_SETUP` | `false` | Login once via `playwright/auth.setup.ts` and reuse `storageState` (`playwright/.auth/user.json`). Requires `ENABLE_DASHBOARD_TESTS=true` + credentials. |
 | `ENABLE_EMULATION_PROJECTS` | `false` | Add chromium-dark / reduced-motion / locale projects |
 | `ZYVOR_LOCALE` | `en-US` | Locale for the `chromium-locale` emulation project |
-| `ZYVOR_GREP` | *(none)* | Default Playwright `--grep` filter (e.g. `@smoke`) for `zyvor-qa test` |
+| `ZYVOR_GREP` | *(none)* | Default Playwright `--grep` filter (e.g. `@smoke`) for `argus test exec` |
 | `ZYVOR_SHARD` | *(none)* | Default Playwright `--shard=i/n` for CI |
-| `ZYVOR_HAR_PATH` | *(none)* | Default HAR file for `zyvor-qa har-replay --mode replay` |
+| `ZYVOR_HAR_PATH` | *(none)* | Default HAR file for `argus api har-replay --mode replay` |
 
 Consumed by: `playwright/playwright.config.ts`, `agents/execution/runner.py`. Install browsers first: `npx playwright install --with-deps`.
 
@@ -159,7 +159,7 @@ Consumed by: `agents/discover/crawl.py`, `playwright/scripts/crawl-site.mjs`, `p
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DASHBOARD_NAMESPACE` | in-cluster namespace, else `default` | Kubernetes namespace the dashboard inspects |
-| `DASHBOARD_POD_SELECTOR` | *(empty — all pods in namespace)* | Label selector filter, e.g. `app=zyvor-qa-agent` |
+| `DASHBOARD_POD_SELECTOR` | *(empty — all pods in namespace)* | Label selector filter, e.g. `app=zyvor-argus` |
 | `DASHBOARD_USER` | `admin` | Login username (Zyvor premium login screen) |
 | `DASHBOARD_PASSWORD` | *(empty — auth disabled)* | Setting this **enables login** for `/dashboard`, the API, and artifacts; `/health` and `/webhook/github` stay open. `deploy-remote.sh` generates one per host automatically (skip with `--no-auth`). Login is rate-limited (8 failures / 5 min per IP → 5-min lockout). |
 | `DASHBOARD_SECRET` | derived from credentials | Optional explicit session-signing secret |
@@ -220,17 +220,17 @@ Requires Python **3.11 or 3.12**, `pip install -e ".[knowledge]"`, and a running
 | `MAX_TOOL_CALLS` | `8` | Tool-call budget per answer (specialised tools may combine) |
 | `MAX_QUERY_LENGTH` | `4000` | Max question characters |
 
-Eval / observability: set `LANGSMITH_API_KEY` and run `zyvor-qa knowledge-evaluate --langsmith` to send traces to LangSmith (`LANGCHAIN_PROJECT`, default `zyvor-knowledge-eval`).
+Eval / observability: set `LANGSMITH_API_KEY` and run `argus ask evaluate --langsmith` to send traces to LangSmith (`LANGCHAIN_PROJECT`, default `zyvor-knowledge-eval`).
 
-Start Qdrant: `docker compose -f docker/docker-compose.yml up -d qdrant`. Ingest samples: `zyvor-qa knowledge-ingest knowledge_docs/sample --tenant-id public --access-level public`. See [Tutorial 14](tutorials/14-ask-zyvor-knowledge.md).
+Start Qdrant: `docker compose -f docker/docker-compose.yml up -d qdrant`. Ingest samples: `argus ask ingest knowledge_docs/sample --tenant-id public --access-level public`. See [Tutorial 14](tutorials/14-ask-zyvor-knowledge.md).
 
-The **🎬 Flow test** action (`flow` job / `zyvor-qa flow`) drives a multi-step journey recorded as one video, with a Playwright `trace.zip` (open at trace.playwright.dev) and richer assertions (`assert_not` / `assert_count` / `assert_value` / `assert_url` / `assert_api` / `assert_aria` / `upload` / `download` / `dialog` / `iframe` / `clock` / `wait_until`); the **🗺 Route sweep** action (`route_sweep` / `zyvor-qa route-sweep`) screenshots routes at desktop/mobile and diffs them against baselines under `reports/artifacts/route-baselines/`, and can `--auto`-discover routes by crawling. **📼 HAR record/replay** (`har_replay` / `zyvor-qa har-replay`) captures network as HAR then drives the UI against it. **📥 Import codegen** (`import_codegen` / `zyvor-qa import-codegen`) turns pasted Playwright codegen into flow steps (optionally runs them). Both honour `ZYVOR_IGNORE_HTTPS_ERRORS`, `ZYVOR_NO_SANDBOX`, and (flow) `ZYVOR_VIDEO`, and both are schedulable. Serve the dashboard over HTTPS with `zyvor-qa serve --tls` (self-signed cert under `~/.zyvor-qa/tls`) or the deploy script's `--tls`. A target-site login password passed to a flow/crawl is redacted (`***`) from the job-status API, history, and live panel — it is never echoed back to a dashboard reader. See [Tutorial 11](tutorials/11-flow-tests.md).
+The **🎬 Flow test** action (`flow` job / `argus flow run`) drives a multi-step journey recorded as one video, with a Playwright `trace.zip` (open at trace.playwright.dev) and richer assertions (`assert_not` / `assert_count` / `assert_value` / `assert_url` / `assert_api` / `assert_aria` / `upload` / `download` / `dialog` / `iframe` / `clock` / `wait_until`); the **🗺 Route sweep** action (`route_sweep` / `argus vision route-sweep`) screenshots routes at desktop/mobile and diffs them against baselines under `reports/artifacts/route-baselines/`, and can `--auto`-discover routes by crawling. **📼 HAR record/replay** (`har_replay` / `argus api har-replay`) captures network as HAR then drives the UI against it. **📥 Import codegen** (`import_codegen` / `argus test import-codegen`) turns pasted Playwright codegen into flow steps (optionally runs them). Both honour `ZYVOR_IGNORE_HTTPS_ERRORS`, `ZYVOR_NO_SANDBOX`, and (flow) `ZYVOR_VIDEO`, and both are schedulable. Serve the dashboard over HTTPS with `argus serve --tls` (self-signed cert under `~/.zyvor-argus/tls`) or the deploy script's `--tls`. A target-site login password passed to a flow/crawl is redacted (`***`) from the job-status API, history, and live panel — it is never echoed back to a dashboard reader. See [Tutorial 11](tutorials/11-flow-tests.md).
 
-Four **product-testing** actions go beyond the page (see [Tutorial 12](tutorials/12-api-auth-realtime.md)): **🔌 API contract** (`api_contract` / `zyvor-qa api-test`) validates REST endpoints against their OpenAPI schema and runs multi-step API workflows; **🔐 Auth & session** (`auth_test` / `zyvor-qa auth-test`) logs in, saves a reusable session under `reports/artifacts/auth/`, and asserts logout/expiry/negative-auth — the saved session can be reused by `flow`/`realtime` via their `session` param; **📡 Live data** (`realtime` / `zyvor-qa realtime`) asserts WebSocket/SSE streams are live (Bearer / `Sec-WebSocket-Protocol` / one-time ticket auth); **📊 Web Vitals** (`vitals` / `zyvor-qa vitals`) grades LCP/CLS/INP with device + network throttle.
+Four **product-testing** actions go beyond the page (see [Tutorial 12](tutorials/12-api-auth-realtime.md)): **🔌 API contract** (`api_contract` / `argus api test`) validates REST endpoints against their OpenAPI schema and runs multi-step API workflows; **🔐 Auth & session** (`auth_test` / `argus api auth-test`) logs in, saves a reusable session under `reports/artifacts/auth/`, and asserts logout/expiry/negative-auth — the saved session can be reused by `flow`/`realtime` via their `session` param; **📡 Live data** (`realtime` / `argus flow realtime`) asserts WebSocket/SSE streams are live (Bearer / `Sec-WebSocket-Protocol` / one-time ticket auth); **📊 Web Vitals** (`vitals` / `argus watch vitals`) grades LCP/CLS/INP with device + network throttle.
 
 The dashboard's audit, probe, screenshot, compare, ping, load-test, TLS, flaky, and schedule actions are entirely UI/API-driven — no extra environment variables. They persist artifacts (videos, screenshots, diff images, and HTML/PDF/Markdown/CSV report bundles) under `reports/` (PVC-backed on Kubernetes).
 
-The dashboard is served by `zyvor-qa serve` at `/dashboard`. Cluster access resolves in-cluster config first, then local kubeconfig; with neither, the pod panels show an offline state and QA run history still works. See [Tutorial 10](tutorials/10-mission-control-dashboard.md).
+The dashboard is served by `argus serve` at `/dashboard`. Cluster access resolves in-cluster config first, then local kubeconfig; with neither, the pod panels show an offline state and QA run history still works. See [Tutorial 10](tutorials/10-mission-control-dashboard.md).
 
 Consumed by: `orchestrator/dashboard/k8s.py`.
 

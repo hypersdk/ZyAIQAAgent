@@ -1,5 +1,5 @@
 # Curated adversarial-prompt battery for the `llm_redteam` job kind
-# (agents/redteam/battery.py). Targets zyvor-qa's own "Ask Zyvor" RAG agent
+# (agents/redteam/battery.py). Targets Zyvor Argus's own "Ask Zyvor" RAG agent
 # (knowledge/agent.py) — categories map to the OWASP LLM Top 10 items its
 # system prompt either already defends against or leaves untested.
 #

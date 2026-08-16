@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><title>Customer Documentation Overview — ZyAIQAAgent</title>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><title>Customer Documentation Overview — Zyvor Argus</title>
 <style>
 @page{size:A4;margin:15mm 16mm}*{margin:0;padding:0;box-sizing:border-box}
 html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -26,7 +26,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <div class="sub">Customer Documentation Overview</div>
 <div class="badge">2026-08-16</div>
 <div class="foot">zyvor.dev · Confidential — for licensed customers</div></section>
-<main><p><strong>ZyAIQAAgent</strong> (CLI: <code>zyvor-qa</code>) is the autonomous AI QA agent for Zyvor products — LangGraph specs→Playwright, <strong>Mission Control</strong> (flows, HAR, codegen, API/auth/realtime, vitals, probes), and post-deploy audits. This package is for QA engineers, SREs, and platform operators — not people hacking on the agent source tree.</p>
+<main><p><strong>Zyvor Argus</strong> (CLI: <code>argus</code>) is the autonomous AI QA agent for Zyvor products — LangGraph specs→Playwright, <strong>Mission Control</strong> (flows, HAR, codegen, API/auth/realtime, vitals, probes), and post-deploy audits. This package is for QA engineers, SREs, and platform operators — not people hacking on the agent source tree.</p>
 <table>
 <thead>
 <tr>
@@ -68,7 +68,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 </tr>
 <tr>
 <td>Browse capabilities by theme</td>
-<td><a href="../zyvor-qa-agent-customer-feature-guide.md">Feature Guide</a></td>
+<td><a href="../zyvor-argus-customer-feature-guide.md">Feature Guide</a></td>
 </tr>
 </tbody></table>
 <h2>Printable PDFs</h2>
@@ -83,19 +83,19 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 </tr>
 </thead>
 <tbody><tr>
-<td><code>ZyAIQAAgent-Customer-README.pdf</code></td>
+<td><code>ZyvorArgus-Customer-README.pdf</code></td>
 <td>This overview</td>
 </tr>
 <tr>
-<td><code>ZyAIQAAgent-Getting-Started.pdf</code></td>
+<td><code>ZyvorArgus-Getting-Started.pdf</code></td>
 <td>Access, Mission Control basics, workflows</td>
 </tr>
 <tr>
-<td><code>ZyAIQAAgent-Page-by-Page.pdf</code></td>
+<td><code>ZyvorArgus-Page-by-Page.pdf</code></td>
 <td>Complete manual — every dashboard surface</td>
 </tr>
 <tr>
-<td><code>ZyAIQAAgent-Admin-Basics.pdf</code></td>
+<td><code>ZyvorArgus-Admin-Basics.pdf</code></td>
 <td>Deploy, auth, TLS, ports</td>
 </tr>
 </tbody></table>
@@ -104,8 +104,8 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <pre><code class="language-bash">node scripts/customer-docs/sync-to-website.mjs ../hypersdk-web
 </code></pre>
 <h2>Product at a glance</h2>
-<pre><code class="language-text">  Mission Control  →  zyvor-qa serve  (default NodePort / port 30080)
-  CLI              →  zyvor-qa test | run | flow | har-replay | …
+<pre><code class="language-text">  Mission Control  →  argus serve  (default NodePort / port 30080)
+  CLI              →  argus test exec | run | flow | har-replay | …
   Playwright       →  playwright/ + generated &amp; manual suites
   Webhooks         →  POST /webhook/github  (HMAC)
   REST             →  /api/dashboard/*  (session-gated when password set)
@@ -165,5 +165,5 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 </tr>
 </tbody></table>
 <hr>
-<p><em>ZyvorAI Labs · <a href="https://zyvor.dev">zyvor.dev</a> · ZyAIQAAgent (repo <code>ZyAIQAAgent</code>)</em></p>
+<p><em>ZyvorAI Labs · <a href="https://zyvor.dev">zyvor.dev</a> · Zyvor Argus (repo <code>Zyvor Argus</code>)</em></p>
 </main></body></html>

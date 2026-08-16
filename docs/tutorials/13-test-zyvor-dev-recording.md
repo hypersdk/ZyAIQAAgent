@@ -1,6 +1,6 @@
 # Tutorial 13 — Test zyvor.dev with recording
 
-Hands-on recipe that points ZyAIQAAgent at **[https://zyvor.dev](https://zyvor.dev)**. Start by **watching the committed journey video**, then re-run the same steps yourself (smoke, flow with video, HAR, Mission Control UX).
+Hands-on recipe that points Zyvor Argus at **[https://zyvor.dev](https://zyvor.dev)**. Start by **watching the committed journey video**, then re-run the same steps yourself (smoke, flow with video, HAR, Mission Control UX).
 
 **Prerequisites:** [Tutorial 1](01-getting-started.md) (`make install`, Playwright Chromium). No LLM key required for these steps.
 
@@ -10,7 +10,7 @@ Hands-on recipe that points ZyAIQAAgent at **[https://zyvor.dev](https://zyvor.d
 
 Mission Control driving a GuestKit journey (login → Flow URL → live steps):
 
-[![ZyAIQAAgent · Mission Control → GuestKit](https://img.youtube.com/vi/ys7SvKKqf9w/maxresdefault.jpg)](https://youtu.be/ys7SvKKqf9w)
+[![Zyvor Argus · Mission Control → GuestKit](https://img.youtube.com/vi/ys7SvKKqf9w/maxresdefault.jpg)](https://youtu.be/ys7SvKKqf9w)
 
 Also a raw Playwright capture of zyvor.dev (home → assert HyperSDK → click Products):
 
@@ -19,7 +19,7 @@ Also a raw Playwright capture of zyvor.dev (home → assert HyperSDK → click P
 - **YouTube:** https://youtu.be/ys7SvKKqf9w
 - **Video file:** [`docs/assets/zyvor-dev-mission-control-demo.webm`](../assets/zyvor-dev-mission-control-demo.webm)
 - **Steps that produced it:** [`docs/assets/zyvor-dev-demo.steps`](../assets/zyvor-dev-demo.steps)
-- **Raw GitHub URL:** https://github.com/hypersdk/ZyAIQAAgent/raw/main/docs/assets/zyvor-dev-mission-control-demo.webm
+- **Raw GitHub URL:** https://github.com/hypersdk/zyvor-argus/raw/main/docs/assets/zyvor-dev-mission-control-demo.webm
 
 ---
 
@@ -35,7 +35,7 @@ ZYVOR_BASE_URL=https://zyvor.dev
 ## 1. Smoke (no recording)
 
 ```bash
-zyvor-qa test --grep @smoke
+argus test exec --grep @smoke
 ```
 
 Mission Control: ▶ **Smoke** (optional `@smoke` grep).
@@ -45,7 +45,7 @@ Mission Control: ▶ **Smoke** (optional `@smoke` grep).
 ## 2. Re-record the same journey
 
 ```bash
-zyvor-qa flow https://zyvor.dev \
+argus flow run https://zyvor.dev \
   --steps docs/assets/zyvor-dev-demo.steps \
   --video
 # → reports/artifacts/flows/cli/journey.webm
@@ -60,8 +60,8 @@ zyvor-qa flow https://zyvor.dev \
 ## 3. HAR record / replay
 
 ```bash
-zyvor-qa har-replay https://zyvor.dev --mode record --routes / --har /tmp/zyvor-home.har
-zyvor-qa har-replay https://zyvor.dev --mode replay --har /tmp/zyvor-home.har \
+argus api har-replay https://zyvor.dev --mode record --routes / --har /tmp/zyvor-home.har
+argus api har-replay https://zyvor.dev --mode replay --har /tmp/zyvor-home.har \
   --expect-text Zyvor --not-found-ok
 ```
 
@@ -70,7 +70,7 @@ zyvor-qa har-replay https://zyvor.dev --mode replay --har /tmp/zyvor-home.har \
 ## 4. Mission Control UX (what to look for)
 
 ```bash
-zyvor-qa serve --port 8080
+argus serve --port 8080
 open http://localhost:8080/dashboard
 ```
 

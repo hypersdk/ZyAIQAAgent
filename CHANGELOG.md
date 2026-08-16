@@ -2,17 +2,17 @@
 
 ## Unreleased
 
-## [0.6.0](https://github.com/hypersdk/ZyAIQAAgent/releases/tag/v0.6.0) — 2026-08-16
+## [0.6.0](https://github.com/hypersdk/zyvor-argus/releases/tag/v0.6.0) — 2026-08-16
 
 ### Added
 - CI now catches classes of regression it previously didn't: `.github/workflows/ci.yml` gained a `docs-and-manifests` job that validates every Kubernetes manifest offline (`scripts/validate_k8s_manifests.py`), fails if `docs/customer/` has drifted from `routes.json`/`page-purposes.json` (`npm run docs:guides` must produce no diff), and checks every customer-doc relative link (`npm run docs:links`) — found and fixed a real broken-link regression from this exact gap before adding the check. New `.github/workflows/codeql.yml` (GitHub CodeQL, Python + JS/TS, on push/PR/weekly) and `.github/dependabot.yml` (weekly PRs for pip, npm root + `desktop/`, cargo `desktop/src-tauri/`, Docker, and GitHub Actions — each runs through the full existing CI before merge)
-- MCP server (`integrations/mcp/`, optional `zyvor-qa-mcp` / `[mcp]` extra) exposing an allowlisted subset of `/api/v2` jobs as MCP tools (`run_job`, `run_smoke_test`, `run_site_audit`, `run_crawl_test`, `get_job_status`, `cancel_job`) so any MCP-capable chat agent (e.g. Hermes Agent) can trigger and poll QA jobs from Telegram/Discord/Slack/CLI. Thin HTTP client of the existing `/api/v2` API — no `orchestrator.*` imports — reuses the existing Bearer-token RBAC scopes with no security-layer changes. Bounded server-side polling (default 20s, cap 90s) resolves fast jobs (smoke/ping/probes) in a single chat turn; slower jobs hand back a job id to poll later. See `docs/mcp-server.md`
-- `ZYVOR_API_TOKENS_FILE` is now actually mountable in Kubernetes: `kubernetes/deployment.yaml` and `kubernetes/enterprise/secure-deployment.yaml` mount a `zyvor-qa-secrets` key (`api-tokens.json`) at `/app/secrets/api-tokens.json` — previously the env var was documented and read by `orchestrator/security/rbac.py` but never wired into any manifest, so Bearer-token auth was a dead end in the production (`ZYVOR_ENV=production`) deployment
+- MCP server (`integrations/mcp/`, optional `argus-mcp` / `[mcp]` extra) exposing an allowlisted subset of `/api/v2` jobs as MCP tools (`run_job`, `run_smoke_test`, `run_site_audit`, `run_crawl_test`, `get_job_status`, `cancel_job`) so any MCP-capable chat agent (e.g. Hermes Agent) can trigger and poll QA jobs from Telegram/Discord/Slack/CLI. Thin HTTP client of the existing `/api/v2` API — no `orchestrator.*` imports — reuses the existing Bearer-token RBAC scopes with no security-layer changes. Bounded server-side polling (default 20s, cap 90s) resolves fast jobs (smoke/ping/probes) in a single chat turn; slower jobs hand back a job id to poll later. See `docs/mcp-server.md`
+- `ZYVOR_API_TOKENS_FILE` is now actually mountable in Kubernetes: `kubernetes/deployment.yaml` and `kubernetes/enterprise/secure-deployment.yaml` mount a `argus-secrets` key (`api-tokens.json`) at `/app/secrets/api-tokens.json` — previously the env var was documented and read by `orchestrator/security/rbac.py` but never wired into any manifest, so Bearer-token auth was a dead end in the production (`ZYVOR_ENV=production`) deployment
 - Security-testing capabilities, scoped to what's safe to bolt onto an existing trusted-job runner (see `ROADMAP.md` for what's deliberately deferred and why):
   - A general-purpose security-engagement authorization primitive (`orchestrator/security/engagement_policy.py`, `engagements` table in `orchestrator/persistence/store.py`, `POST/GET/DELETE /api/v2/engagements`) — an admin-issued, target-scoped, tier-ranked attestation that gates every elevated-risk job kind below, enforced at `_validate()` so no caller (dashboard, CLI, `/api/v2/jobs`, schedules) can bypass it. Mirrors `orchestrator/security/agent_policy.py`'s mode/fail-closed-in-production shape
   - `misconfig_scan` job/CLI command: tech + version fingerprinting, wordlist-driven path discovery (`agents/probes/data/misconfig_paths.txt`, ~150 paths vs. the existing `security_paths` probe's static 7), security-header *value* grading (not just presence), SPF/DMARC/CAA DNS hygiene checks
   - `cve_lookup` job/CLI command: read-only — fingerprints tech/versions, checks them against OSV.dev. No PoC is generated or run
-  - `llm_redteam` job/CLI command: attacker→judge loop (curated ~15-prompt battery, `agents/redteam/`) against zyvor-qa's own "Ask Zyvor" RAG agent, covering prompt injection, system-prompt exfiltration, excessive agency, jailbreaks, and PII/secret exfiltration — the first job kind able to raise a `critical`-severity finding
+  - `llm_redteam` job/CLI command: attacker→judge loop (curated ~15-prompt battery, `agents/redteam/`) against argus's own "Ask Zyvor" RAG agent, covering prompt injection, system-prompt exfiltration, excessive agency, jailbreaks, and PII/secret exfiltration — the first job kind able to raise a `critical`-severity finding
   - CI/CD security gate: `--fail-on <severity>` on `audit`/`misconfig-scan`/`cve-lookup`/`llm-redteam` (new `audit` CLI command — it previously had none), plus `pr-gate` posting a REQUEST_CHANGES/APPROVE PR review + commit status (`github_integration/client.py` gains `create_pr_review`/`set_commit_status`/`get_pr_head_sha`, using PyGithub methods that were already a transitive dependency)
   - Attack-graph reporting: findings now carry a `category` field (OWASP/informal tags), rendered as a same-origin Mermaid graph (`agents/reporter/attack_graph.py`, vendored `templates/vendor/mermaid.min.js` — the CSP's `script-src 'self'` blocks a CDN `<script>`) embedded in the audit report
   - `exploit_poc` job/CLI command: generates a non-destructive verification script via LLM for a described finding and runs it in a short-lived, locked-down Kubernetes Job (`orchestrator/security/sandbox.py`, `kubernetes/sandbox.yaml`) — dropped capabilities, non-root, read-only rootfs, no ServiceAccount token, resource limits, hard timeout — never in the job-runner process. Gated by two independent things: an `exploit`-tier engagement *and* a separate `ZYVOR_EXPLOIT_EXECUTION_ENABLED=true` opt-in. Refuses to run (does not fall back to unsandboxed execution) if no cluster/namespace is configured. Live-verified against a real k3s cluster — found and fixed a real pod-log decoding bug in the process
@@ -29,15 +29,15 @@
 ### Fixed
 - `container-scan` CI job: `agents/redteam/prompts/llm_redteam_battery.yaml`'s `pii-02` adversarial prompt used a synthetic token that structurally matched GitHub's real PAT format exactly (`ghp_` + 36 chars), which Trivy's secret scanner correctly flagged as CRITICAL once baked into the built image — even though it was never a real credential. Replaced with a placeholder that no longer matches the pattern; the red-team test's intent is unaffected
 
-## [0.5.1](https://github.com/hypersdk/ZyAIQAAgent/releases/tag/v0.5.1) — 2026-08-15
+## [0.5.1](https://github.com/hypersdk/zyvor-argus/releases/tag/v0.5.1) — 2026-08-15
 
 ### Fixed
-- Desktop app: when `zyvor-qa` can't be found/spawned, the error now surfaces immediately instead of after a 30-second retry budget — found by actually downloading and running the v0.5.0 release build without a `zyvor-qa` install present, not just testing the happy path. The loading screen's poll loop was retrying on every failure regardless of whether it was recoverable; the Rust side only ever rejects for a genuine, permanent failure (a transient "still starting" state returns successfully with no result), so there was nothing to gain by waiting
+- Desktop app: when `argus` can't be found/spawned, the error now surfaces immediately instead of after a 30-second retry budget — found by actually downloading and running the v0.5.0 release build without a `argus` install present, not just testing the happy path. The loading screen's poll loop was retrying on every failure regardless of whether it was recoverable; the Rust side only ever rejects for a genuine, permanent failure (a transient "still starting" state returns successfully with no result), so there was nothing to gain by waiting
 
-## [0.5.0](https://github.com/hypersdk/ZyAIQAAgent/releases/tag/v0.5.0) — 2026-08-15
+## [0.5.0](https://github.com/hypersdk/zyvor-argus/releases/tag/v0.5.0) — 2026-08-15
 
 ### Added
-- Native macOS desktop app (`desktop/`, Tauri 2): a thin shell around `zyvor-qa serve` — spawns it bound to `127.0.0.1`, points a native window at its dashboard, kills it on quit. No reimplementation; every dashboard action goes through the same server, job queue, CSRF, and rate limiting as `zyvor-qa serve` normally. Settings UI (⌘,) to override the resolved binary path. See Tutorial 17 and `desktop/README.md`
+- Native macOS desktop app (`desktop/`, Tauri 2): a thin shell around `argus serve` — spawns it bound to `127.0.0.1`, points a native window at its dashboard, kills it on quit. No reimplementation; every dashboard action goes through the same server, job queue, CSRF, and rate limiting as `argus serve` normally. Settings UI (⌘,) to override the resolved binary path. See Tutorial 17 and `desktop/README.md`
 - Persistent "skill" memory for the autofix loop (`agents/skills/`): a selector fix that's patched and confirmed passing is remembered and reused directly next run instead of re-derived by the LLM every time
 - Inbound Slack slash-command gateway (`POST /webhook/slack/command`): `/zyvor run <kind>` / `/zyvor status <job_id>` trigger and check on pipeline runs from chat, HMAC-verified via `SLACK_SIGNING_SECRET` (Tutorial 16)
 - Per-IP rate limiting on `/api/dashboard/*` and `/api/v2/*` (`orchestrator/security/rate_limit.py`), 429 + `Retry-After` once `ZYVOR_API_RATE_LIMIT` is exceeded — previously only the login endpoint had any throttling
@@ -53,10 +53,10 @@
 ### Fixed
 - The failure-analysis prompt no longer globs every historical failure video out of the repo-wide `videos/` directory — only the current run's artifacts are included
 
-## [0.4.0](https://github.com/hypersdk/ZyAIQAAgent/releases/tag/v0.4.0) — 2026-08-06
+## [0.4.0](https://github.com/hypersdk/zyvor-argus/releases/tag/v0.4.0) — 2026-08-06
 
 ### Added
-- Reusable Docker-based GitHub Action (`action.yml`) so any repo can run `zyvor-qa` as a QA gate via `uses: hypersdk/ZyAIQAAgent@v0.4.0`
+- Reusable Docker-based GitHub Action (`action.yml`) so any repo can run `argus` as a QA gate via `uses: hypersdk/zyvor-argus@v0.7.0`
 - Copy-paste CI templates for GitLab CI, CircleCI, Jenkins, and Azure Pipelines (`templates/ci/`)
 - Stable `reports/summary.json` CI contract, written by `run`/`test`/`flow`/`route-sweep`/`vitals`
 - Tutorial 15: external CI/CD integration guide
@@ -71,9 +71,9 @@
 - CI: pinned ruff's rule `select` explicitly after a ruff version bump silently widened its own default rules and broke lint; fixed 45 real mypy errors; scoped bandit's ~99 findings down to the real ones (now fixed) plus a documented skip list; patched known CVEs in transitive deps and the container image's bundled npm/setuptools
 
 ### Container
-- `ghcr.io/hypersdk/zyaiqaagent:v0.4.0` (+ `:latest`)
+- `ghcr.io/hypersdk/zyvor-argus:v0.4.0` (+ `:latest`)
 
-## [0.3.0](https://github.com/hypersdk/ZyAIQAAgent/releases/tag/v0.3.0) — 2026-07-30
+## [0.3.0](https://github.com/hypersdk/zyvor-argus/releases/tag/v0.3.0) — 2026-07-30
 
 ### Added
 - **Ask Zyvor** — optional citation-first knowledge RAG (`knowledge/` package, Qdrant hybrid retrieval) in Mission Control; Tutorial 14
@@ -89,8 +89,8 @@
 - Feature guide: Ask Zyvor + demo links
 
 ### Container
-- `ghcr.io/hypersdk/zyaiqaagent:v0.3.0` (+ `:latest`)
+- `ghcr.io/hypersdk/zyvor-argus:v0.3.0` (+ `:latest`)
 
-## [0.2.0](https://github.com/hypersdk/ZyAIQAAgent/releases/tag/v0.2.0) — 2026-07-29
+## [0.2.0](https://github.com/hypersdk/zyvor-argus/releases/tag/v0.2.0) — 2026-07-29
 
 Initial GHCR-published feature release with Mission Control journeys, HAR/codegen, and zyvor.dev demo assets.

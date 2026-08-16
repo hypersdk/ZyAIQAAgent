@@ -52,7 +52,7 @@ def write_ci_summary(
 
     `findings_by_severity`/`max_severity` are optional — only commands that
     raise findings (audit, misconfig_scan, cve_lookup, llm_redteam) populate
-    them; `zyvor-qa <cmd> --fail-on <severity>` reads `max_severity` back to
+    them; `argus <group> <cmd> --fail-on <severity>` reads `max_severity` back to
     decide whether to exit non-zero.
     """
     summary = {

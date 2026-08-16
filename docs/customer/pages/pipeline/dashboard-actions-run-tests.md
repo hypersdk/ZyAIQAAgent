@@ -22,7 +22,7 @@ Run ▶ Smoke (optional grep/shard) or ▶ Full LangGraph pipeline from local or
 3. After success, check **Findings**, **QA Runs**, and any video / report links the card produces.
 4. Turn recurring checks into a **Schedule** (5 min – 6 h) when you want continuous monitoring.
 
-If the card stays idle or errors, hit `GET /health`, confirm the webhook/dashboard process is up (`zyvor-qa serve`), and re-check env from [.env.example](../../../../.env.example).
+If the card stays idle or errors, hit `GET /health`, confirm the webhook/dashboard process is up (`argus serve`), and re-check env from [.env.example](../../../../.env.example).
 
 ## Related pages
 

@@ -25,7 +25,7 @@ First run — record what "correct" looks like:
 
 ```bash
 make regression-update
-# equivalent: ENABLE_REGRESSION=true zyvor-qa regression --update-baselines
+# equivalent: ENABLE_REGRESSION=true argus vision regression --update-baselines
 ```
 
 ```
@@ -45,7 +45,7 @@ On subsequent runs:
 
 ```bash
 make regression
-# equivalent: ENABLE_REGRESSION=true zyvor-qa regression
+# equivalent: ENABLE_REGRESSION=true argus vision regression
 ```
 
 ```
@@ -70,7 +70,7 @@ ENABLE_REGRESSION=true
 REGRESSION_THRESHOLD=1.0     # percent; raise for noisy pages
 ```
 
-Now every `zyvor-qa run` compares screenshots, and a regression failure routes the pipeline down the **fail** branch — failure analysis, optional autofix, and a report flagging the diffs. `ENABLE_REGRESSION=true` also switches Playwright to capture screenshots for *every* test, not just failures.
+Now every `argus test run` compares screenshots, and a regression failure routes the pipeline down the **fail** branch — failure analysis, optional autofix, and a report flagging the diffs. `ENABLE_REGRESSION=true` also switches Playwright to capture screenshots for *every* test, not just failures.
 
 ## 5. Add a page to visual coverage
 

@@ -13,15 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Entrypoint for the `hypersdk/ZyAIQAAgent` GitHub Action (see action.yml).
+# Entrypoint for the `hypersdk/zyvor-argus` GitHub Action (see action.yml).
 #
 # GitHub Actions always sets ACTION_* even when an input was left at its empty
-# default, so this only forwards a value into the real zyvor-qa env var when
+# default, so this only forwards a value into the real argus env var when
 # the action input was actually provided — otherwise an empty ACTION_TARGET_URL
 # would stomp the image's baked-in ZYVOR_BASE_URL default.
 set -uo pipefail
 
-COMMAND="${1:-test}"
+COMMAND="${1:-test exec}"
 EXTRA_ARGS="${2:-}"
 
 set_if_present() {
@@ -43,7 +43,9 @@ set_if_present "${ACTION_OPENAI_API_KEY:-}" OPENAI_API_KEY
 set_if_present "${ACTION_ANTHROPIC_API_KEY:-}" ANTHROPIC_API_KEY
 
 # shellcheck disable=SC2086
-zyvor-qa "$COMMAND" $EXTRA_ARGS
+# COMMAND is intentionally unquoted: it may be a multi-word subcommand path
+# (e.g. "test run", "vision route-sweep") that must word-split into separate args.
+argus $COMMAND $EXTRA_ARGS
 EXIT_CODE=$?
 
 SUMMARY="reports/summary.json"

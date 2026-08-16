@@ -104,7 +104,7 @@ def test_ensure_tls_cert_returns_explicit_paths_unchanged():
 
 def test_ensure_tls_cert_reuses_existing_cert(tmp_path, monkeypatch):
     monkeypatch.setattr(cli.Path, "home", classmethod(lambda cls: tmp_path))
-    cert_dir = tmp_path / ".zyvor-qa" / "tls"
+    cert_dir = tmp_path / ".zyvor-argus" / "tls"
     cert_dir.mkdir(parents=True)
     (cert_dir / "server.crt").write_text("fake-cert")
     (cert_dir / "server.key").write_text("fake-key")

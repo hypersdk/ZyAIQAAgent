@@ -24,9 +24,9 @@ import { fileURLToPath } from 'node:url'
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const CUSTOMER = resolve(ROOT, 'docs/customer')
 const PDF_DIR = resolve(CUSTOMER, 'pdf')
-const PRODUCT = process.env.CUSTOMER_DOCS_PRODUCT || 'ZyAIQAAgent'
-const SLUG = (process.env.CUSTOMER_DOCS_SLUG || 'zyaiqaagent').toLowerCase().replace(/\s+/g, '-')
-const PDF_PREFIX = process.env.CUSTOMER_DOCS_PDF_PREFIX || 'ZyAIQAAgent'
+const PRODUCT = process.env.CUSTOMER_DOCS_PRODUCT || 'Zyvor Argus'
+const SLUG = (process.env.CUSTOMER_DOCS_SLUG || 'zyvor-argus').toLowerCase().replace(/\s+/g, '-')
+const PDF_PREFIX = process.env.CUSTOMER_DOCS_PDF_PREFIX || 'ZyvorArgus'
 
 const MARKED_CANDIDATES = [
   resolve(ROOT, '.docs-tools/node_modules/.bin/marked'),
@@ -47,7 +47,7 @@ const THEMES = {
   Hermes: { accent: '#fb7185', grad: '#1c0a12,#9f1239,#0d1b2a', brandHtml: 'Her<span>mes</span>' },
   HyperSDK: { accent: '#60a5fa', grad: '#0a0a1a,#1e3a5f,#0d1b2a', brandHtml: 'Hyper<span>SDK</span>' },
   ZySign: { accent: '#a3e635', grad: '#14532d,#365314,#0d1b2a', brandHtml: 'Zy<span>Sign</span>' },
-  ZyAIQAAgent: { accent: '#3b82f6', grad: '#0a0d12,#1e3a5f,#0d1b2a', brandHtml: 'ZyAI<span>QA</span>Agent' },
+  'Zyvor Argus': { accent: '#3b82f6', grad: '#0a0d12,#1e3a5f,#0d1b2a', brandHtml: 'Zyvor <span>Argus</span>' },
 }
 const theme = THEMES[PRODUCT] || { accent: '#60a5fa', grad: '#0a0a1a,#1e3a5f,#0d1b2a', brandHtml: PRODUCT }
 const ACCENT = theme.accent

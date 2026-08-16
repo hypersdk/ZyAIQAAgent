@@ -1,6 +1,6 @@
-# ZyAIQAAgent — Customer Documentation
+# Zyvor Argus — Customer Documentation
 
-**ZyAIQAAgent** (CLI: `zyvor-qa`) is the autonomous AI QA agent for Zyvor products — LangGraph specs→Playwright, **Mission Control** (flows, HAR, codegen, API/auth/realtime, vitals, probes), and post-deploy audits. This package is for QA engineers, SREs, and platform operators — not people hacking on the agent source tree.
+**Zyvor Argus** (CLI: `argus`) is the autonomous AI QA agent for Zyvor products — LangGraph specs→Playwright, **Mission Control** (flows, HAR, codegen, API/auth/realtime, vitals, probes), and post-deploy audits. This package is for QA engineers, SREs, and platform operators — not people hacking on the agent source tree.
 
 | You want to… | Open |
 |--------------|------|
@@ -12,7 +12,7 @@
 | Multi-step jobs (flow, HAR, API…) | [Common workflows](workflows.md) |
 | Look up any surface | [Complete page index](PAGE_INDEX.md) |
 | Deploy, auth, ports, k3s | [Admin basics](admin-basics.md) |
-| Browse capabilities by theme | [Feature Guide](../zyvor-qa-agent-customer-feature-guide.md) |
+| Browse capabilities by theme | [Feature Guide](../zyvor-argus-customer-feature-guide.md) |
 
 ## Printable PDFs
 
@@ -24,10 +24,10 @@ Output lands in [`pdf/`](pdf/):
 
 | PDF | Contents |
 |-----|----------|
-| `ZyAIQAAgent-Customer-README.pdf` | This overview |
-| `ZyAIQAAgent-Getting-Started.pdf` | Access, Mission Control basics, workflows |
-| `ZyAIQAAgent-Page-by-Page.pdf` | Complete manual — every dashboard surface |
-| `ZyAIQAAgent-Admin-Basics.pdf` | Deploy, auth, TLS, ports |
+| `ZyvorArgus-Customer-README.pdf` | This overview |
+| `ZyvorArgus-Getting-Started.pdf` | Access, Mission Control basics, workflows |
+| `ZyvorArgus-Page-by-Page.pdf` | Complete manual — every dashboard surface |
+| `ZyvorArgus-Admin-Basics.pdf` | Deploy, auth, TLS, ports |
 
 The build regenerates indexes first. Check links with `node scripts/customer-docs/check-links.mjs`.
 
@@ -40,8 +40,8 @@ node scripts/customer-docs/sync-to-website.mjs ../hypersdk-web
 ## Product at a glance
 
 ```text
-  Mission Control  →  zyvor-qa serve  (default NodePort / port 30080)
-  CLI              →  zyvor-qa test | run | flow | har-replay | …
+  Mission Control  →  argus serve  (default NodePort / port 30080)
+  CLI              →  argus test exec | run | flow | har-replay | …
   Playwright       →  playwright/ + generated & manual suites
   Webhooks         →  POST /webhook/github  (HMAC)
   REST             →  /api/dashboard/*  (session-gated when password set)
@@ -73,4 +73,4 @@ Deep engineering docs live under [`../`](../) (architecture, tutorials, configur
 
 ---
 
-*ZyvorAI Labs · [zyvor.dev](https://zyvor.dev) · ZyAIQAAgent (repo `ZyAIQAAgent`)*
+*ZyvorAI Labs · [zyvor.dev](https://zyvor.dev) · Zyvor Argus (repo `Zyvor Argus`)*

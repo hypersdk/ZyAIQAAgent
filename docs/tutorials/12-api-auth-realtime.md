@@ -17,8 +17,8 @@ Every product exposes an OpenAPI spec. Point the agent at it and it exercises ea
 
 ```bash
 # spec mode — validate GET endpoints (add --include-writes for POST/PUT/DELETE)
-zyvor-qa api-test https://api.example.com --spec https://api.example.com/openapi.json
-zyvor-qa api-test https://api.example.com --spec ./openapi.json --token "$JWT"
+argus api test https://api.example.com --spec https://api.example.com/openapi.json
+argus api test https://api.example.com --spec ./openapi.json --token "$JWT"
 ```
 
 In the dashboard, the **🔌 API contract** card takes the base URL, a spec URL (or pasted inline JSON), and an optional bearer token. The result is a per-endpoint table with red rows for schema violations (e.g. `$.user.email: required property missing`).
@@ -40,7 +40,7 @@ For async lifecycles (create → poll-until-Running → delete), pass a **workfl
 ```
 
 ```bash
-zyvor-qa api-test https://api.example.com --workflow vm-lifecycle.json --token "$JWT"
+argus api test https://api.example.com --workflow vm-lifecycle.json --token "$JWT"
 ```
 
 ---
@@ -58,11 +58,11 @@ For the Playwright *test suite* itself (smoke / generated specs), set `ENABLE_AU
 
 ```bash
 # API login (token → sessionStorage), then run the checks and save the session
-zyvor-qa auth-test https://app.example.com --api-login /api/v1/auth/login \
+argus api auth-test https://app.example.com --api-login /api/v1/auth/login \
   --username admin --password 'secret' --protected /dashboard --logout-url /api/v1/auth/logout
 
 # or drive the login form in-browser
-zyvor-qa auth-test https://app.example.com --login-url /login --username admin --password 'secret'
+argus api auth-test https://app.example.com --login-url /login --username admin --password 'secret'
 ```
 
 ### Reuse the session everywhere
@@ -70,8 +70,8 @@ zyvor-qa auth-test https://app.example.com --login-url /login --username admin -
 A passed auth-test saves the session as `reports/artifacts/auth/<host>.json`. Feed its name back into **flow** or **live-data** so they start already logged in — reliable "test behind login" instead of best-effort form-fill:
 
 ```bash
-zyvor-qa flow https://app.example.com --steps checkout.flow --session app-example-com.json
-zyvor-qa realtime https://app.example.com --ws /api/v1/ws/flows --session app-example-com.json
+argus flow run https://app.example.com --steps checkout.flow --session app-example-com.json
+argus flow realtime https://app.example.com --ws /api/v1/ws/flows --session app-example-com.json
 ```
 
 In the dashboard, put the session filename in the 🎬 Flow card's "reuse session" field.
@@ -84,16 +84,16 @@ A dashboard that *loads* isn't the same as one whose live data *updates*. The **
 
 ```bash
 # WebSocket: connect, receive ≥N messages in the window, then survive a forced reconnect
-zyvor-qa realtime https://app.example.com --ws /api/v1/ws/flows --expect-messages 3
+argus flow realtime https://app.example.com --ws /api/v1/ws/flows --expect-messages 3
 
 # JWT via subprotocol (packetwolf): Sec-WebSocket-Protocol: access_token,<jwt>
-zyvor-qa realtime https://app.example.com --ws /api/v1/ws/threats --token "$JWT" --subprotocol-jwt
+argus flow realtime https://app.example.com --ws /api/v1/ws/threats --token "$JWT" --subprotocol-jwt
 
 # one-time ticket (veyron): issue a ticket, then connect with ?ticket=
-zyvor-qa realtime https://app.example.com --ws /api/v1/vms/default/vm1/vnc --ticket-url /api/v1/ws-ticket
+argus flow realtime https://app.example.com --ws /api/v1/vms/default/vm1/vnc --ticket-url /api/v1/ws-ticket
 
 # SSE job/log progress
-zyvor-qa realtime https://app.example.com --sse /api/v1/events --expect-messages 1
+argus flow realtime https://app.example.com --sse /api/v1/events --expect-messages 1
 ```
 
 It also does a **browser live-view** check: give a `--live-selector` and it loads the dashboard, counts WebSocket frames via `page.on('websocket')`, and asserts a live region's text actually changed. Crucially it uses **`domcontentloaded` + a per-request latency budget** instead of `networkidle` (always-live dashboards never idle) and classifies the page `ok | crash | api-5xx | slow` — a hung `/api/` call is reported as **slow**, not a false pass.
@@ -105,9 +105,9 @@ It also does a **browser live-view** check: give a `--live-selector` and it load
 ### Core Web Vitals
 
 ```bash
-zyvor-qa vitals https://app.example.com                 # LCP / CLS / INP / FCP / TTFB, graded
-zyvor-qa vitals https://app.example.com --throttle 3g   # under a throttled connection
-zyvor-qa vitals https://app.example.com --device "iPhone 14"
+argus watch vitals https://app.example.com                 # LCP / CLS / INP / FCP / TTFB, graded
+argus watch vitals https://app.example.com --throttle 3g   # under a throttled connection
+argus watch vitals https://app.example.com --device "iPhone 14"
 ```
 
 Each metric is graded good / needs-improvement / poor against Google's thresholds. The **📊 Web Vitals** card has device and throttle dropdowns.
@@ -117,9 +117,9 @@ Each metric is graded good / needs-improvement / poor against Google's threshold
 The **🎬 Flow** action gained three dropdowns (and CLI flags) so a journey can run under real conditions:
 
 ```bash
-zyvor-qa flow https://app.example.com --steps signup.flow --browser firefox
-zyvor-qa flow https://app.example.com --steps signup.flow --device "Pixel 7"
-zyvor-qa flow https://app.example.com --steps signup.flow --throttle offline   # graceful-degradation
+argus flow run https://app.example.com --steps signup.flow --browser firefox
+argus flow run https://app.example.com --steps signup.flow --device "Pixel 7"
+argus flow run https://app.example.com --steps signup.flow --throttle offline   # graceful-degradation
 ```
 
 - **`--browser`** chromium / firefox / webkit — catches Safari/Firefox-specific breakage (Chromium was the only engine before). The deploy script installs all three; if firefox/webkit aren't present it falls back to chromium.
@@ -134,7 +134,7 @@ The autonomous tester. Type a plain-English goal and the agent drives a real bro
 
 ```bash
 # needs a saved session for anything behind login (see §2)
-zyvor-qa ai-test https://app.example.com/vms/new \
+argus api ai-test https://app.example.com/vms/new \
   --goal "create a ubuntu vm with 1 vcpu and 2gb ram" \
   --session app-example-com.json --insecure
 ```
@@ -167,7 +167,7 @@ scripts/wire-forge.sh --suite-only    # Forge already running → just run the a
 scripts/wire-forge.sh --no-ui         # gateway only (API contract)
 ```
 
-It authenticates with a bearer dev key (`FORGE_API_KEY`), starts the gateway with a throwaway kubeconfig so it runs without a full cluster, and points `zyvor-qa api-test` at Forge's 366-endpoint OpenAPI. Note: with no reachable K8s cluster, Forge's cluster-backed endpoints return an **undocumented HTTP 500** — the api-contract flags this ("status 500 not declared"), a real contract-robustness finding (endpoints should declare a 503 for backend-unavailable). Any product with an OpenAPI spec + bearer/token auth can be wired the same way.
+It authenticates with a bearer dev key (`FORGE_API_KEY`), starts the gateway with a throwaway kubeconfig so it runs without a full cluster, and points `argus api test` at Forge's 366-endpoint OpenAPI. Note: with no reachable K8s cluster, Forge's cluster-backed endpoints return an **undocumented HTTP 500** — the api-contract flags this ("status 500 not declared"), a real contract-robustness finding (endpoints should declare a 503 for backend-unavailable). Any product with an OpenAPI spec + bearer/token auth can be wired the same way.
 
 ## Configuration
 

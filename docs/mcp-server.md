@@ -77,7 +77,7 @@ export ZYVOR_API_BASE_URL=http://127.0.0.1:8080   # or your deployment's URL
 export ZYVOR_API_TOKEN=<raw token from step 1>
 export ZYVOR_MCP_TRANSPORT=stdio                  # or streamable-http
 
-zyvor-qa-mcp
+argus-mcp
 # or: python -m integrations.mcp
 ```
 
@@ -123,7 +123,7 @@ unless you add your own auth layer in front of it.
 ## Kubernetes note
 
 `ZYVOR_API_TOKENS_FILE` must point at a real file — `kubernetes/deployment.yaml` and
-`kubernetes/enterprise/secure-deployment.yaml` now mount a `zyvor-qa-secrets` key
+`kubernetes/enterprise/secure-deployment.yaml` now mount a `argus-secrets` key
 (`api-tokens.json`) at `/app/secrets/api-tokens.json` for this. Populate that secret key with
 minted token records before relying on Bearer-token auth in a cluster deployment.
 

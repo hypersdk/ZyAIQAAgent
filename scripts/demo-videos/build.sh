@@ -13,13 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Build the ZyAIQAAgent "15-minute KT" tutorial from Playwright recordings
+# Build the Zyvor Argus "15-minute KT" tutorial from Playwright recordings
 # (seg01..seg09) + title/caption cards (render-cards.mjs).
 #
 # Usage:
 #   node render-cards.mjs
 #   node seg01-login.mjs ... node seg09-noc.mjs   # -> raw/segNN-*/​*.webm
-#   ./build.sh                                     # -> out/zyaiqaagent-kt-tutorial.mp4
+#   ./build.sh                                     # -> out/zyvor-argus-kt-tutorial.mp4
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
@@ -127,6 +127,6 @@ for f in k00-title k01-intro \
          k20-outro; do
   echo "file '${f}.mp4'" >> seg/kt-list.txt
 done
-ffmpeg -y -f concat -safe 0 -i seg/kt-list.txt -c copy out/zyaiqaagent-kt-tutorial.mp4 -loglevel error
-echo "== built out/zyaiqaagent-kt-tutorial.mp4 =="
-ffprobe -v error -show_entries format=duration -of csv=p=0 out/zyaiqaagent-kt-tutorial.mp4
+ffmpeg -y -f concat -safe 0 -i seg/kt-list.txt -c copy out/zyvor-argus-kt-tutorial.mp4 -loglevel error
+echo "== built out/zyvor-argus-kt-tutorial.mp4 =="
+ffprobe -v error -show_entries format=duration -of csv=p=0 out/zyvor-argus-kt-tutorial.mp4

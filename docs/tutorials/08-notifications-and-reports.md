@@ -38,7 +38,7 @@ Test it without waiting for a real run:
 
 ```bash
 curl -X POST -H 'Content-type: application/json' \
-  --data '{"text":"zyvor-qa webhook test"}' "$SLACK_WEBHOOK_URL"
+  --data '{"text":"argus webhook test"}' "$SLACK_WEBHOOK_URL"
 ```
 
 This is outbound only. For the opposite direction — triggering a run *from* Slack — see [Tutorial 16](16-slack-gateway.md).

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""CLI entry point for Zyvor QA Agent."""
+"""CLI entry point for Zyvor Argus."""
 
 from __future__ import annotations
 
@@ -35,10 +35,28 @@ from orchestrator.graph import get_compiled_graph
 from orchestrator.state import PipelineState
 
 app = typer.Typer(
-    name="zyvor-qa",
-    help="Zyvor QA Agent — autonomous Playwright testing for Zyvor platform",
+    name="argus",
+    help="Zyvor Argus — autonomous testing, security, and monitoring for the Zyvor platform",
     no_args_is_help=True,
 )
+
+test_app = typer.Typer(name="test", help="Playwright test generation & execution", no_args_is_help=True)
+flow_app = typer.Typer(name="flow", help="Multi-step user journeys", no_args_is_help=True)
+vision_app = typer.Typer(name="vision", help="Visual regression & route screenshots", no_args_is_help=True)
+api_app = typer.Typer(name="api", help="API/AI/auth contract & workflow testing", no_args_is_help=True)
+watch_app = typer.Typer(name="watch", help="Recurring monitoring: vitals & site audits", no_args_is_help=True)
+guard_app = typer.Typer(name="guard", help="Security testing & pentesting", no_args_is_help=True)
+redteam_app = typer.Typer(name="redteam", help="LLM/application red-teaming", no_args_is_help=True)
+ask_app = typer.Typer(name="ask", help="Ask Zyvor knowledge base ingestion & evaluation", no_args_is_help=True)
+
+app.add_typer(test_app, name="test")
+app.add_typer(flow_app, name="flow")
+app.add_typer(vision_app, name="vision")
+app.add_typer(api_app, name="api")
+app.add_typer(watch_app, name="watch")
+app.add_typer(guard_app, name="guard")
+app.add_typer(redteam_app, name="redteam")
+app.add_typer(ask_app, name="ask")
 
 
 def _load_env() -> None:
@@ -118,7 +136,7 @@ def _run_discovery_subgraph(state: PipelineState) -> PipelineState:
     return gap_analyze(state)
 
 
-@app.command()
+@test_app.command()
 def run(
     source: str = typer.Option("local", help="Requirement source: local | github"),
     spec: Optional[str] = typer.Option(
@@ -210,7 +228,7 @@ def run(
         raise typer.Exit(code=1)
 
 
-@app.command()
+@test_app.command("exec")
 def test(
     grep: Optional[str] = typer.Option(None, help="Playwright --grep filter (e.g. @smoke)"),
     shard: Optional[str] = typer.Option(None, help="Playwright --shard i/n (e.g. 1/2)"),
@@ -259,7 +277,7 @@ def test(
         raise typer.Exit(code=1)
 
 
-@app.command()
+@test_app.command()
 def generate(
     spec: Optional[str] = typer.Option(
         None,
@@ -318,7 +336,7 @@ def generate(
         typer.echo(f"  {path}")
 
 
-@app.command()
+@test_app.command()
 def discover(
     source: str = typer.Option("github", help="Requirement source: local | github"),
     spec: Optional[str] = typer.Option(
@@ -357,7 +375,7 @@ def discover(
         typer.echo(f"  ... and {len(gaps) - 20} more")
 
 
-@app.command()
+@test_app.command()
 def create(
     description: str = typer.Argument(..., help="Natural language test description"),
     execute: bool = typer.Option(False, help="Run generated tests immediately"),
@@ -398,7 +416,7 @@ def create(
             raise typer.Exit(code=1)
 
 
-@app.command()
+@vision_app.command()
 def regression(
     update_baselines: bool = typer.Option(False, help="Update screenshot baselines"),
 ) -> None:
@@ -431,7 +449,7 @@ def regression(
         raise typer.Exit(code=1)
 
 
-@app.command()
+@flow_app.command("run")
 def flow(
     url: str = typer.Argument(..., help="Base URL to run the journey against"),
     describe: Optional[str] = typer.Option(None, help="Journey in plain English"),
@@ -512,7 +530,7 @@ def flow(
         raise typer.Exit(code=1)
 
 
-@app.command(name="route-sweep")
+@vision_app.command(name="route-sweep")
 def route_sweep(
     url: str = typer.Argument(..., help="Base URL"),
     routes: str = typer.Option("/", help="Comma-separated routes to screenshot"),
@@ -561,7 +579,7 @@ def route_sweep(
         raise typer.Exit(code=1)
 
 
-@app.command(name="api-test")
+@api_app.command(name="test")
 def api_test(
     base: str = typer.Argument(..., help="API base URL"),
     spec: Optional[str] = typer.Option(None, help="OpenAPI spec URL or local JSON file"),
@@ -612,7 +630,7 @@ def api_test(
         raise typer.Exit(code=1)
 
 
-@app.command(name="ai-test")
+@api_app.command(name="ai-test")
 def ai_test(
     url: str = typer.Argument(..., help="App URL to drive"),
     goal: str = typer.Option(..., "--goal", "-g", help="Plain-English goal, e.g. 'create a ubuntu vm 1 vcpu 2gb ram'"),
@@ -634,7 +652,7 @@ def ai_test(
         raise typer.Exit(code=1)
 
 
-@app.command(name="auth-test")
+@api_app.command(name="auth-test")
 def auth_test(
     base: str = typer.Argument(..., help="App base URL"),
     login_url: Optional[str] = typer.Option(None, help="Login page path to drive in-browser"),
@@ -665,7 +683,7 @@ def auth_test(
         raise typer.Exit(code=1)
 
 
-@app.command(name="har-replay")
+@api_app.command(name="har-replay")
 def har_replay(
     url: str = typer.Argument(..., help="Base URL"),
     mode: str = typer.Option("replay", help="record | replay"),
@@ -697,7 +715,7 @@ def har_replay(
         raise typer.Exit(code=1)
 
 
-@app.command(name="import-codegen")
+@test_app.command(name="import-codegen")
 def import_codegen_cmd(
     source: str = typer.Argument(..., help="Path to a Playwright codegen .js/.ts file, or '-' for stdin"),
     url: Optional[str] = typer.Option(None, help="Base URL (required with --run)"),
@@ -726,7 +744,7 @@ def import_codegen_cmd(
         raise typer.Exit(code=1)
 
 
-@app.command()
+@flow_app.command()
 def realtime(
     url: str = typer.Argument(..., help="App base URL"),
     ws: Optional[str] = typer.Option(None, help="WebSocket path or full ws(s):// URL"),
@@ -760,7 +778,7 @@ def realtime(
         raise typer.Exit(code=1)
 
 
-@app.command()
+@watch_app.command()
 def vitals(
     url: str = typer.Argument(..., help="URL to measure"),
     device: Optional[str] = typer.Option(None, help="Playwright device profile, e.g. 'iPhone 14'"),
@@ -799,7 +817,7 @@ def vitals(
         raise typer.Exit(code=1)
 
 
-@app.command()
+@watch_app.command()
 def audit(
     url: str = typer.Argument(..., help="Site to audit"),
     max_pages: int = typer.Option(10, help="Max pages to crawl"),
@@ -834,7 +852,7 @@ def audit(
         raise typer.Exit(code=1)
 
 
-@app.command(name="misconfig-scan")
+@guard_app.command(name="misconfig-scan")
 def misconfig_scan(
     url: str = typer.Argument(..., help="Site to scan"),
     engagement_id: str = typer.Option(..., "--engagement-id", help="Authorized security engagement id (POST /api/v2/engagements)"),
@@ -868,7 +886,7 @@ def misconfig_scan(
         raise typer.Exit(code=1)
 
 
-@app.command(name="cve-lookup")
+@guard_app.command(name="cve-lookup")
 def cve_lookup(
     url: str = typer.Argument(..., help="Site to fingerprint"),
     engagement_id: str = typer.Option(..., "--engagement-id", help="Authorized security engagement id (POST /api/v2/engagements)"),
@@ -900,7 +918,7 @@ def cve_lookup(
         raise typer.Exit(code=1)
 
 
-@app.command(name="llm-redteam")
+@redteam_app.command(name="llm")
 def llm_redteam(
     engagement_id: str = typer.Option(..., "--engagement-id", help="Authorized security engagement id (POST /api/v2/engagements)"),
     target: str = typer.Option("dashboard_ask", help="dashboard_ask (in-process) or v1_qa (external)"),
@@ -937,7 +955,7 @@ def llm_redteam(
         raise typer.Exit(code=1)
 
 
-@app.command(name="exploit-poc")
+@guard_app.command(name="exploit-poc")
 def exploit_poc(
     url: str = typer.Argument(..., help="Target URL"),
     finding_description: str = typer.Option(..., "--finding", help="Describe what to verify"),
@@ -977,7 +995,7 @@ def exploit_poc(
         raise typer.Exit(code=1)
 
 
-@app.command(name="attack-chain")
+@guard_app.command(name="attack-chain")
 def attack_chain(
     url: str = typer.Argument(..., help="Target URL"),
     objective: str = typer.Option(..., "--objective", help="Describe the escalation goal, e.g. 'escalate SQLi to RCE'"),
@@ -1020,7 +1038,7 @@ def attack_chain(
         raise typer.Exit(code=1)
 
 
-@app.command(name="host-pentest")
+@guard_app.command(name="host-pentest")
 def host_pentest(
     host: str = typer.Argument(..., help="Bare hostname or IP, e.g. host.example.com"),
     finding_description: str = typer.Option(..., "--finding", help="Describe what to verify over SSH"),
@@ -1071,7 +1089,7 @@ def host_pentest(
         raise typer.Exit(code=1)
 
 
-@app.command(name="cloud-pentest")
+@guard_app.command(name="cloud-pentest")
 def cloud_pentest(
     target: str = typer.Argument(..., help="Account/project identifier, e.g. aws-prod-123456789012"),
     provider: str = typer.Option(..., "--provider", help="'aws', 'gcp', or 'azure'"),
@@ -1122,7 +1140,7 @@ def cloud_pentest(
         raise typer.Exit(code=1)
 
 
-@app.command(name="pr-gate")
+@guard_app.command(name="pr-gate")
 def pr_gate(
     repo: str = typer.Argument(..., help="owner/repo"),
     pr_number: int = typer.Argument(..., help="Pull request number"),
@@ -1133,7 +1151,7 @@ def pr_gate(
 
     Mirrors `neurosploit pr <repo> <n> --fail-on critical`: REQUEST_CHANGES + a
     failing commit status on a confirmed finding at/above --fail-on, APPROVE
-    otherwise. Run the actual scan first (e.g. `zyvor-qa audit ... --fail-on
+    otherwise. Run the actual scan first (e.g. `argus watch audit ... --fail-on
     <sev>`) so reports/summary.json reflects this PR's code.
     """
     _load_env()
@@ -1156,7 +1174,7 @@ def pr_gate(
         raise typer.Exit(code=2)
 
     body_lines = [
-        f"**zyvor-qa security gate** — command `{summary.get('command')}` on `{summary.get('target_url')}`",
+        f"**argus security gate** — command `{summary.get('command')}` on `{summary.get('target_url')}`",
         f"Findings by severity: {counts or 'none'}",
     ]
     sha = client.get_pr_head_sha(repo, pr_number)
@@ -1164,7 +1182,7 @@ def pr_gate(
         body_lines.append(f"❌ Blocked: highest severity `{max_severity}` meets/exceeds `--fail-on {fail_on}`.")
         client.create_pr_review(repo, pr_number, event="REQUEST_CHANGES", body="\n\n".join(body_lines))
         client.set_commit_status(
-            repo, sha, state="failure", context="zyvor-qa/security",
+            repo, sha, state="failure", context="argus/security",
             description=f"blocked: {max_severity} finding(s) present",
         )
         typer.echo(f"PR #{pr_number} blocked — {max_severity} finding(s) at/above {fail_on}")
@@ -1172,7 +1190,7 @@ def pr_gate(
 
     body_lines.append("✅ No findings at/above the configured threshold.")
     client.create_pr_review(repo, pr_number, event="APPROVE", body="\n\n".join(body_lines))
-    client.set_commit_status(repo, sha, state="success", context="zyvor-qa/security", description="no blocking findings")
+    client.set_commit_status(repo, sha, state="success", context="argus/security", description="no blocking findings")
     typer.echo(f"PR #{pr_number} passed the security gate")
 
 
@@ -1206,7 +1224,7 @@ def _ensure_tls_cert(cert: Optional[str], key: Optional[str], host: str) -> tupl
 
     if cert and key:
         return cert, key
-    cert_dir = Path.home() / ".zyvor-qa" / "tls"
+    cert_dir = Path.home() / ".zyvor-argus" / "tls"
     cert_dir.mkdir(parents=True, exist_ok=True)
     cert_path, key_path = cert_dir / "server.crt", cert_dir / "server.key"
     if cert_path.exists() and key_path.exists():
@@ -1225,7 +1243,7 @@ def _ensure_tls_cert(cert: Optional[str], key: Optional[str], host: str) -> tupl
     return str(cert_path), str(key_path)
 
 
-@app.command("knowledge-ingest")
+@ask_app.command("ingest")
 def knowledge_ingest(
     path: Path = typer.Argument(..., help="File or directory to ingest"),
     tenant_id: str = typer.Option("public", "--tenant-id"),
@@ -1270,7 +1288,7 @@ def knowledge_ingest(
     ingest_main()
 
 
-@app.command("knowledge-evaluate")
+@ask_app.command("evaluate")
 def knowledge_evaluate(
     base_url: str = typer.Option("http://localhost:8080", "--base-url"),
     api_key: Optional[str] = typer.Option(None, "--api-key"),
@@ -1302,10 +1320,52 @@ def knowledge_evaluate(
     evaluate_main()
 
 
+legacy_app = typer.Typer(
+    name="zyvor-qa",
+    help="Zyvor Argus (deprecated legacy flat CLI — use `argus` instead)",
+    no_args_is_help=True,
+)
+legacy_app.command("run")(run)
+legacy_app.command("test")(test)
+legacy_app.command("generate")(generate)
+legacy_app.command("discover")(discover)
+legacy_app.command("create")(create)
+legacy_app.command("regression")(regression)
+legacy_app.command("flow")(flow)
+legacy_app.command("route-sweep")(route_sweep)
+legacy_app.command("api-test")(api_test)
+legacy_app.command("ai-test")(ai_test)
+legacy_app.command("auth-test")(auth_test)
+legacy_app.command("har-replay")(har_replay)
+legacy_app.command("import-codegen")(import_codegen_cmd)
+legacy_app.command("realtime")(realtime)
+legacy_app.command("vitals")(vitals)
+legacy_app.command("audit")(audit)
+legacy_app.command("misconfig-scan")(misconfig_scan)
+legacy_app.command("cve-lookup")(cve_lookup)
+legacy_app.command("llm-redteam")(llm_redteam)
+legacy_app.command("exploit-poc")(exploit_poc)
+legacy_app.command("attack-chain")(attack_chain)
+legacy_app.command("host-pentest")(host_pentest)
+legacy_app.command("cloud-pentest")(cloud_pentest)
+legacy_app.command("pr-gate")(pr_gate)
+legacy_app.command("serve")(serve)
+legacy_app.command("knowledge-ingest")(knowledge_ingest)
+legacy_app.command("knowledge-evaluate")(knowledge_evaluate)
+
+
 if __name__ == "__main__":
     app()
 
 
 def main() -> None:
     app()
+
+
+def legacy_main() -> None:
+    typer.echo(
+        "warning: `zyvor-qa` is deprecated and will be removed in a future release; use `argus` instead.",
+        err=True,
+    )
+    legacy_app()
 

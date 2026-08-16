@@ -26,7 +26,7 @@ from integrations.mcp.config import MCPConfig, load_config
 
 
 def build_server(config: MCPConfig) -> FastMCP:
-    mcp = FastMCP("zyvor-qa", host=config.host, port=config.port)
+    mcp = FastMCP("argus", host=config.host, port=config.port)
     client = ZyvorApiClient(config.base_url, config.api_token)
 
     def _wait_s(wait_s: float | None) -> float:

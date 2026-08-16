@@ -2,7 +2,7 @@
   "/dashboard": "Live Mission Control console — status hero, workloads, pods, action cards, schedules, findings, and QA run history.",
   "/login": "Session login gate for Mission Control when DASHBOARD_PASSWORD is configured.",
   "/dashboard/hero": "Cluster/app health banner with pods, replicas, last QA run, pass rate, and next scheduled smoke.",
-  "/dashboard/workloads": "Deployment and CronJob strip for the zyvor-qa namespace (when kube access is available).",
+  "/dashboard/workloads": "Deployment and CronJob strip for the argus namespace (when kube access is available).",
   "/dashboard/pods": "Pod cards with phase, restarts, and click-through logs; optional cluster events toggle.",
   "/dashboard/job-live": "Live panel for the running job — elapsed time, per-test chips, streaming log, Stop / download.",
   "/dashboard/command-palette": "⌘K / Ctrl-K spotlight to jump to any action card by name.",

@@ -249,7 +249,7 @@ async def videos_zip() -> Response:
     return Response(
         content=buffer.read(),
         media_type="application/zip",
-        headers={"Content-Disposition": 'attachment; filename="zyvor-qa-videos.zip"'},
+        headers={"Content-Disposition": 'attachment; filename="zyvor-argus-videos.zip"'},
     )
 
 
@@ -373,7 +373,7 @@ async def job_report(fmt: str) -> Response:
     return Response(
         content=path.read_bytes(),
         media_type=media,
-        headers={"Content-Disposition": f'attachment; filename="zyvor-qa-report.{fmt}"'},
+        headers={"Content-Disposition": f'attachment; filename="zyvor-argus-report.{fmt}"'},
     )
 
 

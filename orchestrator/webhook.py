@@ -82,7 +82,7 @@ def _build_state_from_event(event: str, payload: dict[str, Any]) -> PipelineStat
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Zyvor QA Agent Webhook")
+    app = FastAPI(title="Zyvor Argus Webhook")
 
     from pathlib import Path
     from urllib.parse import quote

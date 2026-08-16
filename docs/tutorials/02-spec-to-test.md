@@ -43,7 +43,7 @@ With an LLM key configured, free-form specs work too — the LLM extracts requir
 ## 2. Generate without running
 
 ```bash
-zyvor-qa generate --spec my-specs/products-page.md
+argus test generate --spec my-specs/products-page.md
 ```
 
 Output:
@@ -77,7 +77,7 @@ You'll see your steps translated: `page.goto('/products')`, `waitForPageReady(pa
 ## 4. Run the full pipeline
 
 ```bash
-zyvor-qa run --source local --spec my-specs/products-page.md
+argus test run --source local --spec my-specs/products-page.md
 ```
 
 This re-parses, re-generates, and executes — your generated test plus everything in `tests/manual/`. Exit code is non-zero if anything fails, so it's CI-safe.
@@ -95,7 +95,7 @@ LLM_MODEL=claude-sonnet-5
 Regenerate:
 
 ```bash
-zyvor-qa generate --spec my-specs/products-page.md
+argus test generate --spec my-specs/products-page.md
 ```
 
 Differences with the LLM path:

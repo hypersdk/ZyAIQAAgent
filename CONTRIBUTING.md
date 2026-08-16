@@ -13,8 +13,8 @@ Sanity checks:
 
 ```bash
 make lint             # ruff (Python) + tsc --noEmit (TypeScript)
-zyvor-qa test         # smoke tests against ZYVOR_BASE_URL
-zyvor-qa run --source local   # full pipeline with the example spec
+argus test exec       # smoke tests against ZYVOR_BASE_URL
+argus test run --source local   # full pipeline with the example spec
 ```
 
 ## Repository layout
@@ -23,7 +23,7 @@ zyvor-qa run --source local   # full pipeline with the example spec
 orchestrator/        LangGraph pipeline
   graph.py           node wiring + conditional routing
   state.py           PipelineState (TypedDict) shared by all nodes
-  cli.py             Typer CLI (zyvor-qa …)
+  cli.py             Typer CLI (argus …)
   webhook.py         FastAPI GitHub webhook server
   nodes/             thin PipelineState -> PipelineState wrappers, one per stage
 agents/              the actual logic, one package per capability
@@ -87,8 +87,8 @@ Extend `get_llm()` in `agents/common/llm.py` with the new branch, add the key to
 ```bash
 pytest tests/unit -q                              # unit suite (mypy/bandit/coverage also run in CI — see security.yml)
 make lint
-zyvor-qa run --source local                       # no-LLM path (unset keys first)
-zyvor-qa run --source local --spec <your-spec>    # with LLM if you have a key
+argus test run --source local                       # no-LLM path (unset keys first)
+argus test run --source local --spec <your-spec>    # with LLM if you have a key
 python3 scripts/validate_k8s_manifests.py         # if you touched kubernetes/
 cd rust && cargo build --release                  # if you touched rust/
 ```

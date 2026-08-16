@@ -1,8 +1,8 @@
 # 01 — CI/CD gate runbook
 
-**Goal:** After every deploy to staging (or on demand), run zyvor-qa and **fail the pipeline** if checks fail. Upload reports so humans can debug without SSH.
+**Goal:** After every deploy to staging (or on demand), run argus and **fail the pipeline** if checks fail. Upload reports so humans can debug without SSH.
 
-**Audience:** DevOps adding a job to *any* product repo. No need to vendor the ZyAIQAAgent source tree for a basic smoke gate.
+**Audience:** DevOps adding a job to *any* product repo. No need to vendor the Zyvor Argus source tree for a basic smoke gate.
 
 ---
 
@@ -14,18 +14,18 @@
 | Runner can reach that URL (DNS, SG, VPN, mesh) | Otherwise every run is a false red |
 | Linux runner (`ubuntu-latest` or equiv.) | GitHub Action is **Docker-type** — macOS/Windows runners will not work |
 | Artifact store available | You will upload `reports/` every time |
-| Image pull works | `ghcr.io/hypersdk/zyaiqaagent:v0.4.0` (public) |
+| Image pull works | `ghcr.io/hypersdk/zyvor-argus:v0.4.0` (public) |
 
 Smoke test from a jump host before wiring CI:
 
 ```bash
 curl -fsS -o /dev/null -w '%{http_code}\n' https://staging.example.com/
-docker pull ghcr.io/hypersdk/zyaiqaagent:v0.4.0
+docker pull ghcr.io/hypersdk/zyvor-argus:v0.4.0
 docker run --rm \
   -e ZYVOR_BASE_URL=https://staging.example.com \
   -e ZYVOR_ENV=development \
   -v "$PWD/reports:/app/reports" \
-  ghcr.io/hypersdk/zyaiqaagent:v0.4.0 \
+  ghcr.io/hypersdk/zyvor-argus:v0.4.0 \
   test --grep @smoke
 echo exit:$?
 jq . reports/summary.json
@@ -40,7 +40,7 @@ If this fails locally, fix networking/policy first — CI will only hide the sam
 ### Minimal gate (post-deploy)
 
 ```yaml
-# .github/workflows/zyvor-qa.yml
+# .github/workflows/argus.yml
 name: Zyvor QA gate
 
 on:
@@ -56,9 +56,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Run zyvor-qa
+      - name: Run argus
         id: qa
-        uses: hypersdk/ZyAIQAAgent@v0.4.0
+        uses: hypersdk/zyvor-argus@v0.7.0
         with:
           command: test
           target-url: ${{ vars.STAGING_URL }}
@@ -72,7 +72,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: zyvor-qa-${{ github.run_id }}
+          name: argus-${{ github.run_id }}
           path: |
             reports/
             test-results/
@@ -129,11 +129,11 @@ docker run --rm \
   -e ZYVOR_GREP='@smoke' \
   -v "$CI_PROJECT_DIR/reports:/app/reports" \
   -v "$CI_PROJECT_DIR/test-results:/app/test-results" \
-  ghcr.io/hypersdk/zyaiqaagent:v0.4.0 \
+  ghcr.io/hypersdk/zyvor-argus:v0.4.0 \
   test --grep @smoke
 ```
 
-**GitLab note:** when you use `image: ghcr.io/...` + `script:`, GitLab overrides ENTRYPOINT — call `zyvor-qa …` explicitly (see [`templates/ci/gitlab-ci.yml`](../../templates/ci/gitlab-ci.yml)).
+**GitLab note:** when you use `image: ghcr.io/...` + `script:`, GitLab overrides ENTRYPOINT — call `argus …` explicitly (see [`templates/ci/gitlab-ci.yml`](../../templates/ci/gitlab-ci.yml)).
 
 Templates: [GitLab](../../templates/ci/gitlab-ci.yml) · [CircleCI](../../templates/ci/circleci-config.yml) · [Jenkins](../../templates/ci/Jenkinsfile) · [Azure](../../templates/ci/azure-pipelines.yml).
 
@@ -173,7 +173,7 @@ jq -e '.status == "passed" and .failed == 0' reports/summary.json
 
 ## 4. `.env` gotcha (external repos)
 
-`zyvor-qa` auto-loads `.env` only next to **its own install**, not your product repo’s `.env`.
+`argus` auto-loads `.env` only next to **its own install**, not your product repo’s `.env`.
 
 In product CI: pass **Action inputs / CI variables / secrets**. Do not expect `cp .env` in the product checkout to configure the Action container.
 

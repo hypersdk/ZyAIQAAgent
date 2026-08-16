@@ -12,7 +12,7 @@ Screenshot-based visual regression detection for Zyvor UI tests.
 ## Usage (Phase 2)
 
 ```bash
-ENABLE_REGRESSION=true zyvor-qa run
+ENABLE_REGRESSION=true argus test run
 ```
 
 ## Implementation status

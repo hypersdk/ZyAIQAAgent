@@ -1,6 +1,6 @@
 # Kubernetes Deployment (Phase 3)
 
-Run Zyvor QA Agent on Kubernetes.
+Run Zyvor Argus on Kubernetes.
 
 ## Manifests
 
@@ -9,8 +9,8 @@ Run Zyvor QA Agent on Kubernetes.
 | `configmap.yaml` | Non-secret configuration (feature flags, URLs) |
 | `secret.yaml` | API keys, tokens (use ExternalSecrets in production) |
 | `rbac.yaml` | ServiceAccount + read-only Role for the Mission Control dashboard (pods, logs, events, workloads) |
-| `cronjob.yaml` | Nightly smoke tests (`zyvor-qa test`) |
-| `deployment.yaml` | Webhook server + dashboard (`zyvor-qa serve`) |
+| `cronjob.yaml` | Nightly smoke tests (`argus test exec`) |
+| `deployment.yaml` | Webhook server + dashboard (`argus serve`) |
 | `service.yaml` | ClusterIP service for webhook |
 | `ingress.yaml` | External access to GitHub webhook endpoint |
 
@@ -43,7 +43,7 @@ kubectl apply -f kubernetes/ingress.yaml
 
 ```bash
 # kind
-kind create cluster --name zyvor-qa
+kind create cluster --name argus
 
 # minikube
 minikube start
@@ -69,12 +69,12 @@ Events: `push`, `pull_request`, `repository_dispatch`
 
 ## Mission Control dashboard
 
-The webhook Deployment also serves a live dashboard (pods, workloads, log tails, QA run history, and an Actions panel that can trigger test runs, generation, discovery, NL test creation, and visual regression) at `/dashboard`. NL test creation requires an LLM API key in `secret.yaml`; run history and generated tests live in the pod filesystem and reset on pod restart. RBAC for it is in `rbac.yaml` (read-only: pods, pods/log, events, deployments, cronjobs) bound to the `zyvor-qa` ServiceAccount used by the Deployment.
+The webhook Deployment also serves a live dashboard (pods, workloads, log tails, QA run history, and an Actions panel that can trigger test runs, generation, discovery, NL test creation, and visual regression) at `/dashboard`. NL test creation requires an LLM API key in `secret.yaml`; run history and generated tests live in the pod filesystem and reset on pod restart. RBAC for it is in `rbac.yaml` (read-only: pods, pods/log, events, deployments, cronjobs) bound to the `argus` ServiceAccount used by the Deployment.
 
 **Default access is via port-forward** — the dashboard exposes pod logs, so it is deliberately *not* routed through the ingress:
 
 ```bash
-kubectl port-forward svc/zyvor-qa-webhook 8080:80
+kubectl port-forward svc/argus-webhook 8080:80
 open http://localhost:8080/dashboard
 ```
 
@@ -84,12 +84,12 @@ Only expose it behind authentication. Example for ingress-nginx with basic auth:
 
 ```yaml
 # Create the auth secret first:
-#   htpasswd -c auth qa-admin && kubectl create secret generic zyvor-qa-dashboard-auth --from-file=auth
+#   htpasswd -c auth qa-admin && kubectl create secret generic argus-dashboard-auth --from-file=auth
 # Then add a second ingress with:
 metadata:
   annotations:
     nginx.ingress.kubernetes.io/auth-type: basic
-    nginx.ingress.kubernetes.io/auth-secret: zyvor-qa-dashboard-auth
+    nginx.ingress.kubernetes.io/auth-secret: argus-dashboard-auth
 spec:
   rules:
     - host: qa-webhook.example.com
@@ -97,10 +97,10 @@ spec:
         paths:
           - path: /dashboard
             pathType: Prefix
-            backend: { service: { name: zyvor-qa-webhook, port: { number: 80 } } }
+            backend: { service: { name: argus-webhook, port: { number: 80 } } }
           - path: /api/dashboard
             pathType: Prefix
-            backend: { service: { name: zyvor-qa-webhook, port: { number: 80 } } }
+            backend: { service: { name: argus-webhook, port: { number: 80 } } }
 ```
 
 See [Tutorial 10](../docs/tutorials/10-mission-control-dashboard.md) for the full walkthrough.

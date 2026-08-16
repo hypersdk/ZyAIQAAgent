@@ -1,6 +1,6 @@
 # Architecture
 
-How Zyvor QA Agent is put together: the pipeline, the agents, the state, and the design decisions behind them.
+How Zyvor Argus is put together: the pipeline, the agents, the state, and the design decisions behind them.
 
 ---
 
@@ -173,13 +173,13 @@ GitHub repo ──► download discovery files ──► extract candidates ─�
 
 | Entry | File | Trigger |
 |-------|------|---------|
-| CLI `zyvor-qa` | `orchestrator/cli.py` (Typer) | `run`, `test`, `generate`, `discover`, `create`, `regression`, `serve` |
+| CLI `argus` | `orchestrator/cli.py` (Typer) | `test run`, `test exec`, `flow run`, `vision regression`, `guard misconfig-scan`, `serve` (grouped subcommands; legacy flat `zyvor-qa` alias still works) |
 | Webhook server | `orchestrator/webhook.py` (FastAPI) | GitHub `push`, `pull_request`, `repository_dispatch: staging-deployed`; HMAC-verified via `GITHUB_WEBHOOK_SECRET`; `/health` for probes |
 | Slack slash command | `orchestrator/webhook.py` (`POST /webhook/slack/command`) | `/zyvor run <smoke\|full\|regression\|audit>` / `/zyvor status <job_id>` from chat, enqueued onto the same job queue as `POST /api/v2/jobs`. HMAC-verified via `SLACK_SIGNING_SECRET` (`orchestrator/security/slack.py`); dispatch logic in `orchestrator/slack_gateway.py`. One-way only — completion is still reported via the existing `SLACK_WEBHOOK_URL` notify channel, not a reply to the command. See [Tutorial 16](tutorials/16-slack-gateway.md). |
-| MCP server | `integrations/mcp/` (`zyvor-qa-mcp`, optional `[mcp]` extra) | Exposes an allowlisted subset of `/api/v2` jobs as MCP tools (`run_job`, `run_smoke_test`, `run_site_audit`, `run_crawl_test`, `get_job_status`, `cancel_job`) for MCP-capable chat agents (e.g. Hermes Agent) to trigger and poll QA jobs from Telegram/Discord/Slack/CLI. Thin HTTP client of `/api/v2`, no `orchestrator.*` imports — deployable independently. Bearer-token auth via the same `orchestrator/security/rbac.py` scopes. See [`docs/mcp-server.md`](mcp-server.md). |
+| MCP server | `integrations/mcp/` (`argus-mcp`, optional `[mcp]` extra) | Exposes an allowlisted subset of `/api/v2` jobs as MCP tools (`run_job`, `run_smoke_test`, `run_site_audit`, `run_crawl_test`, `get_job_status`, `cancel_job`) for MCP-capable chat agents (e.g. Hermes Agent) to trigger and poll QA jobs from Telegram/Discord/Slack/CLI. Thin HTTP client of `/api/v2`, no `orchestrator.*` imports — deployable independently. Bearer-token auth via the same `orchestrator/security/rbac.py` scopes. See [`docs/mcp-server.md`](mcp-server.md). |
 | GitHub Actions | `.github/workflows/qa-smoke.yml`, `qa-post-deploy.yml` | push/PR/nightly smoke; full pipeline on staging deploy |
 | Kubernetes | `kubernetes/` | webhook Deployment + nightly smoke CronJob |
-| Docker | `docker/Dockerfile` | `zyvor-qa run --source local` by default |
+| Docker | `docker/Dockerfile` | `argus test run --source local` by default |
 
 ---
 

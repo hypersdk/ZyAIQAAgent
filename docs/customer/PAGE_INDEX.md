@@ -1,4 +1,4 @@
-# ZyAIQAAgent — Complete page index
+# Zyvor Argus — Complete page index
 
 Every Mission Control surface and action card.
 
@@ -13,7 +13,7 @@ Regenerate: `node scripts/customer-docs/generate-page-index.mjs`
 | Mission Control | `/dashboard` | Live Mission Control console — status hero, workloads, pods, action cards, schedules, findings, and QA run history. | [Open](pages/overview/dashboard.md) |
 | Login | `/login` | Session login gate for Mission Control when DASHBOARD_PASSWORD is configured. | [Open](pages/overview/login.md) |
 | Hero status | `/dashboard/hero` | Cluster/app health banner with pods, replicas, last QA run, pass rate, and next scheduled smoke. | [Open](pages/overview/dashboard-hero.md) |
-| Workloads | `/dashboard/workloads` | Deployment and CronJob strip for the zyvor-qa namespace (when kube access is available). | [Open](pages/overview/dashboard-workloads.md) |
+| Workloads | `/dashboard/workloads` | Deployment and CronJob strip for the argus namespace (when kube access is available). | [Open](pages/overview/dashboard-workloads.md) |
 | Pods | `/dashboard/pods` | Pod cards with phase, restarts, and click-through logs; optional cluster events toggle. | [Open](pages/overview/dashboard-pods.md) |
 | Live job panel | `/dashboard/job-live` | Live panel for the running job — elapsed time, per-test chips, streaming log, Stop / download. | [Open](pages/overview/dashboard-job-live.md) |
 | Command palette | `/dashboard/command-palette` | ⌘K / Ctrl-K spotlight to jump to any action card by name. | [Open](pages/overview/dashboard-command-palette.md) |

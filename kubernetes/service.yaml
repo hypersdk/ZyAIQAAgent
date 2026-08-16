@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: zyvor-qa-webhook
+  name: argus-webhook
   labels:
-    app: zyvor-qa-agent
+    app: argus
 spec:
   selector:
-    app: zyvor-qa-agent
+    app: argus
     component: webhook
   ports:
     - port: 80

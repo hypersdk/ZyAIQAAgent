@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><title>Admin Basics — ZyAIQAAgent</title>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><title>Admin Basics — Zyvor Argus</title>
 <style>
 @page{size:A4;margin:15mm 16mm}*{margin:0;padding:0;box-sizing:border-box}
 html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -42,12 +42,12 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 </tr>
 <tr>
 <td><strong>8080</strong></td>
-<td>Local <code>zyvor-qa serve --port 8080</code></td>
+<td>Local <code>argus serve --port 8080</code></td>
 <td>Dev default</td>
 </tr>
 <tr>
 <td><strong>443 / TLS</strong></td>
-<td><code>zyvor-qa serve --tls</code></td>
+<td><code>argus serve --tls</code></td>
 <td>When terminating TLS in-process</td>
 </tr>
 </tbody></table>
@@ -59,7 +59,7 @@ curl -s http://175.110.122.71:30080/health
 <ul>
 <li>When <code>DASHBOARD_PASSWORD</code> is set, <code>/dashboard</code> and <code>/api/dashboard/*</code> require a session from <code>/login</code>.</li>
 <li>Lab defaults are often <strong><code>admin</code> / <code>Admin@321</code></strong> — rotate for anything exposed.</li>
-<li>Override with <code>DASHBOARD_USER</code> / <code>DASHBOARD_PASSWORD</code> or host file <code>.zyvor-qa-auth</code>.</li>
+<li>Override with <code>DASHBOARD_USER</code> / <code>DASHBOARD_PASSWORD</code> or host file <code>.argus-auth</code>.</li>
 <li><code>GET /health</code> stays open for probes.</li>
 </ul>
 <h2>Key environment</h2>
@@ -120,13 +120,13 @@ curl -s http://175.110.122.71:30080/health
 <pre><code class="language-bash">./scripts/deploy-remote.sh &lt;host&gt; &lt;user&gt; --quick --service   # systemd (needs free port)
 ./scripts/deploy-remote.sh &lt;host&gt; &lt;user&gt; --k3s               # preferred when :30080 is NodePort
 </code></pre>
-<p>If k3s already binds <strong>:30080</strong> as the <code>zyvor-qa-webhook</code> NodePort, prefer <code>--k3s</code> — bare systemd cannot steal that port.</p>
-<p>Logs: <code>journalctl -u zyvor-qa -f</code> or <code>kubectl logs deploy/zyvor-qa-webhook</code>.</p>
+<p>If k3s already binds <strong>:30080</strong> as the <code>argus-webhook</code> NodePort, prefer <code>--k3s</code> — bare systemd cannot steal that port.</p>
+<p>Logs: <code>journalctl -u argus -f</code> or <code>kubectl logs deploy/argus-webhook</code>.</p>
 <h2>Security notes</h2>
 <ul>
 <li>Always set <code>DASHBOARD_PASSWORD</code> before exposing pod logs publicly.</li>
 <li>Treat webhook secrets and LLM keys as production secrets.</li>
-<li>Support: <a href="https://github.com/hypersdk/ZyAIQAAgent/issues">GitHub issues</a>.</li>
+<li>Support: <a href="https://github.com/hypersdk/zyvor-argus/issues">GitHub issues</a>.</li>
 </ul>
 <h2>Related</h2>
 <ul>

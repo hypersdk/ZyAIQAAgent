@@ -55,7 +55,7 @@ curl -X POST "http://localhost:8080/webhook/slack/command" \
   --data "$BODY"
 ```
 
-Run `zyvor-qa serve` in another terminal first (see [Tutorial 10](10-mission-control-dashboard.md)), with `SLACK_SIGNING_SECRET=dev-signing-secret` set to match.
+Run `argus serve` in another terminal first (see [Tutorial 10](10-mission-control-dashboard.md)), with `SLACK_SIGNING_SECRET=dev-signing-secret` set to match.
 
 ## 6. Security notes
 

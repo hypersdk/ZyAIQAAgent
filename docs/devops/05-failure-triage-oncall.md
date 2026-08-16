@@ -90,7 +90,7 @@ Track quarantine in the same sprint board as the bug. Expired quarantine = P2.
 
 ```bash
 # remote examples
-systemctl status zyvor-qa   # name may vary per deploy
+systemctl status argus   # name may vary per deploy
 df -h
 docker ps | grep zyvor
 ```

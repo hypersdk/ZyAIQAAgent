@@ -1,6 +1,6 @@
 # 02 — Secrets & target policy runbook
 
-**Goal:** Point zyvor-qa at private staging without leaking credentials, and without the agent becoming an SSRF foot-gun.
+**Goal:** Point argus at private staging without leaking credentials, and without the agent becoming an SSRF foot-gun.
 
 ---
 
@@ -116,7 +116,7 @@ DASHBOARD_PASSWORD='…'   # deploy-remote.sh can generate/persist
 - Webhook uses `GITHUB_WEBHOOK_SECRET` (HMAC), independent of dashboard login.  
 - Rotate lab default `Admin@321` before any internet exposure.
 
-TLS: `zyvor-qa serve --tls` or terminate at ingress (preferred in prod).
+TLS: `argus serve --tls` or terminate at ingress (preferred in prod).
 
 ---
 

@@ -10,7 +10,7 @@ Install the agent, run the built-in smoke tests against zyvor.dev, and read your
 
 ```bash
 git clone <this-repo>
-cd ZyAIQAAgent
+cd Zyvor Argus
 
 cp .env.example .env
 make install
@@ -18,14 +18,14 @@ make install
 
 `make install` does three things:
 
-1. `pip install -e ".[dev]"` — installs the `zyvor-qa` CLI and Python deps
+1. `pip install -e ".[dev]"` — installs the `argus` CLI and Python deps
 2. `npm install` — installs Playwright and TypeScript
 3. `npx playwright install --with-deps chromium` — downloads the browser
 
 Verify:
 
 ```bash
-zyvor-qa --help
+argus --help
 ```
 
 You should see the command list: `run`, `test`, `generate`, `discover`, `create`, `regression`, `serve`.
@@ -43,7 +43,7 @@ Leave the LLM and GitHub sections empty — everything in this tutorial works wi
 ## 3. Run the smoke tests
 
 ```bash
-zyvor-qa test
+argus test exec
 ```
 
 This runs the hand-written specs in `tests/manual/` (homepage, navigation, product suite, visual baseline placeholders) with Chromium:
@@ -58,7 +58,7 @@ Behind the scenes, custom fixtures captured console logs, network errors, and AP
 ## 4. Run the full pipeline
 
 ```bash
-zyvor-qa run --source local
+argus test run --source local
 ```
 
 Without `--spec`, this uses the example spec `prompts/examples/vm-create.md`. The pipeline:

@@ -30,7 +30,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run full QA pipeline
-        run: zyvor-qa run --source github
+        run: argus test run --source github
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ZYVOR_PRODUCT_REPO: ${{ vars.ZYVOR_PRODUCT_REPO }}

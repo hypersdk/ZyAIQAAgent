@@ -26,7 +26,7 @@ Multi-step user journey (English or step DSL) with optional login/session, video
 
 `goto`, `click`, `hover`, `fill`, `select`, `upload`, `download`, `dialog`, `iframe`, `drag`, `press`, `clock`, `wait`, `wait until`, `assert`, `assert url`, `assert api`, `assert aria`, `assert not`, `assert count`, `assert value`.
 
-CLI equivalent: `zyvor-qa flow <url> --steps file`.
+CLI equivalent: `argus flow run <url> --steps file`.
 
 ## Related pages
 

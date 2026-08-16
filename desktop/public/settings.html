@@ -30,14 +30,14 @@
   </style>
 </head>
 <body>
-  <h1>zyvor-qa binary</h1>
+  <h1>argus binary</h1>
   <p class="hint">
-    Overrides how the app finds <code>zyvor-qa</code>. Leave blank to
+    Overrides how the app finds <code>argus</code>. Leave blank to
     auto-detect (this repo's own <code>.venv</code> first, then <code>PATH</code>).
     Takes effect on the next app restart.
   </p>
   <label for="bin-path">Path override</label>
-  <input id="bin-path" placeholder="/path/to/venv/bin/zyvor-qa" autocomplete="off" spellcheck="false" />
+  <input id="bin-path" placeholder="/path/to/venv/bin/argus" autocomplete="off" spellcheck="false" />
   <div id="status"></div>
   <div class="row">
     <button id="cancel">Close</button>
@@ -57,7 +57,7 @@
     async function load() {
       try {
         const settings = await window.__TAURI__.core.invoke("get_settings");
-        input.value = settings.zyvor_qa_bin || "";
+        input.value = settings.argus_bin || "";
       } catch (err) {
         setStatus(String(err), "err");
       }
@@ -68,7 +68,7 @@
       const value = input.value.trim();
       try {
         await window.__TAURI__.core.invoke("set_settings", {
-          settings: { zyvor_qa_bin: value || null },
+          settings: { argus_bin: value || null },
         });
         setStatus("Saved — restart the app for it to take effect.", "ok");
       } catch (err) {

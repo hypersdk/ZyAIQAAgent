@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Zyvor QA Agent</title>
+  <title>Zyvor Argus</title>
   <style>
     :root {
       color-scheme: dark;
@@ -54,7 +54,7 @@
 <body>
   <div class="panel">
     <div class="spinner" id="spinner"></div>
-    <h1 id="title">Starting Zyvor QA Agent…</h1>
+    <h1 id="title">Starting Zyvor Argus…</h1>
     <p id="detail">Launching the local Mission Control server.</p>
   </div>
 
@@ -97,13 +97,13 @@
         // up for up to MAX_ATTEMPTS * POLL_INTERVAL_MS on an error that will
         // never resolve on its own.
         showError(
-          "<code>zyvor-qa serve</code> failed to start.<br>" +
+          "<code>argus serve</code> failed to start.<br>" +
           String(err || "unknown error")
         );
         return;
       }
       if (attempt >= MAX_ATTEMPTS) {
-        showError("<code>zyvor-qa serve</code> did not start in time.");
+        showError("<code>argus serve</code> did not start in time.");
         return;
       }
       setTimeout(() => poll(attempt + 1), POLL_INTERVAL_MS);

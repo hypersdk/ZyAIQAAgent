@@ -27,7 +27,7 @@ from knowledge.eval_metrics import aggregate_report, summarize_case_metrics
 
 
 def parser() -> argparse.ArgumentParser:
-    result = argparse.ArgumentParser(description="Evaluate a running Zyvor QA API")
+    result = argparse.ArgumentParser(description="Evaluate a running Zyvor Argus API")
     result.add_argument(
         "--dataset",
         type=Path,

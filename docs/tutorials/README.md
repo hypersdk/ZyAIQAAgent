@@ -18,7 +18,7 @@ Hands-on, step-by-step guides. Follow them in order the first time; each later t
 | 12 | [API, Auth, Live-data & Web-quality](12-api-auth-realtime.md) | Test the product beyond the page: OpenAPI contracts, auth/session, WebSocket/SSE, Core Web Vitals, device/cross-browser | ~30 min |
 | 13 | [Test zyvor.dev with recording](13-test-zyvor-dev-recording.md) | YouTube Mission Control demo + smoke/flow/HAR against https://zyvor.dev | ~15 min |
 | 14 | [Ask Zyvor (knowledge RAG)](14-ask-zyvor-knowledge.md) | Optional citation-first product Q&A with Qdrant hybrid retrieval in Mission Control | ~20 min |
-| 15 | [External CI/CD integration](15-external-cicd-integration.md) | Drop zyvor-qa into *any* project's pipeline: reusable GitHub Action, GitLab/CircleCI/Jenkins/Azure templates, exit-code & summary.json contract | ~15 min |
+| 15 | [External CI/CD integration](15-external-cicd-integration.md) | Drop argus into *any* project's pipeline: reusable GitHub Action, GitLab/CircleCI/Jenkins/Azure templates, exit-code & summary.json contract | ~15 min |
 | 16 | [Slack slash-command gateway](16-slack-gateway.md) | Trigger and check on pipeline runs from chat with `/zyvor run <kind>` / `/zyvor status <job_id>` | ~10 min |
 | 17 | [Desktop app (macOS)](17-desktop-app.md) | Run Mission Control in a native window instead of a browser tab | ~10 min |
 | 18 | [Security testing](18-security-testing.md) | Engagements, misconfig/CVE recon, LLM red-teaming, CI security gate, sandboxed exploit PoC/attack-chain/credentialed pentesting | ~30 min |

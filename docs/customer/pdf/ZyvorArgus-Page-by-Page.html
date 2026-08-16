@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><title>Page-by-Page Product Manual — ZyAIQAAgent</title>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><title>Page-by-Page Product Manual — Zyvor Argus</title>
 <style>
 @page{size:A4;margin:15mm 16mm}*{margin:0;padding:0;box-sizing:border-box}
 html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -72,7 +72,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 </tr>
 <tr>
 <td><a href="journeys/dashboard-actions-import-codegen.md">Import codegen</a></td>
-<td>Paste Playwright codegen JS/TS and convert it into ZyAIQAAgent flow steps (optionally run immediately).</td>
+<td>Paste Playwright codegen JS/TS and convert it into Zyvor Argus flow steps (optionally run immediately).</td>
 </tr>
 </tbody></table>
 <h3>Operations</h3>
@@ -126,7 +126,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 </tr>
 <tr>
 <td><a href="overview/dashboard-workloads.md">Workloads</a></td>
-<td>Deployment and CronJob strip for the zyvor-qa namespace (when kube access is available).</td>
+<td>Deployment and CronJob strip for the argus namespace (when kube access is available).</td>
 </tr>
 <tr>
 <td><a href="overview/dashboard.md">Mission Control</a></td>
@@ -302,7 +302,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -332,7 +332,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -362,7 +362,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -392,7 +392,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -424,7 +424,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 </ol>
 <h4>Step language (excerpt)</h4>
 <p><code>goto</code>, <code>click</code>, <code>hover</code>, <code>fill</code>, <code>select</code>, <code>upload</code>, <code>download</code>, <code>dialog</code>, <code>iframe</code>, <code>drag</code>, <code>press</code>, <code>clock</code>, <code>wait</code>, <code>wait until</code>, <code>assert</code>, <code>assert url</code>, <code>assert api</code>, <code>assert aria</code>, <code>assert not</code>, <code>assert count</code>, <code>assert value</code>.</p>
-<p>CLI equivalent: <code>zyvor-qa flow &lt;url&gt; --steps file</code>.</p>
+<p>CLI equivalent: <code>argus flow run &lt;url&gt; --steps file</code>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="dashboard-actions-har.md">HAR record / replay</a></li>
@@ -453,7 +453,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li><strong>Record</strong> — set mode <code>record</code>, enter URL + routes (<code>/</code>, <code>/pricing</code>, …). HAR path can auto-generate.</li>
 <li><strong>Replay</strong> — set mode <code>replay</code>, point at the HAR file, optional expect-text, optional “allow missing routes”.</li>
 <li>Click <strong>📼 Run</strong> and review the live log.</li>
-<li>CLI: <code>zyvor-qa har-replay &lt;url&gt; --mode record|replay --har out.har</code>.</li>
+<li>CLI: <code>argus api har-replay &lt;url&gt; --mode record|replay --har out.har</code>.</li>
 </ol>
 <h3>Related pages</h3>
 <ul>
@@ -465,7 +465,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <hr>
 <h2>Import codegen</h2>
 <h3>Purpose</h3>
-<p>Paste Playwright codegen JS/TS and convert it into ZyAIQAAgent flow steps (optionally run immediately).</p>
+<p>Paste Playwright codegen JS/TS and convert it into Zyvor Argus flow steps (optionally run immediately).</p>
 <h3>When to use it</h3>
 <ul>
 <li>You already recorded a journey with <code>playwright codegen</code></li>
@@ -481,7 +481,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>Paste codegen output (<code>page.goto</code>, <code>getByRole().click</code>, <code>fill</code>, …).</li>
 <li>Optionally tick <strong>run as flow</strong> and provide the app URL.</li>
 <li>Click <strong>📥 Import</strong> — inspect emitted steps; run if requested.</li>
-<li>CLI: <code>zyvor-qa import-codegen script.js [--run --url …]</code>.</li>
+<li>CLI: <code>argus test import-codegen script.js [--run --url …]</code>.</li>
 <li>Local headed record alternative: <code>npm run record-flow -- &lt;url&gt; out.flow.json</code>.</li>
 </ol>
 <h3>Related pages</h3>
@@ -512,7 +512,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -542,7 +542,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -572,7 +572,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -602,7 +602,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -632,7 +632,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -662,7 +662,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -692,7 +692,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -722,7 +722,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -733,7 +733,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <hr>
 <h2>Workloads</h2>
 <h3>Purpose</h3>
-<p>Deployment and CronJob strip for the zyvor-qa namespace (when kube access is available).</p>
+<p>Deployment and CronJob strip for the argus namespace (when kube access is available).</p>
 <h3>When to use it</h3>
 <ul>
 <li>Open this card when the job matches the purpose above</li>
@@ -752,7 +752,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -782,7 +782,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -812,7 +812,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -842,7 +842,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -872,7 +872,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -902,7 +902,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -932,7 +932,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -962,7 +962,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -992,7 +992,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -1022,7 +1022,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -1052,7 +1052,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -1082,7 +1082,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -1112,7 +1112,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -1142,7 +1142,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -1172,7 +1172,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -1202,7 +1202,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -1232,7 +1232,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -1262,7 +1262,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -1292,7 +1292,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -1322,7 +1322,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -1352,7 +1352,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -1382,7 +1382,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -1412,7 +1412,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -1442,7 +1442,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -1472,7 +1472,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -1502,7 +1502,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -1532,7 +1532,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li>After success, check <strong>Findings</strong>, <strong>QA Runs</strong>, and any video / report links the card produces.</li>
 <li>Turn recurring checks into a <strong>Schedule</strong> (5 min – 6 h) when you want continuous monitoring.</li>
 </ol>
-<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>zyvor-qa serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
+<p>If the card stays idle or errors, hit <code>GET /health</code>, confirm the webhook/dashboard process is up (<code>argus serve</code>), and re-check env from <a href="../../../../.env.example">.env.example</a>.</p>
 <h3>Related pages</h3>
 <ul>
 <li><a href="../../getting-started.md">Getting Started</a></li>
@@ -1541,7 +1541,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <li><a href="../../PAGE_INDEX.md">Page index</a></li>
 </ul>
 <hr>
-<h2>ZyAIQAAgent — Complete page index</h2>
+<h2>Zyvor Argus — Complete page index</h2>
 <p>Every Mission Control surface and action card.</p>
 <p><em>Generated: 2026-08-16 · 42 routes</em></p>
 <p>Regenerate: <code>node scripts/customer-docs/generate-page-index.mjs</code></p>
@@ -1576,7 +1576,7 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <tr>
 <td>Workloads</td>
 <td><code>/dashboard/workloads</code></td>
-<td>Deployment and CronJob strip for the zyvor-qa namespace (when kube access is available).</td>
+<td>Deployment and CronJob strip for the argus namespace (when kube access is available).</td>
 <td><a href="pages/overview/dashboard-workloads.md">Open</a></td>
 </tr>
 <tr>

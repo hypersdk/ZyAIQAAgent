@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""The desktop app sets ZYVOR_DESKTOP_MODE=true when it spawns `zyvor-qa
+"""The desktop app sets ZYVOR_DESKTOP_MODE=true when it spawns `argus
 serve` (desktop/src-tauri/src/server.rs) so the dashboard hides the
 Kubernetes pods/workloads panel, which is always "cluster unavailable" for
 a locally-wrapped app with no cluster of its own."""

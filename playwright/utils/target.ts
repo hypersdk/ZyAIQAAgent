@@ -13,7 +13,7 @@
 // limitations under the License.
 
 /**
- * Target environment helpers for Zyvor QA tests.
+ * Target environment helpers for Zyvor Argus tests.
  */
 
 export function getTargetUrl(): string {

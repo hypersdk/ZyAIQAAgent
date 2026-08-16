@@ -78,7 +78,7 @@ def notify_slack(report: PipelineReport) -> bool:
         "blocks": [
             {
                 "type": "header",
-                "text": {"type": "plain_text", "text": f"Zyvor QA Report — {status}"},
+                "text": {"type": "plain_text", "text": f"Zyvor Argus Report — {status}"},
             },
             {
                 "type": "section",
@@ -117,9 +117,9 @@ def notify_teams(report: PipelineReport) -> bool:
     payload = {
         "@type": "MessageCard",
         "@context": "http://schema.org/extensions",
-        "summary": f"Zyvor QA Report — {status}",
+        "summary": f"Zyvor Argus Report — {status}",
         "themeColor": "2EB886" if report.failed == 0 else "D13438",
-        "title": f"Zyvor QA Report — {status}",
+        "title": f"Zyvor Argus Report — {status}",
         "sections": [
             {
                 "facts": [
@@ -145,8 +145,8 @@ def notify_email(report: PipelineReport) -> bool:
 
     status = "PASSED" if report.failed == 0 else "FAILED"
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = f"Zyvor QA Report — {status} ({report.passed}/{report.total})"
-    msg["From"] = os.environ.get("SMTP_USER", "zyvor-qa@localhost")
+    msg["Subject"] = f"Zyvor Argus Report — {status} ({report.passed}/{report.total})"
+    msg["From"] = os.environ.get("SMTP_USER", "argus@localhost")
     msg["To"] = to_addr
 
     text_body = report.summary
@@ -155,7 +155,7 @@ def notify_email(report: PipelineReport) -> bool:
 
     html_body = f"""
     <html><body>
-    <h2>Zyvor QA Report — {status}</h2>
+    <h2>Zyvor Argus Report — {status}</h2>
     <p>Passed: {report.passed} | Failed: {report.failed} | Total: {report.total}</p>
     <pre>{report.summary}</pre>
     {"<h3>Failure Analysis</h3><pre>" + report.failure_analysis + "</pre>" if report.failure_analysis else ""}

@@ -1,6 +1,6 @@
 # Using the Dashboard
 
-ZyAIQAAgent’s **Mission Control** is a single live console at `/dashboard` (login at `/login` when password auth is on).
+Zyvor Argus’s **Mission Control** is a single live console at `/dashboard` (login at `/login` when password auth is on).
 
 ## Surfaces
 

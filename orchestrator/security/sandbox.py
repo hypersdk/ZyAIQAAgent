@@ -59,7 +59,7 @@ def _sandbox_namespace() -> str | None:
 
 
 def _sandbox_service_account() -> str:
-    return os.environ.get("ZYVOR_SANDBOX_SERVICE_ACCOUNT", "zyvor-qa-sandbox").strip() or "zyvor-qa-sandbox"
+    return os.environ.get("ZYVOR_SANDBOX_SERVICE_ACCOUNT", "argus-sandbox").strip() or "argus-sandbox"
 
 
 def _sandbox_image() -> str:
@@ -235,7 +235,7 @@ def run_python(
         active_deadline_seconds=timeout_s,
     )
     job = client.V1Job(
-        metadata=client.V1ObjectMeta(name=job_name, labels={"app": "zyvor-qa-sandbox"}),
+        metadata=client.V1ObjectMeta(name=job_name, labels={"app": "argus-sandbox"}),
         spec=client.V1JobSpec(
             template=client.V1PodTemplateSpec(
                 metadata=client.V1ObjectMeta(labels={"job-name": job_name}), spec=pod_spec

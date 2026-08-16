@@ -1,33 +1,33 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: zyvor-qa-webhook
+  name: argus-webhook
   labels:
-    app: zyvor-qa-agent
+    app: argus
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: zyvor-qa-agent
+      app: argus
       component: webhook
   template:
     metadata:
       labels:
-        app: zyvor-qa-agent
+        app: argus
         component: webhook
     spec:
-      serviceAccountName: zyvor-qa
+      serviceAccountName: argus
       containers:
-        - name: zyvor-qa
-          image: zyvor-qa-agent:latest
-          command: ["zyvor-qa", "serve", "--port", "8080", "--host", "0.0.0.0"]
+        - name: argus
+          image: ghcr.io/hypersdk/zyvor-argus:latest
+          command: ["argus", "serve", "--port", "8080", "--host", "0.0.0.0"]
           ports:
             - containerPort: 8080
           envFrom:
             - configMapRef:
-                name: zyvor-qa-config
+                name: argus-config
             - secretRef:
-                name: zyvor-qa-secrets
+                name: argus-secrets
           env:
             - name: ZYVOR_API_TOKENS_FILE
               value: /app/secrets/api-tokens.json
@@ -66,10 +66,10 @@ spec:
       volumes:
         - name: reports
           persistentVolumeClaim:
-            claimName: zyvor-qa-reports
+            claimName: argus-reports
         - name: api-tokens
           secret:
-            secretName: zyvor-qa-secrets
+            secretName: argus-secrets
             items:
               - key: api-tokens.json
                 path: api-tokens.json

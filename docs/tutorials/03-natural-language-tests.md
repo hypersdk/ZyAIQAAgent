@@ -21,7 +21,7 @@ LLM_MODEL=claude-sonnet-5
 ## 2. Create a test
 
 ```bash
-zyvor-qa create "Verify the homepage shows the Schedule Demo button and all product names"
+argus test create "Verify the homepage shows the Schedule Demo button and all product names"
 ```
 
 What happens (`agents/nl_create/`):
@@ -39,7 +39,7 @@ Generated 1 test file(s):
 ## 3. Create and run in one step
 
 ```bash
-zyvor-qa create "Check that /vm page loads and mentions KubeVirt migration" --execute
+argus test create "Check that /vm page loads and mentions KubeVirt migration" --execute
 ```
 
 `--execute` runs the generated test(s) immediately and exits non-zero on failure.

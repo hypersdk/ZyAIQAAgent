@@ -1,12 +1,12 @@
 # 04 — Mission Control operations
 
-**Goal:** Run `zyvor-qa serve` as a durable ops console for a team: auth, port, schedules, TLS, upgrades, backups of schedules/config.
+**Goal:** Run `argus serve` as a durable ops console for a team: auth, port, schedules, TLS, upgrades, backups of schedules/config.
 
 ---
 
 ## 1. Deploy profiles (`deploy-remote.sh`)
 
-From a clone of ZyAIQAAgent:
+From a clone of Zyvor Argus:
 
 ```bash
 ./scripts/deploy-remote.sh user@qa-host --service --port 30080
@@ -48,9 +48,9 @@ UI: `http://qa-host:30080/dashboard`
 ```bash
 export ZYVOR_BASE_URL=https://staging.example.com
 export DASHBOARD_PASSWORD='…'
-zyvor-qa serve --port 8080
+argus serve --port 8080
 # optional TLS in-process:
-zyvor-qa serve --port 8443 --tls
+argus serve --port 8443 --tls
 ```
 
 Prefer ingress TLS (nginx / Traefik / cloud LB) in shared environments.
@@ -103,8 +103,8 @@ Set `ZYVOR_PW_WORKERS=2` (or lower) on small hosts / in-cluster.
 
 1. Read release notes for the new tag.  
 2. Staging host: `--quick` or new image tag.  
-3. Run smoke once: `zyvor-qa test --grep @smoke`.  
-4. Bump CI pin `hypersdk/ZyAIQAAgent@vX.Y.Z` in product repos (separate PR).  
+3. Run smoke once: `argus test exec --grep @smoke`.  
+4. Bump CI pin `hypersdk/zyvor-argus@vX.Y.Z` in product repos (separate PR).  
 5. Keep previous image tag pullable for 7 days for rollback.
 
 Rollback: redeploy previous tag; revert workflow pin.
@@ -118,7 +118,7 @@ Persist on the host (or in secrets manager):
 - `.env` / k8s Secret (URL, keys, dashboard password)  
 - Schedule definitions (export if you script them via API)  
 - Visual baselines under `screenshots/baselines/` if this host owns them  
-- Port/auth state files under deploy dir (`.zyvor-qa-port`, `.zyvor-qa-auth`) — see remote-deploy notes  
+- Port/auth state files under deploy dir (`.zyvor-argus-port`, `.zyvor-argus-auth`) — see remote-deploy notes  
 
 Artifacts (`reports/`, videos) are disposable; retention is CI’s job.
 
@@ -131,4 +131,4 @@ Artifacts (`reports/`, videos) are disposable; retention is CI’s job.
 - Nightly CronJob ≠ replace product CI gates.  
 - Image tags from deploy script are content-unique to avoid stale containerd caches.
 
-For multi-tenant clusters, dedicate a namespace (`zyvor-qa`) and NetworkPolicy: egress only to staging CIDRs + GHCR + LLM endpoints you allow.
+For multi-tenant clusters, dedicate a namespace (`argus`) and NetworkPolicy: egress only to staging CIDRs + GHCR + LLM endpoints you allow.

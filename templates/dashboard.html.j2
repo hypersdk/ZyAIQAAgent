@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Zyvor Mission Control</title>
 <style>
-  /* Zyvor QA — Mission Control (elevated console UX) */
+  /* Zyvor Argus — Mission Control (elevated console UX) */
   :root {
     color-scheme: dark;
     --radius-liquid: 16px;
@@ -515,7 +515,7 @@
     </div>
   </div>
 
-  {# The desktop app wraps a local, cluster-less zyvor-qa serve — this whole
+  {# The desktop app wraps a local, cluster-less argus serve — this whole
      section is always "cluster unavailable" there, so it's just clutter.
      CSS-hidden rather than removed from the DOM: the polling JS below still
      targets these ids by getElementById() and isn't cluster-aware, so
@@ -1086,7 +1086,7 @@
     </div>
     <div class="glass card">
       <table class="runs-table" id="runs-table" aria-label="Recent QA runs"><tbody></tbody></table>
-      <div class="empty" id="runs-empty" style="border:none;background:none">No run history yet — run <code>zyvor-qa run</code> once.</div>
+      <div class="empty" id="runs-empty" style="border:none;background:none">No run history yet — run <code>argus test run</code> once.</div>
     </div>
     <div class="glass card">
       <div class="k" style="margin-bottom:8px">Activity</div>
@@ -1276,9 +1276,9 @@ function renderHero(overview, pods, runs) {
   $("banner-title").textContent = titles[status] || status.toUpperCase();
   setFavicon(status);
   document.title = (status === "go" ? "🟢" : status === "degraded" ? "🟡" : status === "down" ? "🔴" : "⚪")
-    + " " + (titles[status] || status) + " · Zyvor QA";
+    + " " + (titles[status] || status) + " · Zyvor Argus";
   if (overview.server) {
-    $("server-info").innerHTML = "zyvor-qa v" + esc(overview.server.version)
+    $("server-info").innerHTML = "argus v" + esc(overview.server.version)
       + ' · up <span title="' + esc(overview.server.started_at) + '">'
       + rel(Math.max(0, (Date.now() - new Date(overview.server.started_at).getTime()) / 1000 | 0)) + "</span>";
   }
@@ -2483,7 +2483,7 @@ $("btn-dllog").addEventListener("click", () => {
   const blob = new Blob([window._lastLog || ""], { type: "text/plain" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "zyvor-qa-job.log";
+  a.download = "argus-job.log";
   a.click();
   URL.revokeObjectURL(a.href);
 });

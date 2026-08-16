@@ -72,8 +72,8 @@ doesn't get "discovered" again as a surprise.
 ## Desktop app v2: single-binary freeze
 
 `desktop/` (Tauri 2 shell) ships a native macOS window around
-`zyvor-qa serve`, but v1 deliberately wraps an *existing* local install
-(the repo's own `.venv`, or `zyvor-qa` on `PATH`) rather than bundling a
+`argus serve`, but v1 deliberately wraps an *existing* local install
+(the repo's own `.venv`, or `argus` on `PATH`) rather than bundling a
 self-contained runtime — see `desktop/README.md` and the plan that shipped
 it. Two real blockers stand between that and a true single-binary/`.pkg`
 distribution someone could install without a dev checkout:

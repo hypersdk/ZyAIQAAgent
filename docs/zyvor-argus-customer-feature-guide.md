@@ -1,8 +1,8 @@
-# Zyvor QA Agent — Feature Guide
+# Zyvor Argus — Feature Guide
 
-> **Autonomous AI testing agent that reads requirements, generates tests, and validates every deploy.**
+> **Autonomous software assurance platform that reads requirements, generates tests, and validates every deploy.**
 
-Zyvor QA Agent reads requirements from GitHub, generates Playwright tests, runs them after every deployment, detects regressions, and files plain-English reports — all coordinated by a LangGraph state machine. Beyond the pipeline it ships Mission Control, a live web console that runs 20+ QA capabilities on demand: end-to-end journey tests, API-contract and auth checks, real-time stream assertions, Core Web Vitals, visual sweeps, security probes, and recurring monitors. It is LLM-provider agnostic and degrades gracefully to rule-based fallbacks when no key is configured.
+Zyvor Argus reads requirements from GitHub, generates Playwright tests, runs them after every deployment, detects regressions, and files plain-English reports — all coordinated by a LangGraph state machine. Beyond the pipeline it ships Mission Control, a live web console that runs 20+ capabilities on demand: end-to-end journey tests, API-contract and auth checks, real-time stream assertions, Core Web Vitals, visual sweeps, security probes, and recurring monitors. It is LLM-provider agnostic and degrades gracefully to rule-based fallbacks when no key is configured.
 
 **20+** QA actions in Mission Control · **5** LLM providers supported · **3** browser engines (Chromium/Firefox/WebKit) · **10** network & security probes
 
@@ -24,48 +24,48 @@ This is the customer-facing onboarding guide — how to access the product, your
 
 **How to access it**
 
-- **Web:** Mission Control dashboard, served by `zyvor-qa serve` (e.g. `zyvor-qa serve --port 8080`, then open `http://localhost:8080/dashboard`). A live, self-refreshing console with a status hero, Actions panel (20+ QA capabilities as cards + a ⌘K command palette), Schedules, QA-run history, and Kubernetes pod health. Serve over HTTPS with `zyvor-qa serve --tls` (self-signed cert under `~/.zyvor-qa/tls`).
-- **CLI:** Primary interface is the `zyvor-qa` CLI (installed by `make install`). Verbs: `run`, `test`, `generate`, `discover`, `create`, `regression`, `serve`, plus the Mission Control actions `flow`, `route-sweep`, `api-test`, `auth-test`, `realtime`, `vitals`, `ai-test`. Examples: `zyvor-qa test` (smoke, no LLM), `zyvor-qa run --source github --spec docs/specs/my-feature.md`, `zyvor-qa generate --spec my-specs/products-page.md`, `zyvor-qa create "Verify the homepage Schedule Demo button is visible" --execute`.
+- **Web:** Mission Control dashboard, served by `argus serve` (e.g. `argus serve --port 8080`, then open `http://localhost:8080/dashboard`). A live, self-refreshing console with a status hero, Actions panel (20+ QA capabilities as cards + a ⌘K command palette), Schedules, QA-run history, and Kubernetes pod health. Serve over HTTPS with `argus serve --tls` (self-signed cert under `~/.zyvor-argus/tls`).
+- **CLI:** Primary interface is the `argus` CLI (installed by `make install`). Verbs: `run`, `test`, `generate`, `discover`, `create`, `regression`, `serve`, plus the Mission Control actions `flow`, `route-sweep`, `api-test`, `auth-test`, `realtime`, `vitals`, `ai-test`. Examples: `argus test exec` (smoke, no LLM), `argus test run --source github --spec docs/specs/my-feature.md`, `argus test generate --spec my-specs/products-page.md`, `argus test create "Verify the homepage Schedule Demo button is visible" --execute`.
 - **API:** The dashboard is a thin client over documented JSON endpoints you can script directly: `POST /api/dashboard/jobs` `{kind, params}` to run any action, `GET /api/dashboard/jobs/status` and `POST /jobs/cancel` to watch/stop, `GET /api/dashboard/overview` · `/pods` · `/events` · `/tests` · `/runs`, `GET/POST/DELETE /api/dashboard/schedules[/{id}]`, `GET /api/dashboard/jobs/report.{csv,html,pdf}`, and the HMAC-verified `POST /webhook/github`. `/health` and `/webhook/github` stay open even when login is on.
 - **Login:** No auth by default (local-dev mode). Set `DASHBOARD_PASSWORD` (and optionally `DASHBOARD_USER`, default `admin`) to gate `/dashboard`, its API, and all artifacts behind the login screen; sessions are signed cookies (12 h, or 30 days with "remember me") and login is rate-limited (8 failures / 5 min per IP → 5-min lockout). `deploy-remote.sh` generates a per-host password automatically (skip with `--no-auth`). GitHub webhook payloads are authenticated separately by `GITHUB_WEBHOOK_SECRET` (HMAC).
-- **Needs:** Python 3.9+ (3.11 recommended) and Node.js 20+; copy `.env.example` to `.env` (at minimum set `ZYVOR_BASE_URL`); for GitHub sources run `gh auth login` (or set `GITHUB_TOKEN`) and `ZYVOR_PRODUCT_REPO=owner/repo`; an LLM key (`LLM_PROVIDER` + matching key) is optional except for `zyvor-qa create`.
+- **Needs:** Python 3.9+ (3.11 recommended) and Node.js 20+; copy `.env.example` to `.env` (at minimum set `ZYVOR_BASE_URL`); for GitHub sources run `gh auth login` (or set `GITHUB_TOKEN`) and `ZYVOR_PRODUCT_REPO=owner/repo`; an LLM key (`LLM_PROVIDER` + matching key) is optional except for `argus test create`.
 
 **Your first workflows**
 
 - **First run — smoke a site with no LLM or GitHub**
-  1. Install: `cp .env.example .env` then `make install` (installs the `zyvor-qa` CLI, Playwright, and Chromium).
+  1. Install: `cp .env.example .env` then `make install` (installs the `argus` CLI, Playwright, and Chromium).
   1. Set the target in `.env`: `ZYVOR_BASE_URL=https://zyvor.dev` (leave LLM and GitHub sections empty).
-  1. Run the hand-written smoke suite: `zyvor-qa test` — expect `Results: 11 passed, 0 failed`.
-  1. Run the full pipeline against the example spec: `zyvor-qa run --source local` (parse → generate → execute → report).
+  1. Run the hand-written smoke suite: `argus test exec` — expect `Results: 11 passed, 0 failed`.
+  1. Run the full pipeline against the example spec: `argus test run --source local` (parse → generate → execute → report).
   1. Read the report: `open reports/qa-summary.html` (or `npm run report` for the interactive Playwright report).
 - **From a markdown spec to a running test**
   1. Write a user-story spec with an `## Acceptance Criteria` section, e.g. `my-specs/products-page.md`.
-  1. Generate without running: `zyvor-qa generate --spec my-specs/products-page.md`.
+  1. Generate without running: `argus test generate --spec my-specs/products-page.md`.
   1. Inspect what the parser understood: `cat tests/fixtures/requirements.json`; rephrase any criterion that didn't become a step.
-  1. Run the full pipeline: `zyvor-qa run --source local --spec my-specs/products-page.md` (exit code is non-zero on failure, so it's CI-safe).
+  1. Run the full pipeline: `argus test run --source local --spec my-specs/products-page.md` (exit code is non-zero on failure, so it's CI-safe).
   1. Optional: set `LLM_PROVIDER` + key in `.env` and regenerate for free-form prose and richer TypeScript (a quality gate falls back to the template if the LLM output is bad).
 - **Add a one-off test from plain English**
   1. Configure an LLM in `.env` (this is the one feature with no non-LLM fallback): `LLM_PROVIDER=anthropic` + `ANTHROPIC_API_KEY=…` (or `ollama` for a local, free model).
-  1. Create and run in one step: `zyvor-qa create "Check that /vm page loads and mentions KubeVirt migration" --execute`.
+  1. Create and run in one step: `argus test create "Check that /vm page loads and mentions KubeVirt migration" --execute`.
   1. Name the route and exact visible text in the description — they become `page.goto` and `getByText` assertions.
   1. To keep the check permanently, promote the generated file from `tests/generated/` into `tests/manual/`, or turn the description into a versioned markdown spec.
 - **Wire GitHub as the requirement source and comment on PRs**
   1. Authenticate: `gh auth login` (or set `GITHUB_TOKEN` in `.env`); token needs `Contents: Read` (+ `Pull requests: Write` for comments).
   1. Point at the product repo in `.env`: `ZYVOR_PRODUCT_REPO=owner/repo` (owner/repo, not a URL) and `ZYVOR_BASE_URL`.
-  1. Run from a single spec and post results: `zyvor-qa run --source github --spec docs/specs/my-feature.md --pr-number 42`.
-  1. Or run from everything (`qa`-labeled issues + `docs/specs/` + README/CHANGELOG): `zyvor-qa run --source github`.
-  1. For automatic runs, set `GITHUB_WEBHOOK_SECRET`, start `zyvor-qa serve --port 8080`, and add a repo webhook to `https://:8080/webhook/github` for `push`, `pull_request`, and `repository_dispatch`.
+  1. Run from a single spec and post results: `argus test run --source github --spec docs/specs/my-feature.md --pr-number 42`.
+  1. Or run from everything (`qa`-labeled issues + `docs/specs/` + README/CHANGELOG): `argus test run --source github`.
+  1. For automatic runs, set `GITHUB_WEBHOOK_SECRET`, start `argus serve --port 8080`, and add a repo webhook to `https://:8080/webhook/github` for `push`, `pull_request`, and `repository_dispatch`.
 - **Turn on self-healing autofix for a nightly run**
   1. In `.env` enable diagnosis and repair: `ENABLE_AUTOFIX=true`, `ENABLE_AUTOFIX_APPLY=true`, `AUTOFIX_MAX_RETRIES=2` (keep `ENABLE_LLM_ANALYSIS=true` for useful suggestions).
-  1. Run the pipeline with a failing test: `zyvor-qa run --source local` — the fail branch runs analyze → autofix → apply_autofix → re-execute until green or retries are exhausted.
+  1. Run the pipeline with a failing test: `argus test run --source local` — the fail branch runs analyze → autofix → apply_autofix → re-execute until green or retries are exhausted.
   1. Review the patch like any diff: `git diff tests/` — self-healing fixes selectors, not intent, so confirm it isn't masking a real regression.
   1. In CI prefer suggestions-only mode (`ENABLE_AUTOFIX=true`, `ENABLE_AUTOFIX_APPLY=false`) with a human-reviewed commit.
 - **Operate live from Mission Control**
-  1. Start the console: `zyvor-qa serve --port 8080` and open `http://localhost:8080/dashboard` (add `--tls` for HTTPS beyond localhost).
+  1. Start the console: `argus serve --port 8080` and open `http://localhost:8080/dashboard` (add `--tls` for HTTPS beyond localhost).
   1. Expect the **boot splash**, full-bleed glass topbar, and **signal-field** constellation behind the hero; ⌘K opens the palette; double-click the brand for **NOC** wall mode; `` ` `` warps.
   1. Run any capability from a card; watch per-test ✓/✗ chips stream live, with a ⏹ Stop button and HTML/PDF/Markdown/CSV download row.
   1. Practice on the public site: watch the [YouTube Mission Control demo](https://youtu.be/ys7SvKKqf9w) (or the [journey .webm](assets/zyvor-dev-mission-control-demo.webm)), then re-run — [Test zyvor.dev](customer/test-zyvor-dev.md) / [Tutorial 13](tutorials/13-test-zyvor-dev-recording.md).
-  1. Generate run history for the trends sparkline: `zyvor-qa run --source local` (each run appends to `reports/history/`).
+  1. Generate run history for the trends sparkline: `argus test run --source local` (each run appends to `reports/history/`).
   1. Turn any job into a recurring monitor from the Schedules panel (5 min – 6 h) — e.g. smoke every 15 min, TLS check daily.
   1. Point at a cluster (in-cluster SA or local kubeconfig) to activate the Pods/Workloads panels; set `DASHBOARD_PASSWORD` before exposing it since it reads pod logs.
 
@@ -74,17 +74,17 @@ This is the customer-facing onboarding guide — how to access the product, your
 _A LangGraph state machine turns requirements into running tests and back into reports — no human in the loop._
 
 - **AI Test Generation** — Reads product requirements and generates ready-to-run Playwright test specs that assert the described behavior. — _Turns written requirements into working coverage without hand-authoring every test._
-  - **How:** CLI: `zyvor-qa generate --spec ` (parse → generate into `tests/generated/`), or Mission Control's ⚙ Generate card. Rule-based without a key; set `LLM_PROVIDER` + an API key in `.env` for free-form prose and richer TypeScript.
+  - **How:** CLI: `argus test generate --spec ` (parse → generate into `tests/generated/`), or Mission Control's ⚙ Generate card. Rule-based without a key; set `LLM_PROVIDER` + an API key in `.env` for free-form prose and richer TypeScript.
 - **Spec-to-Test from GitHub** — Pulls a markdown spec (or all specs and issues) straight from your product repo and produces tests for it. — _Requirements and their tests stay in sync because both live in the same repo._
-  - **How:** CLI: `zyvor-qa run --source github --spec docs/specs/my-feature.md` (needs `ZYVOR_PRODUCT_REPO` in `.env` + `gh auth login`); omit `--spec` to fetch all `qa`-labeled issues, `docs/specs/`, and README/CHANGELOG. Dashboard: the ▶ Full pipeline card with `--source github`.
-- **Natural-Language Test Creation** — Describe a check in plain English with `zyvor-qa create` and get a generated Playwright test, optionally run on the spot. — _Anyone can add a test without knowing Playwright or selectors._
-  - **How:** CLI: `zyvor-qa create "" [--execute]`, or Mission Control's ✨ Create from English card. Requires an LLM (`LLM_PROVIDER` + key, or a local `ollama` model) — this is the one feature with no rule-based fallback.
+  - **How:** CLI: `argus test run --source github --spec docs/specs/my-feature.md` (needs `ZYVOR_PRODUCT_REPO` in `.env` + `gh auth login`); omit `--spec` to fetch all `qa`-labeled issues, `docs/specs/`, and README/CHANGELOG. Dashboard: the ▶ Full pipeline card with `--source github`.
+- **Natural-Language Test Creation** — Describe a check in plain English with `argus test create` and get a generated Playwright test, optionally run on the spot. — _Anyone can add a test without knowing Playwright or selectors._
+  - **How:** CLI: `argus test create "" [--execute]`, or Mission Control's ✨ Create from English card. Requires an LLM (`LLM_PROVIDER` + key, or a local `ollama` model) — this is the one feature with no rule-based fallback.
 - **Autonomous AI Browser Agent** — Give a goal like 'create an Ubuntu VM with 2GB RAM' and the agent drives the real browser step by step to accomplish it. — _Tests intent, not scripts — the agent figures out the clicks itself._
-  - **How:** CLI: `zyvor-qa ai-test  --goal "" [--session .json --insecure]`, or the 🤖 AI test card (URL, goal, session, max-steps). LLM decider by default (`LLM_PROVIDER` + key); a heuristic decider runs standard forms without a key.
+  - **How:** CLI: `argus api ai-test  --goal "" [--session .json --insecure]`, or the 🤖 AI test card (URL, goal, session, max-steps). LLM decider by default (`LLM_PROVIDER` + key); a heuristic decider runs standard forms without a key.
 - **Self-Healing Autofix** — After a failure the LLM proposes selector repairs, and can optionally patch the spec and re-run until it passes. — _Brittle selectors heal themselves instead of paging an engineer._
-  - **How:** Config in `.env`: `ENABLE_AUTOFIX=true` for suggestions, add `ENABLE_AUTOFIX_APPLY=true` + `AUTOFIX_MAX_RETRIES=2` to patch files and re-run. Runs on the fail branch of `zyvor-qa run`; review with `git diff tests/`.
+  - **How:** Config in `.env`: `ENABLE_AUTOFIX=true` for suggestions, add `ENABLE_AUTOFIX_APPLY=true` + `AUTOFIX_MAX_RETRIES=2` to patch files and re-run. Runs on the fail branch of `argus test run`; review with `git diff tests/`.
 - **Coverage Discovery & Expansion** — Scans repo code and docs for untested routes and pages, reports the gaps, and generates tests to close them. — _Surfaces the pages nobody remembered to test and fills them in._
-  - **How:** CLI: `zyvor-qa discover --source github` reports gaps; `zyvor-qa run --source github --expand-coverage` (or `zyvor-qa generate … --expand-coverage`) generates the missing `coverage-*.spec.ts`. Or set `ENABLE_COVERAGE_EXPANSION=true` in `.env` for webhook/default GitHub runs.
+  - **How:** CLI: `argus test discover --source github` reports gaps; `argus test run --source github --expand-coverage` (or `argus test generate … --expand-coverage`) generates the missing `coverage-*.spec.ts`. Or set `ENABLE_COVERAGE_EXPANSION=true` in `.env` for webhook/default GitHub runs.
 
 > No API key? Parsing, generation, analysis, and summaries all fall back to rule-based implementations — only natural-language creation strictly requires an LLM.
 
@@ -93,17 +93,17 @@ _A LangGraph state machine turns requirements into running tests and back into r
 _Drive real user journeys across browsers and devices, and catch visual regressions frame by frame._
 
 - **E2E Flow Tests** — Drives a multi-step journey — log in, navigate, fill a wizard, assert the outcome — as one continuous session recorded to a single video and Playwright trace. — _Watch the whole user journey succeed or fail, then time-travel debug it._
-  - **How:** CLI: `zyvor-qa flow  --steps  | --describe "" [--video --username --password --insecure --session  --no-trace]`, or Mission Control's 🎬 Flow test card. Steps stream live; a `journey.webm` video and `trace.zip` land in `reports/jobs/-flow/`.
+  - **How:** CLI: `argus flow run  --steps  | --describe "" [--video --username --password --insecure --session  --no-trace]`, or Mission Control's 🎬 Flow test card. Steps stream live; a `journey.webm` video and `trace.zip` land in `reports/jobs/-flow/`.
 - **HAR Record / Replay** — Captures network traffic as a HAR file, then drives the UI against that recording (offline-friendly contract for the page). — _Prove the UI still works when the backend is mocked from a real capture._
-  - **How:** CLI: `zyvor-qa har-replay <url> --mode record|replay --har path [--routes /, /pricing]`, or the 📼 HAR card in Mission Control.
+  - **How:** CLI: `argus api har-replay <url> --mode record|replay --har path [--routes /, /pricing]`, or the 📼 HAR card in Mission Control.
 - **Import Playwright Codegen** — Paste codegen JS/TS (or record locally with `node playwright/scripts/record-flow.mjs`) and convert it into runnable flow steps. — _Turn an interactive recording into a permanent journey without rewriting selectors by hand._
-  - **How:** CLI: `zyvor-qa import-codegen <file|-> [--run --url …]`, or the 📥 Import codegen card.
+  - **How:** CLI: `argus test import-codegen <file|-> [--run --url …]`, or the 📥 Import codegen card.
 - **Smoke Tests** — Runs the hand-written smoke suite against any target with a single command and no LLM required. — _A fast, dependency-free health check for every deploy._
-  - **How:** CLI: `zyvor-qa test` (runs everything in `tests/manual/` with Chromium), or the ▶ Smoke card in Mission Control. Targets `ZYVOR_BASE_URL`; no LLM key needed.
+  - **How:** CLI: `argus test exec` (runs everything in `tests/manual/` with Chromium), or the ▶ Smoke card in Mission Control. Targets `ZYVOR_BASE_URL`; no LLM key needed.
 - **Route Sweep** — Screenshots every route at desktop and mobile, then pixel-diffs each shot against a saved baseline, masking dynamic content. — _Catches unintended visual changes across the whole site at once._
-  - **How:** CLI: `zyvor-qa route-sweep  --routes "/,/pricing" [--mobile --update-baselines --auto --insecure]`, or the 🗺 Route sweep card. Baselines persist under `reports/artifacts/route-baselines/`; tune the pass threshold with `VISUAL_MAX_DIFF_RATIO`.
+  - **How:** CLI: `argus vision route-sweep  --routes "/,/pricing" [--mobile --update-baselines --auto --insecure]`, or the 🗺 Route sweep card. Baselines persist under `reports/artifacts/route-baselines/`; tune the pass threshold with `VISUAL_MAX_DIFF_RATIO`.
 - **Visual Regression** — Compares captured screenshots against committed baselines with a configurable pixel-diff threshold. — _Fails the build when the UI shifts unexpectedly, not when you meant it to._
-  - **How:** Config in `.env`: `ENABLE_REGRESSION=true` (+ `REGRESSION_THRESHOLD`) compares against `screenshots/baselines/`. CLI: `zyvor-qa regression [--update-baselines]`, or the 👁 Visual regression card.
+  - **How:** Config in `.env`: `ENABLE_REGRESSION=true` (+ `REGRESSION_THRESHOLD`) compares against `screenshots/baselines/`. CLI: `argus vision regression [--update-baselines]`, or the 👁 Visual regression card.
 - **Test Any Site** — Crawls every page of any URL, generates a check per page, and runs them all — login and self-signed TLS supported. — _Point it at a URL and get instant coverage with zero setup._
   - **How:** Mission Control's 🌐 Test any site card (URL, optional login, self-signed TLS toggle). For a standalone crawl into the coverage inventory, set `ENABLE_LIVE_CRAWL=true` (+ `CRAWL_MAX_PAGES`/`CRAWL_MAX_DEPTH`) or run `npm run crawl`.
 - **Visual Compare** — Pixel-diffs two live URLs side by side, such as staging against production, and produces a diff image and percentage. — _Prove a deploy changed nothing it wasn't supposed to._
@@ -111,18 +111,18 @@ _Drive real user journeys across browsers and devices, and catch visual regressi
 - **Flaky Detection** — Runs a suite N times and ranks each test by its flake rate. — _Finds the unreliable tests before they erode trust in the whole suite._
   - **How:** Mission Control's 🎲 Flaky check card — pick the run count N; UI/API-driven with no extra environment variables. Results feed the Test health panel's flaky badges.
 - **Cross-Browser & Device** — Runs on Chromium, Firefox, and WebKit with device profiles and 3G/offline network throttling. — _Confirms the experience holds up beyond your own laptop's browser._
-  - **How:** Per-journey CLI flags: `zyvor-qa flow  --browser firefox|webkit --device "Pixel 7" --throttle 3g|offline` (set `ZYVOR_BROWSER`/`ZYVOR_DEVICE`/`ZYVOR_THROTTLE`), or the 🎬 Flow card's dropdowns. For the full pipeline, set `ENABLE_MULTI_BROWSER=true` in `.env` (install browsers with `npx playwright install --with-deps`). Filter suites with tags (`@smoke`, `@visual`, `@a11y`) via `zyvor-qa test --grep @smoke` or `ZYVOR_GREP`; shard CI with `--shard 1/2`. Optional: `ENABLE_AUTH_SETUP=true` + dashboard credentials for a Playwright setup project that writes `storageState`; `ENABLE_EMULATION_PROJECTS=true` for dark / reduced-motion / locale projects.
+  - **How:** Per-journey CLI flags: `argus flow run  --browser firefox|webkit --device "Pixel 7" --throttle 3g|offline` (set `ZYVOR_BROWSER`/`ZYVOR_DEVICE`/`ZYVOR_THROTTLE`), or the 🎬 Flow card's dropdowns. For the full pipeline, set `ENABLE_MULTI_BROWSER=true` in `.env` (install browsers with `npx playwright install --with-deps`). Filter suites with tags (`@smoke`, `@visual`, `@a11y`) via `argus test exec --grep @smoke` or `ZYVOR_GREP`; shard CI with `--shard 1/2`. Optional: `ENABLE_AUTH_SETUP=true` + dashboard credentials for a Playwright setup project that writes `storageState`; `ENABLE_EMULATION_PROJECTS=true` for dark / reduced-motion / locale projects.
 
 ## 3. API, Auth & Real-Time
 
 _Validation that goes past the page — into your REST contracts, sessions, and live streams._
 
 - **API Contract Tests** — Validates REST endpoints against their OpenAPI schema and runs ordered multi-step API workflows with bearer or API-key auth. — _Catches contract drift and broken endpoints before the UI ever sees them._
-  - **How:** CLI: `zyvor-qa api-test  --spec  [--token "$JWT" --include-writes]` for schema validation, or `--workflow .json` for ordered create→poll→delete steps with `{{variable}}` interpolation. Dashboard: the 🔌 API contract card (base URL, spec URL or inline JSON, optional bearer token).
+  - **How:** CLI: `argus api test  --spec  [--token "$JWT" --include-writes]` for schema validation, or `--workflow .json` for ordered create→poll→delete steps with `{{variable}}` interpolation. Dashboard: the 🔌 API contract card (base URL, spec URL or inline JSON, optional bearer token).
 - **Auth & Session Tests** — Logs in, saves a reusable session, and asserts logout, expiry, and negative-auth behavior. — _Verifies access control works — and hands other tests a ready session to reuse._
-  - **How:** CLI: `zyvor-qa auth-test  --api-login /api/v1/auth/login | --login-url /login --username  --password  [--protected /dashboard --logout-url …]`, or the 🔐 Auth & session card. A passed run saves the session to `reports/artifacts/auth/.json` for reuse via flow/realtime `--session`.
+  - **How:** CLI: `argus api auth-test  --api-login /api/v1/auth/login | --login-url /login --username  --password  [--protected /dashboard --logout-url …]`, or the 🔐 Auth & session card. A passed run saves the session to `reports/artifacts/auth/.json` for reuse via flow/realtime `--session`.
 - **Live-Data Assertions** — Confirms WebSocket and SSE streams are actually delivering messages, covering reconnect, bearer/subprotocol/ticket auth, and live-region updates. — _Proves real-time dashboards are live, not just loading._
-  - **How:** CLI: `zyvor-qa realtime  --ws /path | --sse /path [--expect-messages 3 --token "$JWT" --subprotocol-jwt --ticket-url /path --live-selector  --session ]`, or the 📡 Live data card. Flags a hung page `slow` via the `ZYVOR_SLOW_MS` latency budget instead of a false pass.
+  - **How:** CLI: `argus flow realtime  --ws /path | --sse /path [--expect-messages 3 --token "$JWT" --subprotocol-jwt --ticket-url /path --live-selector  --session ]`, or the 📡 Live data card. Flags a hung page `slow` via the `ZYVOR_SLOW_MS` latency budget instead of a false pass.
 
 > A saved auth session can be reused by flow and real-time tests — and any target-site password is redacted from job status, history, and the live panel.
 
@@ -131,13 +131,13 @@ _Validation that goes past the page — into your REST contracts, sessions, and 
 _Grade speed, accessibility, SEO, and code coverage on a single pass._
 
 - **Core Web Vitals** — Measures and grades LCP, CLS, INP, FCP, and TTFB with device and network-throttle profiles. — _Know how fast real users perceive the page, with a letter grade per metric._
-  - **How:** CLI: `zyvor-qa vitals  [--throttle 3g --device "iPhone 14"]`, or Mission Control's 📊 Web Vitals card with device and throttle dropdowns. Each metric is graded good / needs-improvement / poor against Google's thresholds.
+  - **How:** CLI: `argus watch vitals  [--throttle 3g --device "iPhone 14"]`, or Mission Control's 📊 Web Vitals card with device and throttle dropdowns. Each metric is graded good / needs-improvement / poor against Google's thresholds.
 - **Site Audit with A–F Grade** — Runs per-page accessibility (axe-core), links, SEO, console errors, performance, and security-header checks into a pass/warn/fail matrix and overall grade. — _One report card for the whole quality picture of any page._
   - **How:** Mission Control's 🔬 Site audit card (enter the page URL) — UI/API-driven (`POST /api/dashboard/jobs {kind: "audit"}`) with no extra environment variables. Returns a pass/warn/fail matrix ending in an A–F health grade.
 - **Load Test** — Fires N requests at a chosen concurrency and reports p50/p95/p99 latency and requests per second. — _A quick throughput and latency read without a separate load tool._
   - **How:** Mission Control's ⏱ Load test card — set N requests and concurrency C; UI/API-driven with no extra environment variables (in-pod runs are capped to avoid resource exhaustion). Reports p50/p95/p99 latency and req/s.
 - **V8 JS Coverage** — Collects Chromium V8 JavaScript coverage per test run and aggregates it into the report as a percentage. — _Shows how much of your shipped JavaScript your tests actually exercise._
-  - **How:** Config in `.env`: `ENABLE_V8_COVERAGE=true`, then run any suite (`zyvor-qa test` / `zyvor-qa run`). Artifacts land in `reports/v8-coverage/` and the percentage is summarized in the HTML/PR report.
+  - **How:** Config in `.env`: `ENABLE_V8_COVERAGE=true`, then run any suite (`argus test exec` / `argus test run`). Artifacts land in `reports/v8-coverage/` and the percentage is summarized in the HTML/PR report.
 
 ## 5. Network & Security Probes
 
@@ -159,9 +159,9 @@ _One-shot checks that inspect the wire, the headers, and the certificate._
 _Every run ends in an explanation a human can act on and a bundle they can share._
 
 - **LLM Failure Analysis** — Reads traces and screenshots after a failure to propose a root cause and a fix. — _Turns a red X into a starting point instead of a mystery._
-  - **How:** Config in `.env`: `ENABLE_LLM_ANALYSIS=true` (default). Runs automatically on the fail branch of `zyvor-qa run`, building root cause, affected area, and flake assessment from error messages, console/network logs, and artifact paths; a stub fallback runs without a key.
+  - **How:** Config in `.env`: `ENABLE_LLM_ANALYSIS=true` (default). Runs automatically on the fail branch of `argus test run`, building root cause, affected area, and flake assessment from error messages, console/network logs, and artifact paths; a stub fallback runs without a key.
 - **Plain-English Summaries** — Generates a human-readable run summary suitable for posting as a PR comment. — _Reviewers see what changed and what broke without reading raw logs._
-  - **How:** Config in `.env`: `ENABLE_LLM_REPORT=true` (default). The summary appears in the report and, when you add `--pr-number 42` to a `zyvor-qa run --source github`, is posted as the PR comment; a stub fallback runs without a key.
+  - **How:** Config in `.env`: `ENABLE_LLM_REPORT=true` (default). The summary appears in the report and, when you add `--pr-number 42` to a `argus test run --source github`, is posted as the PR comment; a stub fallback runs without a key.
 - **CSV / HTML / Markdown / PDF Reports** — Writes a downloadable report bundle for every executed job, with per-failure likely-cause hints. — _Share results in the format each audience actually wants._
   - **How:** Every executed job writes a bundle to `reports/jobs/-/`; download it from the dashboard result panel's Download HTML · PDF · Markdown · CSV row (plus a one-click **⧉ Copy MD** to clipboard) or via `GET /api/dashboard/jobs/report.{csv,html,md,pdf}`. PDF rendering is toggled by `ENABLE_PDF_REPORT` in `.env`; Markdown needs no external tool and is always available.
 - **Video, Trace & Screenshot Artifacts** — Captures journey videos, Playwright traces, and per-step screenshots, persisted under `reports/` and downloadable in bulk. — _See exactly what the agent saw when something went wrong._
@@ -174,7 +174,7 @@ _Every run ends in an explanation a human can act on and a bundle they can share
 _A live console that runs every capability on demand and watches your cluster while it does._
 
 - **Live Status Console** — A self-refreshing dashboard with a glanceable verdict, stat tiles, and streamed per-test pass/fail output for the running job. — _One screen tells you whether everything is green right now._
-  - **How:** Run `zyvor-qa serve` and open `/dashboard` — boot splash → full-bleed glass topbar, signal-field constellation, status hero (ALL SYSTEMS GO / DEGRADED / SYSTEMS DOWN / CLUSTER OFFLINE). Auto-refreshes every 5 s (press `r` to refresh now). Scriptable via `GET /api/dashboard/overview`.
+  - **How:** Run `argus serve` and open `/dashboard` — boot splash → full-bleed glass topbar, signal-field constellation, status hero (ALL SYSTEMS GO / DEGRADED / SYSTEMS DOWN / CLUSTER OFFLINE). Auto-refreshes every 5 s (press `r` to refresh now). Scriptable via `GET /api/dashboard/overview`.
 - **Console UX extras** — Boot splash, primary Smoke CTA, card motion, NOC wall mode, warp flash, and achievement toasts — reduced-motion aware. — _The console feels like an ops wall, not a generic admin form._
   - **How:** Double-click the brand for NOC wall mode; press `` ` `` or type `zyvor` for warp; first-visit toasts unlock as you explore. Details: [Using the Dashboard](customer/using-the-dashboard.md).
 - **On-Demand Actions Panel** — Launch any of 20+ QA capabilities from a card or the ⌘K command palette, with a stop button and live log. — _Run any check without touching a terminal._
@@ -184,7 +184,7 @@ _A live console that runs every capability on demand and watches your cluster wh
 - **Kubernetes Pod Health** — Shows per-pod phase, restarts, events, CPU/memory, and live log tails, with a restart button and namespace events. — _Watch the platform under test and the agent's own pods in one place._
   - **How:** Activates automatically when a cluster is reachable (in-cluster service account, else local kubeconfig). Scope it with `DASHBOARD_NAMESPACE` and `DASHBOARD_POD_SELECTOR` in `.env`. Scriptable via `GET /api/dashboard/pods`, `…/pods/{name}/logs`, `DELETE …/pods/{name}` (restart).
 - **Authenticated & TLS-Ready** — Optional password login (rate-limited, signed-cookie sessions) gates the dashboard, API, and artifacts; serve over HTTPS with a self-signed cert. — _Safe to expose a console that can read pod logs._
-  - **How:** Config in `.env`: set `DASHBOARD_PASSWORD` (+ optional `DASHBOARD_USER`) to enable login; `/health` and `/webhook/github` stay open. Serve HTTPS with `zyvor-qa serve --tls` (self-signed under `~/.zyvor-qa/tls`) or `--tls-cert`/`--tls-key`.
+  - **How:** Config in `.env`: set `DASHBOARD_PASSWORD` (+ optional `DASHBOARD_USER`) to enable login; `/health` and `/webhook/github` stay open. Serve HTTPS with `argus serve --tls` (self-signed under `~/.zyvor-argus/tls`) or `--tls-cert`/`--tls-key`.
 - **Ask Zyvor (knowledge RAG)** — Optional citation-first Q&A over product docs (Qdrant hybrid retrieval) inside Mission Control, with streaming answers and optional read-only live cluster tools. — _Ask “why is egress failing?” without leaving the console._
   - **How:** Install `pip install -e ".[knowledge]"`, start Qdrant, ingest docs, set `LLM_API_KEY` — see [Tutorial 14](tutorials/14-ask-zyvor-knowledge.md). Dashboard card **Ask Zyvor**; API `POST /v1/qa` (+ `/v1/qa/stream`). Primary agent stays read-only; remediation HITL is a separate gated agent.
 - **Scriptable JSON API** — The whole console is a thin client over documented JSON endpoints for jobs, schedules, runs, pods, and reports. — _Automate the same actions the UI performs from your own tooling._
@@ -195,13 +195,13 @@ _A live console that runs every capability on demand and watches your cluster wh
 _Wires into GitHub, your chat tools, your LLM of choice, and your cluster._
 
 - **GitHub Integration** — Reads specs and issues, runs on deploy events via an HMAC-verified webhook, and posts result summaries back as PR comments. — _QA rides along with your existing GitHub workflow._
-  - **How:** Set `ZYVOR_PRODUCT_REPO` in `.env` + `gh auth login` (or `GITHUB_TOKEN`), then `zyvor-qa run --source github [--pr-number 42]`. For automatic runs, set `GITHUB_WEBHOOK_SECRET`, run `zyvor-qa serve`, and add a repo webhook to `/webhook/github` for `push`/`pull_request`/`repository_dispatch`.
+  - **How:** Set `ZYVOR_PRODUCT_REPO` in `.env` + `gh auth login` (or `GITHUB_TOKEN`), then `argus test run --source github [--pr-number 42]`. For automatic runs, set `GITHUB_WEBHOOK_SECRET`, run `argus serve`, and add a repo webhook to `/webhook/github` for `push`/`pull_request`/`repository_dispatch`.
 - **Slack, Teams & Email Alerts** — Sends block-formatted Slack messages, Teams adaptive cards, and HTML email with the PDF report attached. — _The right people hear about failures where they already work._
   - **How:** Config in `.env`: set `SLACK_WEBHOOK_URL`, `TEAMS_WEBHOOK_URL`, and/or `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASSWORD` + `NOTIFY_EMAIL_TO` (PDF attached when available). Alerts fire on pipeline runs.
 - **Provider-Agnostic LLM** — Works with OpenAI, Anthropic, Azure OpenAI, Google, or a local Ollama model through a single configuration switch. — _Use the model and vendor you already trust — or none at all._
   - **How:** Config in `.env`: `LLM_PROVIDER=openai|anthropic|azure|google|ollama`, `LLM_MODEL=`, and the matching key (`OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `AZURE_OPENAI_API_KEY`+`AZURE_OPENAI_ENDPOINT` / `GOOGLE_API_KEY` / `OLLAMA_BASE_URL`). Omit entirely to use rule-based fallbacks.
 - **Kubernetes & Docker Deploy** — Ships manifests for Deployment, Service, Ingress, CronJob, RBAC, and PVC, plus a container image and a one-command remote deploy script. — _Run it as a scheduled in-cluster job or a standing service._
-  - **How:** Apply the manifests under `kubernetes/` with `make k8s-validate` then `make k8s-apply`; port-forward the dashboard (`kubectl port-forward svc/zyvor-qa-webhook 8080:80`). Or deploy to a host with `scripts/deploy-remote.sh   [--service --tls]`.
+  - **How:** Apply the manifests under `kubernetes/` with `make k8s-validate` then `make k8s-apply`; port-forward the dashboard (`kubectl port-forward svc/argus-webhook 8080:80`). Or deploy to a host with `scripts/deploy-remote.sh   [--service --tls]`.
 - **CI/CD Workflows** — Includes GitHub Actions for lint and unit tests, nightly and PR smoke runs, and post-deploy validation via repository dispatch. — _Coverage runs automatically on push, PR, schedule, and deploy._
   - **How:** Ships GitHub Actions in `.github/workflows/` (lint, unit, nightly/PR smoke, post-deploy). Trigger the post-deploy pipeline from your own pipeline with `gh api repos/$ZYVOR_PRODUCT_REPO/dispatches -f event_type=staging-deployed -F 'client_payload[pr_number]=42'`.
 - **Rust Diff Accelerator** — An optional `zyvor-diff` Rust binary replaces Pillow for faster screenshot comparison. — _Speeds up visual diffing on large baseline sets._
@@ -210,14 +210,14 @@ _Wires into GitHub, your chat tools, your LLM of choice, and your cluster._
 ## Getting started
 
 1. **Install** — Copy `.env.example` to `.env` and run `make install` (needs Python 3.9+ and Node.js 20+).
-2. **Run a smoke test** — `zyvor-qa test --grep @smoke` against your target (try `ZYVOR_BASE_URL=https://zyvor.dev`) — no LLM key required.
-3. **Watch / re-record a journey** — open the [YouTube Mission Control demo](https://youtu.be/ys7SvKKqf9w) (thumbnail preview on [GitHub README](https://github.com/hypersdk/ZyAIQAAgent)), then `zyvor-qa flow https://zyvor.dev --steps docs/assets/zyvor-dev-demo.steps --video` — see [Test zyvor.dev](customer/test-zyvor-dev.md).
-4. **Open Mission Control** — `zyvor-qa serve` then browse to `/dashboard` (boot splash + signal field + ⌘K) to run any of the 20+ actions live. Optional: enable [Ask Zyvor](tutorials/14-ask-zyvor-knowledge.md).
-5. **Wire up GitHub** — Set `ZYVOR_PRODUCT_REPO`, authenticate `gh`, then `zyvor-qa run --source github --spec docs/specs/my-feature.md`.
+2. **Run a smoke test** — `argus test exec --grep @smoke` against your target (try `ZYVOR_BASE_URL=https://zyvor.dev`) — no LLM key required.
+3. **Watch / re-record a journey** — open the [YouTube Mission Control demo](https://youtu.be/ys7SvKKqf9w) (thumbnail preview on [GitHub README](https://github.com/hypersdk/zyvor-argus)), then `argus flow run https://zyvor.dev --steps docs/assets/zyvor-dev-demo.steps --video` — see [Test zyvor.dev](customer/test-zyvor-dev.md).
+4. **Open Mission Control** — `argus serve` then browse to `/dashboard` (boot splash + signal field + ⌘K) to run any of the 20+ actions live. Optional: enable [Ask Zyvor](tutorials/14-ask-zyvor-knowledge.md).
+5. **Wire up GitHub** — Set `ZYVOR_PRODUCT_REPO`, authenticate `gh`, then `argus test run --source github --spec docs/specs/my-feature.md`.
 6. **Add an LLM (optional)** — Set `LLM_PROVIDER` and the matching API key to unlock AI generation, analysis, and natural-language tests.
-7. **Pull the container** — `docker pull ghcr.io/hypersdk/zyaiqaagent:v0.4.0` — see [Releases](releases.md).
+7. **Pull the container** — `docker pull ghcr.io/hypersdk/zyvor-argus:v0.7.0` — see [Releases](releases.md).
 
-> **Good to know:** Many features are opt-in behind flags (regression, autofix, coverage expansion, V8 coverage, multi-browser, Rust diff) and are off by default. Without an LLM key the agent still runs but uses rule-based fallbacks for parsing, generation, analysis, and summaries; only `zyvor-qa create` strictly requires an LLM. API validation checks HTTP statuses and OpenAPI schemas rather than full business logic. The Mission Control dashboard reads pod logs, so it is intentionally not exposed through the ingress and should be protected with a password. Kubernetes panels require a reachable cluster; without one they show an offline state while everything else keeps working. Multi-browser and load testing are best-effort in-pod and capped to avoid resource exhaustion.
+> **Good to know:** Many features are opt-in behind flags (regression, autofix, coverage expansion, V8 coverage, multi-browser, Rust diff) and are off by default. Without an LLM key the agent still runs but uses rule-based fallbacks for parsing, generation, analysis, and summaries; only `argus test create` strictly requires an LLM. API validation checks HTTP statuses and OpenAPI schemas rather than full business logic. The Mission Control dashboard reads pod logs, so it is intentionally not exposed through the ingress and should be protected with a password. Kubernetes panels require a reachable cluster; without one they show an offline state while everything else keeps working. Multi-browser and load testing are best-effort in-pod and capped to avoid resource exhaustion.
 
 ---
-_Zyvor QA Agent is developed by ZyvorAI Labs. Contact **info@zyvor.dev** · Proprietary & Confidential._
+_Zyvor Argus is developed by ZyvorAI Labs. Contact **info@zyvor.dev** · Proprietary & Confidential._

@@ -1,4 +1,4 @@
-# ZyAIQAAgent Mission Control — KT tutorial pipeline
+# Zyvor Argus Mission Control — KT tutorial pipeline
 
 Nine Playwright recordings driving the live Mission Control deployment,
 stitched with the same ffmpeg title-card/caption composite pipeline as
@@ -31,12 +31,12 @@ node seg06-audit.mjs       # real site audit against https://zyvor.dev
 node seg07-probes.mjs
 node seg08-ask.mjs
 node seg09-noc.mjs
-./build.sh                 # -> out/zyaiqaagent-kt-tutorial.mp4
+./build.sh                 # -> out/zyvor-argus-kt-tutorial.mp4
 ```
 
 Override the target host/credentials with `ZQA_MC_URL` / `ZQA_MC_USER` / `ZQA_MC_PASS`
 env vars (see `lib.mjs`) — defaults match the current lab deployment's
-generated `.zyvor-qa-auth` credentials.
+generated `.zyvor-argus-auth` credentials.
 
 ## Publishing
 

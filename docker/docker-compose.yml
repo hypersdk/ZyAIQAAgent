@@ -7,7 +7,7 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
 
-  zyvor-qa:
+  argus:
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -16,9 +16,9 @@ services:
     volumes:
       - ../reports:/app/reports
       - ../test-results:/app/test-results
-    command: ["test"]
+    command: ["test", "exec"]
 
-  zyvor-qa-webhook:
+  argus-webhook:
     build:
       context: ..
       dockerfile: docker/Dockerfile
