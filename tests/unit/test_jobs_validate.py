@@ -622,3 +622,49 @@ def test_exploit_poc_happy_path_with_exploit_tier_engagement(monkeypatch):
     assert clean["finding_description"] == "SQLi in ?id="
     assert clean["timeout_s"] == 300  # capped
     monkeypatch.delenv("ZYVOR_EXPLOIT_EXECUTION_ENABLED", raising=False)
+
+
+# --- attack_chain: same fail-closed gates as exploit_poc, plus max_steps cap.
+
+def test_attack_chain_registered():
+    assert "attack_chain" in VALID_KINDS
+
+
+def test_attack_chain_disabled_by_default(monkeypatch):
+    monkeypatch.delenv("ZYVOR_EXPLOIT_EXECUTION_ENABLED", raising=False)
+    _allow_engagement(monkeypatch, tier="exploit")
+    with pytest.raises(ValueError, match="ZYVOR_EXPLOIT_EXECUTION_ENABLED"):
+        _validate(
+            "attack_chain",
+            {"url": "https://x.io", "objective": "escalate SQLi to RCE", "engagement_id": "eng-1"},
+        )
+
+
+def test_attack_chain_rejects_active_recon_tier_engagement(monkeypatch):
+    monkeypatch.setenv("ZYVOR_EXPLOIT_EXECUTION_ENABLED", "true")
+    _allow_engagement(monkeypatch, tier="active_recon")
+    with pytest.raises(ValueError, match="insufficient"):
+        _validate(
+            "attack_chain",
+            {"url": "https://x.io", "objective": "escalate SQLi to RCE", "engagement_id": "eng-1"},
+        )
+    monkeypatch.delenv("ZYVOR_EXPLOIT_EXECUTION_ENABLED", raising=False)
+
+
+def test_attack_chain_requires_objective(monkeypatch):
+    monkeypatch.setenv("ZYVOR_EXPLOIT_EXECUTION_ENABLED", "true")
+    _allow_engagement(monkeypatch, tier="exploit")
+    with pytest.raises(ValueError, match="objective"):
+        _validate("attack_chain", {"url": "https://x.io", "engagement_id": "eng-1"})
+    monkeypatch.delenv("ZYVOR_EXPLOIT_EXECUTION_ENABLED", raising=False)
+
+
+def test_attack_chain_max_steps_capped(monkeypatch):
+    monkeypatch.setenv("ZYVOR_EXPLOIT_EXECUTION_ENABLED", "true")
+    _allow_engagement(monkeypatch, tier="exploit")
+    clean = _validate(
+        "attack_chain",
+        {"url": "https://x.io", "objective": "escalate SQLi to RCE", "max_steps": 999, "engagement_id": "eng-1"},
+    )
+    assert clean["max_steps"] == 5
+    monkeypatch.delenv("ZYVOR_EXPLOIT_EXECUTION_ENABLED", raising=False)

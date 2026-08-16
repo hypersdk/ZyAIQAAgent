@@ -94,12 +94,13 @@ The live-crawl agent (`playwright/scripts/crawl-site.mjs`) has its own, narrower
 
 ## Security engagements
 
-Four job kinds do deeper, potentially-invasive security testing —
+Five job kinds do deeper, potentially-invasive security testing —
 `misconfig_scan` (misconfig/recon beyond the static probes), `cve_lookup`
 (read-only, checks fingerprinted versions against OSV.dev), `llm_redteam`
-(adversarial-prompt battery against Ask Zyvor), and `exploit_poc`
+(adversarial-prompt battery against Ask Zyvor), `exploit_poc`
 (LLM-generated, sandboxed, non-destructive verification of a described
-finding) — and are refused (`400`) unless the request cites a live,
+finding), and `attack_chain` (repeated `exploit_poc` steps chained by an
+LLM planner) — and are refused (`400`) unless the request cites a live,
 sufficiently-scoped **security engagement**: an `admin`-issued attestation
 that the target is actually authorized for testing. This is separate from
 (and in addition to) the SSRF-focused [target policy](#target-policy)
@@ -164,6 +165,17 @@ ServiceAccount token, and a hard timeout. The generated source is written to
 `kubernetes/sandbox.yaml` also attempts a per-Job egress-restricting
 NetworkPolicy, but that's best-effort — it has no effect on CNIs that don't
 enforce NetworkPolicy (notably k3s's default Flannel).
+
+`attack_chain` needs exactly the same two gates and sandbox backend — it's
+`exploit_poc` run in a loop, where an LLM proposes one next step at a time
+given every step confirmed so far, stopping the moment a step fails to
+verify or the planner has nothing safe left to propose (capped at 5 steps):
+
+```bash
+curl -X POST https://qa.example.com/api/v2/jobs \
+  -H 'Content-Type: application/json' \
+  -d '{"kind": "attack_chain", "params": {"url": "https://app.example.com", "objective": "escalate SQLi to RCE", "engagement_id": "<exploit-tier id>"}}'
+```
 
 ## Autonomous-agent modes
 
