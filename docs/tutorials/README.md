@@ -21,6 +21,7 @@ Hands-on, step-by-step guides. Follow them in order the first time; each later t
 | 15 | [External CI/CD integration](15-external-cicd-integration.md) | Drop zyvor-qa into *any* project's pipeline: reusable GitHub Action, GitLab/CircleCI/Jenkins/Azure templates, exit-code & summary.json contract | ~15 min |
 | 16 | [Slack slash-command gateway](16-slack-gateway.md) | Trigger and check on pipeline runs from chat with `/zyvor run <kind>` / `/zyvor status <job_id>` | ~10 min |
 | 17 | [Desktop app (macOS)](17-desktop-app.md) | Run Mission Control in a native window instead of a browser tab | ~10 min |
+| 18 | [Security testing](18-security-testing.md) | Engagements, misconfig/CVE recon, LLM red-teaming, CI security gate, sandboxed exploit PoC/attack-chain/credentialed pentesting | ~30 min |
 
 **DevOps / SRE:** operational runbooks (gates, secrets, specs, Mission Control, triage, pipeline tiers) → **[docs/devops/](../devops/README.md)**.
 
