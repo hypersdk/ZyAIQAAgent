@@ -20,6 +20,7 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, Body, HTTPException, Query, Request, Response
+from fastapi.responses import FileResponse
 
 from orchestrator.dashboard.durable_jobs import get_service
 from orchestrator.observability.metrics import render
@@ -82,6 +83,44 @@ async def cancel_job(request: Request, job_id: str) -> dict[str, Any]:
     if not changed:
         raise HTTPException(status_code=409, detail="job is absent or already complete")
     return {"cancel_requested": True, "job_id": job_id}
+
+
+@router.get("/jobs/{job_id}/artifact")
+async def get_job_artifact(request: Request, job_id: str, href: str = Query(...)) -> FileResponse:
+    """Streams a test video/trace through the authenticated v2 API instead
+    of the /reports static mount, whose own auth (dashboard.auth, gated on
+    the unrelated legacy DASHBOARD_PASSWORD env var) has nothing to do with
+    the RBAC/API-token model the rest of this API uses -- a caller
+    authenticated via require_scope() here shouldn't depend on whether an
+    operator happened to also set that separate password.
+
+    href must be exactly one of the video/trace hrefs already present in
+    this job's own persisted result (see jobs.py's _cases_payload) -- never
+    a client-supplied path, which is what actually prevents traversal here;
+    resolving under reports_root is defense in depth on top of that, not
+    the primary control."""
+    require_scope(request, "jobs:read")
+    job = get_store().get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="job not found")
+    known_hrefs = {
+        case.get(key)
+        for case in ((job.get("result") or {}).get("cases") or [])
+        for key in ("video", "trace")
+        if case.get(key)
+    }
+    if href not in known_hrefs:
+        raise HTTPException(status_code=404, detail="artifact not recorded for this job")
+
+    from orchestrator.dashboard.jobs import _repo_root
+
+    reports_root = (_repo_root() / "reports").resolve()
+    file_path = (_repo_root() / href.lstrip("/")).resolve()
+    if reports_root not in file_path.parents:
+        raise HTTPException(status_code=400, detail="invalid artifact path")
+    if not file_path.is_file():
+        raise HTTPException(status_code=404, detail="artifact file no longer on disk")
+    return FileResponse(file_path)
 
 
 @router.get("/schedules")
