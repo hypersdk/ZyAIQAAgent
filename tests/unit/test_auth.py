@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import importlib
+import time
 
 import pytest
 
@@ -83,6 +84,55 @@ def test_rate_limit_map_pruned(auth):
     auth._rl_last_prune = 0.0
     auth.record_failure("198.51.100.99")  # any failure triggers the sweep
     assert "198.51.100.1" not in auth._rl_failures
+
+
+def test_rl_prune_removes_expired_lockout(auth):
+    auth._rl_locked_until["1.2.3.4"] = 1.0  # already expired
+    auth._rl_last_prune = 0.0
+    auth._rl_prune(301.0)  # far enough past _rl_last_prune to trigger the sweep
+    assert "1.2.3.4" not in auth._rl_locked_until
+
+
+def test_rate_limited_clears_a_naturally_expired_lock(auth):
+    auth._rl_locked_until["5.6.7.8"] = 1.0  # a timestamp in the distant past
+    assert auth.rate_limited("5.6.7.8") == 0
+    assert "5.6.7.8" not in auth._rl_locked_until
+
+
+def test_record_failure_trims_a_stale_entry_inline(auth):
+    auth._rl_failures["9.9.9.9"].append(1.0)  # ancient timestamp
+    auth._rl_last_prune = time.time()  # keep the periodic sweep from firing this call
+    auth.record_failure("9.9.9.9")
+    assert len(auth._rl_failures["9.9.9.9"]) == 1  # only the fresh failure remains
+
+
+def test_secret_uses_explicit_env_when_set(monkeypatch, auth):
+    monkeypatch.setenv("DASHBOARD_SECRET", "explicit-secret-value")
+    assert auth._secret() == b"explicit-secret-value"
+
+
+def test_validate_token_rejects_non_numeric_expiry(auth):
+    assert auth.validate_token("not-a-number:somesig") is False
+
+
+def test_is_authenticated_true_when_auth_is_disabled(monkeypatch):
+    monkeypatch.delenv("DASHBOARD_PASSWORD", raising=False)
+    from orchestrator.dashboard import auth as auth_mod
+
+    assert auth_mod.is_authenticated(_FakeRequest()) is True
+
+
+def test_is_authenticated_checks_the_session_cookie_when_enabled(auth):
+    token, _ = auth.issue_token()
+    assert auth.is_authenticated(_FakeRequest(cookies={auth.COOKIE_NAME: token})) is True
+    assert auth.is_authenticated(_FakeRequest(cookies={auth.COOKIE_NAME: "garbage"})) is False
+
+
+def test_requires_auth_is_false_when_disabled(monkeypatch):
+    monkeypatch.delenv("DASHBOARD_PASSWORD", raising=False)
+    from orchestrator.dashboard import auth as auth_mod
+
+    assert auth_mod.requires_auth("/dashboard") is False
 
 
 def test_requires_auth_paths(auth):

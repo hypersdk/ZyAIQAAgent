@@ -54,6 +54,20 @@ def test_run_rejects_unsupported_kind():
     assert "Unknown kind" in reply["text"]
 
 
+def test_run_reports_enqueue_failure(monkeypatch):
+    class _RejectingService:
+        def enqueue(self, kind, params, *, requested_by=""):
+            raise ValueError("seat limit exceeded")
+
+    monkeypatch.setattr(durable_jobs, "get_service", lambda: _RejectingService())
+
+    reply = handle_slash_command("run smoke", requested_by="slack:alice")
+
+    assert reply["response_type"] == "ephemeral"
+    assert "Could not start job" in reply["text"]
+    assert "seat limit exceeded" in reply["text"]
+
+
 def test_status_reports_known_job(monkeypatch):
     fake_store = _FakeStore({"id": "job-123", "kind": "smoke", "status": "running"})
     monkeypatch.setattr(persistence_store, "get_store", lambda: fake_store)
