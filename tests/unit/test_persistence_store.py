@@ -12,10 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sqlite3
 import time
+import uuid
+from contextlib import contextmanager
 from datetime import datetime, timezone
 
-from orchestrator.persistence.store import MissionControlStore
+import pytest
+
+import orchestrator.persistence.store as store_module
+from orchestrator.persistence.store import MissionControlStore, _loads
 
 
 def _backdate_heartbeat(store: MissionControlStore, job_id: str, seconds_ago: float) -> None:
@@ -107,3 +113,268 @@ def test_recover_stale_jobs_dead_letters_at_attempt_cap(tmp_path, monkeypatch):
     dead = store.get_job(job["id"])
     assert dead and dead["status"] == "failed"
     assert "dead-lettered" in dead["error"]
+
+
+# -- _loads --------------------------------------------------------------
+
+
+def test_loads_returns_default_on_malformed_json():
+    assert _loads("{not valid json", {"fallback": True}) == {"fallback": True}
+
+
+def test_loads_returns_default_on_empty_value():
+    assert _loads(None, []) == []
+    assert _loads("", []) == []
+
+
+# -- enqueue_job: IntegrityError edge cases -------------------------------
+
+
+def test_enqueue_job_reraises_integrity_error_without_idempotency_key(tmp_path, monkeypatch):
+    store = MissionControlStore(tmp_path / "state.db")
+    fixed_id = uuid.UUID(int=1)
+    monkeypatch.setattr(store_module.uuid, "uuid4", lambda: fixed_id)
+
+    store.enqueue_job("smoke", {})
+    with pytest.raises(sqlite3.IntegrityError):
+        store.enqueue_job("smoke", {})  # same forced id, no idempotency_key to fall back on
+
+
+def test_enqueue_job_reraises_when_colliding_id_has_a_different_idempotency_key(tmp_path, monkeypatch):
+    store = MissionControlStore(tmp_path / "state.db")
+    fixed_id = uuid.UUID(int=2)
+    monkeypatch.setattr(store_module.uuid, "uuid4", lambda: fixed_id)
+
+    store.enqueue_job("smoke", {}, idempotency_key="key-A")
+    with pytest.raises(sqlite3.IntegrityError):
+        # Same forced id collides on the primary key, but the idempotency_key
+        # is different -- so the fallback lookup by that key finds nothing.
+        store.enqueue_job("smoke", {}, idempotency_key="key-B")
+
+
+# -- claim_job -------------------------------------------------------------
+
+
+def test_claim_job_returns_none_when_queue_is_empty(tmp_path):
+    store = MissionControlStore(tmp_path / "state.db")
+    assert store.claim_job() is None
+
+
+def test_claim_job_returns_none_when_the_update_loses_a_race(tmp_path, monkeypatch):
+    """Simulates the belt-and-suspenders guard for the (SQLite-BEGIN-IMMEDIATE-
+    should-prevent-in-practice) case where the claiming UPDATE affects zero
+    rows despite the prior SELECT finding a queued job."""
+    store = MissionControlStore(tmp_path / "state.db")
+    store.enqueue_job("smoke", {})
+
+    class _RowcountZero:
+        def __init__(self, cursor):
+            self._cursor = cursor
+            self.rowcount = 0
+
+        def __getattr__(self, name):
+            return getattr(self._cursor, name)
+
+    class _ProxyConn:
+        def __init__(self, real):
+            self._real = real
+
+        def execute(self, sql, params=()):
+            cur = self._real.execute(sql, params)
+            if sql.strip().startswith("UPDATE jobs SET status='running'"):
+                return _RowcountZero(cur)
+            return cur
+
+        def __getattr__(self, name):
+            return getattr(self._real, name)
+
+    real_connect = store.connect
+
+    @contextmanager
+    def patched_connect():
+        with real_connect() as conn:
+            yield _ProxyConn(conn)
+
+    monkeypatch.setattr(store, "connect", patched_connect)
+
+    assert store.claim_job() is None
+
+
+# -- heartbeat / cancel_job / cancellation_requested / mark_cancelled ------
+
+
+def _raw_heartbeat_at(store: MissionControlStore, job_id: str) -> str:
+    with store.connect() as conn:
+        row = conn.execute("SELECT heartbeat_at FROM jobs WHERE id=?", (job_id,)).fetchone()
+    return row["heartbeat_at"]
+
+
+def test_heartbeat_updates_running_job_only(tmp_path):
+    store = MissionControlStore(tmp_path / "state.db")
+    job = store.enqueue_job("smoke", {})
+    store.claim_job()
+    before = _raw_heartbeat_at(store, job["id"])
+
+    time.sleep(0.01)
+    store.heartbeat(job["id"])
+
+    after = _raw_heartbeat_at(store, job["id"])
+    assert after >= before
+
+
+def test_heartbeat_does_not_touch_a_non_running_job(tmp_path):
+    store = MissionControlStore(tmp_path / "state.db")
+    job = store.enqueue_job("smoke", {})  # still queued, never claimed
+
+    store.heartbeat(job["id"])
+
+    with store.connect() as conn:
+        row = conn.execute("SELECT heartbeat_at FROM jobs WHERE id=?", (job["id"],)).fetchone()
+    assert row["heartbeat_at"] is None
+
+
+def test_cancel_job_marks_a_queued_job_cancelled_immediately(tmp_path):
+    store = MissionControlStore(tmp_path / "state.db")
+    job = store.enqueue_job("smoke", {})
+
+    assert store.cancel_job(job["id"]) is True
+
+    refreshed = store.get_job(job["id"])
+    assert refreshed["status"] == "cancelled"
+    assert refreshed["cancel_requested"] is True
+
+
+def test_cancel_job_flags_a_running_job_without_finishing_it(tmp_path):
+    store = MissionControlStore(tmp_path / "state.db")
+    job = store.enqueue_job("smoke", {})
+    store.claim_job()
+
+    assert store.cancel_job(job["id"]) is True
+
+    refreshed = store.get_job(job["id"])
+    assert refreshed["status"] == "running"
+    assert refreshed["cancel_requested"] is True
+    assert store.cancellation_requested(job["id"]) is True
+
+
+def test_cancel_job_returns_false_for_already_finished_job(tmp_path):
+    store = MissionControlStore(tmp_path / "state.db")
+    job = store.enqueue_job("smoke", {})
+    store.claim_job()
+    store.finish_job(job["id"], result={"ok": True})
+
+    assert store.cancel_job(job["id"]) is False
+
+
+def test_cancel_job_returns_false_for_unknown_job(tmp_path):
+    store = MissionControlStore(tmp_path / "state.db")
+    assert store.cancel_job("does-not-exist") is False
+
+
+def test_cancellation_requested_false_for_unknown_job(tmp_path):
+    store = MissionControlStore(tmp_path / "state.db")
+    assert store.cancellation_requested("does-not-exist") is False
+
+
+def test_mark_cancelled_sets_status_and_flag(tmp_path):
+    store = MissionControlStore(tmp_path / "state.db")
+    job = store.enqueue_job("smoke", {})
+    store.claim_job()
+
+    store.mark_cancelled(job["id"])
+
+    refreshed = store.get_job(job["id"])
+    assert refreshed["status"] == "cancelled"
+    assert refreshed["cancel_requested"] is True
+
+
+# -- schedules: remove / due / advance --------------------------------------
+
+
+def test_remove_schedule_returns_true_then_false(tmp_path):
+    store = MissionControlStore(tmp_path / "state.db")
+    schedule = store.add_schedule("smoke", {}, 60)
+
+    assert store.remove_schedule(schedule["id"]) is True
+    assert store.remove_schedule(schedule["id"]) is False
+
+
+def test_due_schedules_returns_only_past_due_enabled_ones(tmp_path):
+    store = MissionControlStore(tmp_path / "state.db")
+    due_soon = store.add_schedule("smoke", {"token": {"$secret": "env:X"}}, 30)
+    store.add_schedule("audit", {}, 86_400)  # far in the future, not due
+
+    with store.connect() as conn:
+        conn.execute("UPDATE schedules SET next_at=? WHERE id=?", (time.time() - 1, due_soon["id"]))
+
+    due = store.due_schedules()
+
+    assert [s["id"] for s in due] == [due_soon["id"]]
+    # due_schedules reveals real params (the scheduler loop needs the actual
+    # secret reference to enqueue the real job), unlike list_schedules.
+    assert due[0]["params"]["token"] == {"$secret": "env:X"}
+
+
+def test_advance_schedule_bumps_runs_when_ran(tmp_path):
+    store = MissionControlStore(tmp_path / "state.db")
+    schedule = store.add_schedule("smoke", {}, 60)
+
+    store.advance_schedule(schedule["id"], ran=True)
+
+    refreshed = store.get_schedule(schedule["id"])
+    assert refreshed["runs"] == 1
+    assert refreshed["last_at"] is not None
+
+
+def test_advance_schedule_does_not_bump_runs_when_not_ran(tmp_path):
+    store = MissionControlStore(tmp_path / "state.db")
+    schedule = store.add_schedule("smoke", {}, 60)
+
+    store.advance_schedule(schedule["id"], ran=False)
+
+    refreshed = store.get_schedule(schedule["id"])
+    assert refreshed["runs"] == 0
+    assert refreshed["last_at"] is None
+
+
+def test_advance_schedule_is_a_no_op_for_unknown_schedule(tmp_path):
+    store = MissionControlStore(tmp_path / "state.db")
+    store.advance_schedule("does-not-exist", ran=True)  # must not raise
+
+
+# -- audit -------------------------------------------------------------------
+
+
+def test_audit_records_and_lists_events(tmp_path):
+    store = MissionControlStore(tmp_path / "state.db")
+    store.audit(
+        "job.enqueue", actor="alice", resource_type="job", resource_id="job-1",
+        detail={"kind": "smoke", "token": {"$secret": "env:X"}},
+    )
+
+    events = store.list_audit()
+
+    assert len(events) == 1
+    assert events[0]["action"] == "job.enqueue"
+    assert events[0]["actor"] == "alice"
+    assert events[0]["detail"]["kind"] == "smoke"
+
+
+def test_list_audit_respects_limit_and_ordering(tmp_path):
+    store = MissionControlStore(tmp_path / "state.db")
+    for i in range(3):
+        store.audit(f"action-{i}")
+
+    events = store.list_audit(limit=2)
+
+    assert len(events) == 2
+    assert events[0]["action"] == "action-2"  # most recent first
+
+
+# -- record_webhook_delivery -------------------------------------------------
+
+
+def test_record_webhook_delivery_rejects_empty_delivery_id(tmp_path):
+    store = MissionControlStore(tmp_path / "state.db")
+    with pytest.raises(ValueError, match="X-GitHub-Delivery is required"):
+        store.record_webhook_delivery("", "push", "abc")

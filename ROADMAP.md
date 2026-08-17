@@ -100,6 +100,23 @@ path; and `orchestrator/dashboard/activity.py` (67% → 100%, new
 had no direct test at all, only `record_job` was incidentally exercised
 elsewhere.
 
+`orchestrator/persistence/store.py` (83% → 100%, extended
+`tests/unit/test_persistence_store.py`) — the SQLite `MissionControlStore`
+backing everything above got the same direct treatment: `cancel_job`'s
+three branches (queued → immediately cancelled, running → flagged but
+left running, already-finished → `False`) had *no* direct test at all
+despite being real, user-triggerable behavior; `heartbeat`,
+`cancellation_requested`, `mark_cancelled`, `remove_schedule`,
+`due_schedules`, `advance_schedule` (both the `ran=True`/`ran=False`
+branches and the unknown-schedule no-op), `audit`/`list_audit`, and
+`record_webhook_delivery`'s empty-delivery-id rejection were all the
+same story. Also covers two real `enqueue_job` `IntegrityError` edge
+cases (a forced `uuid4` collision with and without a distinguishing
+idempotency key) and `claim_job`'s belt-and-suspenders guard against the
+claiming `UPDATE` affecting zero rows, exercised via a thin connection
+proxy that spoofs `rowcount=0` on that one statement rather than trying
+to force a genuine SQLite-level race.
+
 `jobs.py`'s `_job_*`/`@app.command()` wrappers (and the similarly-shaped
 thin wrappers in `orchestrator/cli.py`, `orchestrator/dashboard/k8s.py`,
 and `orchestrator/nodes/*.py`) remain the next highest-effort,
@@ -108,7 +125,7 @@ lowest-marginal-value slice if coverage needs to go further.
 The CI gate (`.github/workflows/security.yml`) enforces
 `--cov-fail-under=40` (raised from 36, itself raised from an original,
 never-actually-met 70% target) — still a deliberate few points below the
-measured ~46.6% floor to leave headroom for minor cross-Python-version
+measured ~47.1% floor to leave headroom for minor cross-Python-version
 coverage variance, with an inline `TODO` to keep raising it as coverage
 grows rather than a plan to close the whole gap at once.
 
