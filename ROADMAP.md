@@ -8,27 +8,46 @@ detail already lives.
 ## Test coverage — in progress
 
 Overall unit-test coverage (as measured by the CI gate's own command,
-`--cov=orchestrator --cov=agents`) moved from ~33% to ~44.1% (439 tests)
-across four passes: the validation/state-layer pass below, the
-security-testing feature pass (`engagement_policy.py` 100%, `sandbox.py`
-77%, `jobs.py`'s new `exploit_poc`/`attack_chain`/`host_pentest`/
-`cloud_pentest`/`misconfig_scan`/`cve_lookup`/`llm_redteam` validation and
-state paths), then two passes closing the security modules that had zero
-direct tests and only incidental coverage from routes/jobs that happened
-to call through them:
+`--cov=orchestrator --cov=agents`) moved from ~33% to ~45.2% (510 tests)
+across several passes: the validation/state-layer pass below, the
+security-testing feature pass (`jobs.py`'s new `exploit_poc`/
+`attack_chain`/`host_pentest`/`cloud_pentest`/`misconfig_scan`/
+`cve_lookup`/`llm_redteam` validation and state paths), then a dedicated
+pass closing out every remaining gap in `orchestrator/security/` — the
+whole package is now **100% covered**, all 11 modules. Most of these had
+zero direct tests going in, only incidental coverage from routes/jobs
+that happened to call through them:
 
-- `orchestrator/security/rbac.py` — the token/session identification and
-  scope-enforcement layer gating every `/api/v2` route, 58% → 100%
-  (`tests/unit/test_security_rbac.py`).
-- `orchestrator/security/secrets.py` — the secret-reference guard/resolver
-  used for durable schedules, queued jobs, and the `host_pentest`/
-  `cloud_pentest` credential path (`{"$secret": "env:NAME"}` /
-  `{"$secret": "file:/path"}`), 67% → 100%
-  (`tests/unit/test_security_secrets.py`). Each of these two modules is
-  small, so the whole-suite movement from either alone going to 100% is
-  modest (43.65% → 43.90% → 44.14%) — it's the specific, previously-open
-  gap in security-critical code that mattered, not the aggregate
-  percentage.
+- `rbac.py` — token/session identification and scope-enforcement gating
+  every `/api/v2` route: 58% → 100% (`tests/unit/test_security_rbac.py`).
+- `secrets.py` — the secret-reference guard/resolver used for durable
+  schedules, queued jobs, and the `host_pentest`/`cloud_pentest`
+  credential path (`{"$secret": "env:NAME"}` / `{"$secret": "file:/path"}`):
+  67% → 100% (`tests/unit/test_security_secrets.py`).
+- `agent_policy.py` — the deterministic enforcement point for autonomous
+  browser actions (prompt-injection detection, risk classification,
+  cross-origin navigation gating): 76% → 100%
+  (`tests/unit/test_agent_policy.py`).
+- `target_policy.py` — the SSRF-resistant target-URL/host validator used
+  by every browser/API/network job: 82% → 100%
+  (`tests/unit/test_target_policy.py`).
+- `sandbox.py` — the Kubernetes-Job sandbox that runs LLM-generated
+  exploit/PoC code (`exploit_poc`/`attack_chain`/`host_pentest`/
+  `cloud_pentest`): 77% → 100%, including the egress-NetworkPolicy
+  apply/cleanup paths and every cleanup-failure-is-swallowed branch
+  (`tests/unit/test_sandbox.py`).
+- `config.py`, `webhook.py`, `redaction.py`, `rate_limit.py`, `slack.py` —
+  each had a small handful of untested branches (a missing/malformed
+  timestamp, a max-recursion-depth guard, an inline stale-entry trim
+  racing the periodic prune sweep, ...); all closed to 100%
+  (`tests/unit/test_security_config_webhook_metrics.py`,
+  `tests/unit/test_security_redaction.py`, `tests/unit/test_rate_limit.py`,
+  `tests/unit/test_slack_security.py`).
+
+Each of these modules is individually small, so the whole-suite movement
+from any one going to 100% is modest — it's the previously-open gaps in
+security-critical code that mattered (SSRF validation, sandboxed exploit
+execution, secret handling, RBAC), not the aggregate percentage.
 
 - `orchestrator/dashboard/jobs.py` — 19% → 46%. `_validate()` (all job
   kinds, not just a handful) plus the state/dispatch layer (`log_progress`,
@@ -47,12 +66,16 @@ scripts, TLS probes, HTTP probes) — meaningfully unit-testing them means
 mocking `subprocess.run`/network I/O per job kind for a large effort-to-value
 ratio, versus the validation/state layer above where bugs actually bite
 (input validation, path safety, dispatch correctness) and where coverage is
-now real. That's still the next slice if coverage needs to go further.
+now real. With `orchestrator/security/` fully closed out, `jobs.py`'s
+`_job_*`/`@app.command()` wrappers (and the similarly-shaped thin
+wrappers in `orchestrator/cli.py`, `orchestrator/dashboard/k8s.py`, and
+`orchestrator/nodes/*.py`) are the next highest-effort, lowest-marginal-
+value slice if coverage needs to go further.
 
 The CI gate (`.github/workflows/security.yml`) enforces
 `--cov-fail-under=40` (raised from 36, itself raised from an original,
 never-actually-met 70% target) — still a deliberate few points below the
-measured ~44.1% floor to leave headroom for minor cross-Python-version
+measured ~45.2% floor to leave headroom for minor cross-Python-version
 coverage variance, with an inline `TODO` to keep raising it as coverage
 grows rather than a plan to close the whole gap at once.
 
