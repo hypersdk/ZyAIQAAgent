@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Added
+- Dedicated unit tests for `orchestrator/security/rbac.py` (`tests/unit/test_security_rbac.py`) — the token/session identification and scope-enforcement layer gating every `/api/v2` route had zero direct tests, only incidental coverage (58%) from routes that happen to call through it. Now 100%: Bearer-token lookup (role→scope mapping, unknown-role fallback to `viewer`, explicit extra-scope grants, no-match → 401), session-cookie identification (authenticated → `admin`, not authenticated → 401), the local-development fallback and its production fail-closed counterpart, and `require_scope`'s 403 path. Moves the CI gate's own coverage metric (`--cov=orchestrator --cov=agents`) from 43.65% to 43.90%, 410 tests total.
+
 ## [0.7.0](https://github.com/hypersdk/zyvor-argus/releases/tag/v0.7.0) — 2026-08-16
 
 ### Changed
