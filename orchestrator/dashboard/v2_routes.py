@@ -95,20 +95,23 @@ async def get_job_artifact(request: Request, job_id: str, href: str = Query(...)
     operator happened to also set that separate password.
 
     href must be exactly one of the video/trace hrefs already present in
-    this job's own persisted result (see jobs.py's _cases_payload) -- never
-    a client-supplied path, which is what actually prevents traversal here;
-    resolving under reports_root is defense in depth on top of that, not
-    the primary control."""
+    this job's own persisted result (see jobs.py's _cases_payload), or --
+    for a route_sweep job -- one of its sweep_rows' screenshot hrefs (see
+    jobs.py's _job_route_sweep) -- never a client-supplied path, which is
+    what actually prevents traversal here; resolving under reports_root is
+    defense in depth on top of that, not the primary control."""
     require_scope(request, "jobs:read")
     job = get_store().get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="job not found")
+    result = job.get("result") or {}
     known_hrefs = {
         case.get(key)
-        for case in ((job.get("result") or {}).get("cases") or [])
+        for case in (result.get("cases") or [])
         for key in ("video", "trace")
         if case.get(key)
     }
+    known_hrefs |= {row.get("cur") for row in (result.get("sweep_rows") or []) if row.get("cur")}
     if href not in known_hrefs:
         raise HTTPException(status_code=404, detail="artifact not recorded for this job")
 
@@ -121,6 +124,68 @@ async def get_job_artifact(request: Request, job_id: str, href: str = Query(...)
     if not file_path.is_file():
         raise HTTPException(status_code=404, detail="artifact file no longer on disk")
     return FileResponse(file_path)
+
+
+@router.post("/jobs/{job_id}/route-sweep/approve")
+async def approve_route_sweep_baseline(
+    request: Request, job_id: str, payload: dict[str, Any] = Body(...)
+) -> dict[str, Any]:
+    """Promote one screenshot from a completed route_sweep job's own result
+    to the saved baseline it's diffed against. The only existing way to
+    update a baseline is re-running the whole sweep with
+    update_baselines=true, which overwrites every route unconditionally
+    with no author or timestamp recorded -- this is the reviewed,
+    per-screenshot alternative (an audit entry records who approved what,
+    when), matching what a "baseline approval" actually needs to mean.
+
+    route/viewport must match a row already present in this job's own
+    sweep_rows -- same "known-hrefs, not a client-supplied path" pattern
+    get_job_artifact() uses above, applied to which screenshot is eligible
+    to become a baseline rather than which file can be read."""
+    identity = require_scope(request, "jobs:write")
+    route = str(payload.get("route", "")).strip()
+    viewport = str(payload.get("viewport", "")).strip()
+    if not route or not viewport:
+        raise HTTPException(status_code=400, detail="route and viewport are required")
+
+    job = get_store().get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="job not found")
+    if job.get("kind") != "route_sweep":
+        raise HTTPException(status_code=400, detail="job is not a route_sweep job")
+
+    rows = (job.get("result") or {}).get("sweep_rows") or []
+    match = next((r for r in rows if r.get("route") == route and r.get("viewport") == viewport), None)
+    if match is None:
+        raise HTTPException(status_code=404, detail="no screenshot recorded for this route/viewport in this job")
+    href = match.get("cur")
+    if not href:
+        raise HTTPException(status_code=404, detail="screenshot has no recorded file")
+
+    from orchestrator.dashboard.jobs import _repo_root
+
+    reports_root = (_repo_root() / "reports").resolve()
+    cur_path = (_repo_root() / href.lstrip("/")).resolve()
+    if reports_root not in cur_path.parents:
+        raise HTTPException(status_code=400, detail="invalid artifact path")
+    if not cur_path.is_file():
+        raise HTTPException(status_code=404, detail="screenshot file no longer on disk")
+
+    baseline_root = _repo_root() / "reports" / "artifacts" / "route-baselines"
+    baseline_root.mkdir(parents=True, exist_ok=True)
+
+    import shutil
+
+    shutil.copy2(cur_path, baseline_root / cur_path.name)
+
+    get_store().audit(
+        "route_sweep.baseline_approved",
+        actor=identity.subject,
+        resource_type="job",
+        resource_id=job_id,
+        detail={"route": route, "viewport": viewport, "baseline_file": cur_path.name},
+    )
+    return {"approved": True, "route": route, "viewport": viewport, "job_id": job_id}
 
 
 @router.get("/schedules")
