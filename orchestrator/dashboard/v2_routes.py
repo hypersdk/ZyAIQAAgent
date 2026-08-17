@@ -173,6 +173,22 @@ async def revoke_engagement(request: Request, engagement_id: str) -> dict[str, A
     return {"revoked": True}
 
 
+@router.get("/engagement-policy")
+async def engagement_policy(request: Request) -> dict[str, Any]:
+    """Read-only status for the engagement gate itself -- enforcement is set
+    once, from ZYVOR_ENGAGEMENT_ENFORCEMENT at process start
+    (EngagementPolicy.from_env()), so there is nothing to write here; an
+    admin who wants it changed has to change the env var and restart."""
+    require_scope(request, "engagements:read")
+    from orchestrator.dashboard.jobs import ELEVATED_RISK_KINDS
+    from orchestrator.security.engagement_policy import EngagementPolicy
+
+    return {
+        "enforcement": EngagementPolicy.from_env().enforcement,
+        "elevated_risk_kinds": ELEVATED_RISK_KINDS,
+    }
+
+
 @router.get("/findings")
 async def list_findings(
     request: Request,
