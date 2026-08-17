@@ -8,19 +8,27 @@ detail already lives.
 ## Test coverage — in progress
 
 Overall unit-test coverage (as measured by the CI gate's own command,
-`--cov=orchestrator --cov=agents`) moved from ~33% to ~44% (410 tests)
-across three passes: the validation/state-layer pass below, the
+`--cov=orchestrator --cov=agents`) moved from ~33% to ~44.1% (439 tests)
+across four passes: the validation/state-layer pass below, the
 security-testing feature pass (`engagement_policy.py` 100%, `sandbox.py`
 77%, `jobs.py`'s new `exploit_poc`/`attack_chain`/`host_pentest`/
 `cloud_pentest`/`misconfig_scan`/`cve_lookup`/`llm_redteam` validation and
-state paths), then a pass closing `orchestrator/security/rbac.py`'s gap:
-the token/session identification and scope-enforcement layer gating every
-`/api/v2` route had zero direct tests (58%, purely incidental via routes
-that happened to exercise it) — now 100%
-(`tests/unit/test_security_rbac.py`), 43.65% → 43.90% on the combined
-metric (`rbac.py` alone is a small file, so the whole-suite movement from
-one module going to 100% is modest — it's the specific, previously-open
-gap that mattered, not the aggregate percentage).
+state paths), then two passes closing the security modules that had zero
+direct tests and only incidental coverage from routes/jobs that happened
+to call through them:
+
+- `orchestrator/security/rbac.py` — the token/session identification and
+  scope-enforcement layer gating every `/api/v2` route, 58% → 100%
+  (`tests/unit/test_security_rbac.py`).
+- `orchestrator/security/secrets.py` — the secret-reference guard/resolver
+  used for durable schedules, queued jobs, and the `host_pentest`/
+  `cloud_pentest` credential path (`{"$secret": "env:NAME"}` /
+  `{"$secret": "file:/path"}`), 67% → 100%
+  (`tests/unit/test_security_secrets.py`). Each of these two modules is
+  small, so the whole-suite movement from either alone going to 100% is
+  modest (43.65% → 43.90% → 44.14%) — it's the specific, previously-open
+  gap in security-critical code that mattered, not the aggregate
+  percentage.
 
 - `orchestrator/dashboard/jobs.py` — 19% → 46%. `_validate()` (all job
   kinds, not just a handful) plus the state/dispatch layer (`log_progress`,
@@ -44,7 +52,7 @@ now real. That's still the next slice if coverage needs to go further.
 The CI gate (`.github/workflows/security.yml`) enforces
 `--cov-fail-under=40` (raised from 36, itself raised from an original,
 never-actually-met 70% target) — still a deliberate few points below the
-measured ~43.9% floor to leave headroom for minor cross-Python-version
+measured ~44.1% floor to leave headroom for minor cross-Python-version
 coverage variance, with an inline `TODO` to keep raising it as coverage
 grows rather than a plan to close the whole gap at once.
 
