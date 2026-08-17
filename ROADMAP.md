@@ -85,6 +85,21 @@ subprocess wrapper:
   (`tests/unit/test_scheduler.py`) — the small backward-compatible
   wrapper the dashboard's legacy schedule API still calls through.
 
+A few more small, previously-untested modules were closed to 100% in the
+same pass: `orchestrator/dashboard/auth.py` (93% → 100%,
+`tests/unit/test_auth.py`) — the login-rate-limiter's inline stale-entry
+trims and expired-lockout cleanup, the explicit-`DASHBOARD_SECRET` path,
+and the auth-disabled short-circuits in `is_authenticated`/`requires_auth`;
+`orchestrator/enterprise.py` (91% → 100%, `tests/unit/test_enterprise.py`)
+— `install_enterprise`'s startup/shutdown hooks, which no existing test
+actually triggered since none of them built the app inside a `with
+TestClient(app):` block; `orchestrator/slack_gateway.py` (93% → 100%,
+extended `tests/unit/test_slack_gateway.py`) — the enqueue-failure reply
+path; and `orchestrator/dashboard/activity.py` (67% → 100%, new
+`tests/unit/test_activity.py`) — `record_webhook`/`recent`/`last_webhook`
+had no direct test at all, only `record_job` was incidentally exercised
+elsewhere.
+
 `jobs.py`'s `_job_*`/`@app.command()` wrappers (and the similarly-shaped
 thin wrappers in `orchestrator/cli.py`, `orchestrator/dashboard/k8s.py`,
 and `orchestrator/nodes/*.py`) remain the next highest-effort,
@@ -93,7 +108,7 @@ lowest-marginal-value slice if coverage needs to go further.
 The CI gate (`.github/workflows/security.yml`) enforces
 `--cov-fail-under=40` (raised from 36, itself raised from an original,
 never-actually-met 70% target) — still a deliberate few points below the
-measured ~46.4% floor to leave headroom for minor cross-Python-version
+measured ~46.6% floor to leave headroom for minor cross-Python-version
 coverage variance, with an inline `TODO` to keep raising it as coverage
 grows rather than a plan to close the whole gap at once.
 
