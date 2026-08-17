@@ -47,6 +47,18 @@ def test_missing_signature_is_rejected():
         verify_slack_request(b"x", None, "1000000000", SECRET, now=1000000000)
 
 
+def test_missing_timestamp_is_rejected():
+    signature = _sign(b"x", "1000000000")
+    with pytest.raises(SlackSecurityError, match="X-Slack-Request-Timestamp"):
+        verify_slack_request(b"x", signature, None, SECRET, now=1000000000)
+
+
+def test_non_numeric_timestamp_is_rejected():
+    signature = _sign(b"x", "1000000000")
+    with pytest.raises(SlackSecurityError, match="X-Slack-Request-Timestamp"):
+        verify_slack_request(b"x", signature, "not-a-number", SECRET, now=1000000000)
+
+
 def test_stale_timestamp_is_rejected():
     body = b"x"
     timestamp = "1000000000"
