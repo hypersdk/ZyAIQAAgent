@@ -11,6 +11,10 @@
   - `sandbox.py` (77% → 100%, `tests/unit/test_sandbox.py`) — the egress-`NetworkPolicy` apply/cleanup paths (success and failure), the job-status polling loop's multi-iteration case, pod-log-read failure handling, and every "cleanup failure must not propagate" branch in `run_python`'s `finally` block.
   - `config.py`, `webhook.py`, `redaction.py`, `rate_limit.py`, `slack.py` — the last few untested branches in each (unrestricted-agent-mode and disabled-engagement-enforcement production checks, GitHub webhook signature/delivery-id rejection paths, `redact`'s max-depth/tuple/set branches, the rate limiter's inline stale-entry trim racing its own periodic prune sweep, Slack's missing/malformed-timestamp rejection).
 - Together these passes move the CI gate's own coverage metric (`--cov=orchestrator --cov=agents`) from 43.65% to 45.15%, 510 tests total. `orchestrator/security/` (11 modules) is now fully covered.
+- Dedicated unit tests for the durable job/schedule service, the real orchestration logic underneath `/api/v2/jobs` and `/api/v2/schedules` (not a thin subprocess wrapper, so worth the same treatment as the security package):
+  - `orchestrator/dashboard/durable_jobs.py` (17% → 100%, `tests/unit/test_durable_jobs.py`) — `_validation_view`'s secret-placeholder substitution, `enqueue`'s validate-then-persist-then-audit sequence, `start`'s stale-job recovery and idempotent thread spawn, and both background loops (`_worker_loop`'s busy-requeue/cancellation-race/exception-to-dead-job paths, `_scheduler_loop`'s due-schedule enqueue/advance and its failure-is-recorded-not-swallowed path) driven synchronously with a small `_FakeStopEvent` stand-in for `threading.Event` so no test does any real wall-clock waiting.
+  - `orchestrator/dashboard/scheduler.py` (0% → 100%, `tests/unit/test_scheduler.py`) — the small backward-compatible wrapper the dashboard's legacy schedule API still calls through.
+- Moves the CI gate's coverage metric to 46.39%, 531 tests total.
 
 ## [0.7.0](https://github.com/hypersdk/zyvor-argus/releases/tag/v0.7.0) — 2026-08-16
 

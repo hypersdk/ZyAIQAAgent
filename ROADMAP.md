@@ -66,16 +66,34 @@ scripts, TLS probes, HTTP probes) — meaningfully unit-testing them means
 mocking `subprocess.run`/network I/O per job kind for a large effort-to-value
 ratio, versus the validation/state layer above where bugs actually bite
 (input validation, path safety, dispatch correctness) and where coverage is
-now real. With `orchestrator/security/` fully closed out, `jobs.py`'s
-`_job_*`/`@app.command()` wrappers (and the similarly-shaped thin
-wrappers in `orchestrator/cli.py`, `orchestrator/dashboard/k8s.py`, and
-`orchestrator/nodes/*.py`) are the next highest-effort, lowest-marginal-
-value slice if coverage needs to go further.
+now real.
+
+After `orchestrator/security/` was fully closed out, the durable job
+service got the same treatment since it's real orchestration logic (state
+transitions, cancellation, retry/dead-letter handling), not a thin
+subprocess wrapper:
+
+- `orchestrator/dashboard/durable_jobs.py` — 17% → 100%
+  (`tests/unit/test_durable_jobs.py`). The worker/scheduler loops are
+  driven directly and synchronously in the test thread (a small
+  `_FakeStopEvent` stand-in for `threading.Event` avoids any real
+  wall-clock waiting between iterations) with a mocked store and a
+  mocked `orchestrator.dashboard.jobs` module — covering the still-running
+  vs. already-finished cancellation race, the busy-requeue path, and the
+  exception-to-dead-job path, not just the happy path.
+- `orchestrator/dashboard/scheduler.py` — 0% → 100%
+  (`tests/unit/test_scheduler.py`) — the small backward-compatible
+  wrapper the dashboard's legacy schedule API still calls through.
+
+`jobs.py`'s `_job_*`/`@app.command()` wrappers (and the similarly-shaped
+thin wrappers in `orchestrator/cli.py`, `orchestrator/dashboard/k8s.py`,
+and `orchestrator/nodes/*.py`) remain the next highest-effort,
+lowest-marginal-value slice if coverage needs to go further.
 
 The CI gate (`.github/workflows/security.yml`) enforces
 `--cov-fail-under=40` (raised from 36, itself raised from an original,
 never-actually-met 70% target) — still a deliberate few points below the
-measured ~45.2% floor to leave headroom for minor cross-Python-version
+measured ~46.4% floor to leave headroom for minor cross-Python-version
 coverage variance, with an inline `TODO` to keep raising it as coverage
 grows rather than a plan to close the whole gap at once.
 
