@@ -65,6 +65,14 @@ mcp = [
 postgres = [
     "psycopg[binary]>=3.2",
 ]
+# Distributed tracing (orchestrator/observability/tracing.py) -- opt-in via
+# ZYVOR_OTEL_ENABLED=true. Without this extra installed, tracing() calls are
+# safe no-ops (same "dependency-free by default" posture as metrics.py).
+otel = [
+    "opentelemetry-api>=1.27",
+    "opentelemetry-sdk>=1.27",
+    "opentelemetry-exporter-otlp-proto-http>=1.27",
+]
 
 [project.scripts]
 argus = "orchestrator.cli:main"

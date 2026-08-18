@@ -16,7 +16,9 @@
 
 from __future__ import annotations
 
+import functools
 import os
+from typing import Callable
 
 from langgraph.graph import END, StateGraph
 
@@ -38,7 +40,27 @@ from orchestrator.nodes.parse import parse_requirements
 from orchestrator.nodes.regression import regression_check
 from orchestrator.nodes.report import generate_report
 from orchestrator.nodes.v8_coverage import collect_v8_coverage_node
+from orchestrator.observability.tracing import set_span_error, start_span
 from orchestrator.state import PipelineState
+
+
+def _traced(name: str, node: Callable[[PipelineState], PipelineState]) -> Callable[[PipelineState], PipelineState]:
+    """Wraps a node function in a span named "pipeline.<name>" -- a no-op
+    when tracing is disabled (see observability/tracing.py). Applied once
+    per node here in build_graph() rather than inside each of the ~17 node
+    modules, so none of them need to know tracing exists."""
+
+    @functools.wraps(node)
+    def wrapped(state: PipelineState) -> PipelineState:
+        had_error = bool(state.get("error"))
+        with start_span(f"pipeline.{name}") as span:
+            result = node(state)
+            new_error = result.get("error") if isinstance(result, dict) else None
+            if new_error and not had_error:
+                set_span_error(span, new_error)
+            return result
+
+    return wrapped
 
 
 def route_on_results(state: PipelineState) -> str:
@@ -92,24 +114,24 @@ def build_graph() -> StateGraph:
     """Build and compile the QA pipeline graph."""
     graph = StateGraph(PipelineState)
 
-    graph.add_node("fetch", fetch_requirements)
-    graph.add_node("discover", discover_coverage)
-    graph.add_node("gap_analyze", gap_analyze)
-    graph.add_node("parse", parse_requirements)
-    graph.add_node("evaluate_quality", evaluate_quality)
-    graph.add_node("generate", generate_tests)
-    graph.add_node("execute", execute_tests)
-    graph.add_node("regression", regression_check)
-    graph.add_node("api_validate", api_validate)
-    graph.add_node("log_analyze", log_analyze)
-    graph.add_node("v8_coverage", collect_v8_coverage_node)
-    graph.add_node("merge_results", merge_results)
-    graph.add_node("analyze", analyze_failures_node)
-    graph.add_node("autofix", autofix_node)
-    graph.add_node("apply_autofix", apply_autofix_node)
-    graph.add_node("learn_skills", learn_skills_node)
-    graph.add_node("report", generate_report)
-    graph.add_node("notify", notify_channels)
+    graph.add_node("fetch", _traced("fetch", fetch_requirements))
+    graph.add_node("discover", _traced("discover", discover_coverage))
+    graph.add_node("gap_analyze", _traced("gap_analyze", gap_analyze))
+    graph.add_node("parse", _traced("parse", parse_requirements))
+    graph.add_node("evaluate_quality", _traced("evaluate_quality", evaluate_quality))
+    graph.add_node("generate", _traced("generate", generate_tests))
+    graph.add_node("execute", _traced("execute", execute_tests))
+    graph.add_node("regression", _traced("regression", regression_check))
+    graph.add_node("api_validate", _traced("api_validate", api_validate))
+    graph.add_node("log_analyze", _traced("log_analyze", log_analyze))
+    graph.add_node("v8_coverage", _traced("v8_coverage", collect_v8_coverage_node))
+    graph.add_node("merge_results", _traced("merge_results", merge_results))
+    graph.add_node("analyze", _traced("analyze", analyze_failures_node))
+    graph.add_node("autofix", _traced("autofix", autofix_node))
+    graph.add_node("apply_autofix", _traced("apply_autofix", apply_autofix_node))
+    graph.add_node("learn_skills", _traced("learn_skills", learn_skills_node))
+    graph.add_node("report", _traced("report", generate_report))
+    graph.add_node("notify", _traced("notify", notify_channels))
 
     graph.set_entry_point("fetch")
     graph.add_edge("fetch", "discover")

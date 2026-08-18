@@ -26,6 +26,7 @@ import time
 from typing import Any
 
 from orchestrator.observability.metrics import inc, set_gauge
+from orchestrator.observability.tracing import set_span_error, start_span
 from orchestrator.persistence.store import MissionControlStore, get_store
 from orchestrator.security.secrets import is_secret_ref, resolve_secret_refs
 
@@ -99,39 +100,49 @@ class DurableJobService:
             job_id = job["id"]
             kind = job["kind"]
             started_at = time.monotonic()
-            try:
-                params = resolve_secret_refs(job["params"])
-                started, _ = jobs.trigger(kind, params)
-                if not started:
-                    self.store.requeue_job(job_id, "legacy runner is busy")
-                    self._stop.wait(self.poll_s)
-                    continue
+            with start_span("job.execute", job_id=job_id, job_kind=kind) as span:
+                try:
+                    params = resolve_secret_refs(job["params"])
+                    started, _ = jobs.trigger(kind, params)
+                    if not started:
+                        self.store.requeue_job(job_id, "legacy runner is busy")
+                        if span:
+                            span.set_attribute("job.status", "requeued")
+                        self._stop.wait(self.poll_s)
+                        continue
 
-                while not self._stop.is_set():
-                    self.store.heartbeat(job_id)
-                    state = jobs.status()
-                    if self.store.cancellation_requested(job_id):
-                        jobs.cancel()
-                    if not state.get("running"):
-                        error = state.get("error")
-                        if error == "cancelled by user" or self.store.cancellation_requested(job_id):
-                            self.store.mark_cancelled(job_id)
-                            inc("zyvor_qa_jobs_completed_total", kind=kind, status="cancelled")
-                        else:
-                            self.store.finish_job(job_id, result=state.get("result"), error=error)
-                            inc(
-                                "zyvor_qa_jobs_completed_total", kind=kind,
-                                status="failed" if error else "succeeded",
-                            )
-                        break
-                    self._stop.wait(self.poll_s)
-            except Exception as exc:
-                self.store.finish_job(job_id, error=str(exc)[:2000])
-                inc("zyvor_qa_jobs_completed_total", kind=kind, status="failed")
-            finally:
-                duration = time.monotonic() - started_at
-                set_gauge("zyvor_qa_last_job_duration_seconds", duration, kind=kind)
-                set_gauge("zyvor_qa_worker_busy", 0)
+                    while not self._stop.is_set():
+                        self.store.heartbeat(job_id)
+                        state = jobs.status()
+                        if self.store.cancellation_requested(job_id):
+                            jobs.cancel()
+                        if not state.get("running"):
+                            error = state.get("error")
+                            if error == "cancelled by user" or self.store.cancellation_requested(job_id):
+                                self.store.mark_cancelled(job_id)
+                                inc("zyvor_qa_jobs_completed_total", kind=kind, status="cancelled")
+                                if span:
+                                    span.set_attribute("job.status", "cancelled")
+                            else:
+                                self.store.finish_job(job_id, result=state.get("result"), error=error)
+                                status = "failed" if error else "succeeded"
+                                inc("zyvor_qa_jobs_completed_total", kind=kind, status=status)
+                                if span:
+                                    span.set_attribute("job.status", status)
+                                if error:
+                                    set_span_error(span, error)
+                            break
+                        self._stop.wait(self.poll_s)
+                except Exception as exc:
+                    self.store.finish_job(job_id, error=str(exc)[:2000])
+                    inc("zyvor_qa_jobs_completed_total", kind=kind, status="failed")
+                    set_span_error(span, str(exc))
+                finally:
+                    duration = time.monotonic() - started_at
+                    set_gauge("zyvor_qa_last_job_duration_seconds", duration, kind=kind)
+                    set_gauge("zyvor_qa_worker_busy", 0)
+                    if span:
+                        span.set_attribute("job.duration_s", round(duration, 3))
 
     def _scheduler_loop(self) -> None:
         while not self._stop.is_set():
