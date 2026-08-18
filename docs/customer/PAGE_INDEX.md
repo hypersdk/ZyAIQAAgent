@@ -2,7 +2,7 @@
 
 Every Mission Control surface and action card.
 
-_Generated: 2026-08-17 · 42 routes_
+_Generated: 2026-08-18 · 42 routes_
 
 Regenerate: `node scripts/customer-docs/generate-page-index.mjs`
 

@@ -5,8 +5,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "zyvor-argus"
-version = "0.7.0"
-description = "Autonomous software assurance platform for Zyvor platform testing"
+version = "0.8.0"
+description = "AI-first autonomous testing, security, and requirements-quality platform"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [

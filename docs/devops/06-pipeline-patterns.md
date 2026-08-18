@@ -26,7 +26,7 @@ qa:
       shard: [1/4, 2/4, 3/4, 4/4]
   runs-on: ubuntu-latest
   steps:
-    - uses: hypersdk/zyvor-argus@v0.7.0
+    - uses: hypersdk/zyvor-argus@v0.8.0
       with:
         command: test
         target-url: ${{ vars.STAGING_URL }}
@@ -53,7 +53,7 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     steps:
-      - uses: hypersdk/zyvor-argus@v0.7.0
+      - uses: hypersdk/zyvor-argus@v0.8.0
         with:
           command: test
           target-url: ${{ vars.STAGING_URL }}

@@ -22,7 +22,7 @@ DevOps owns the **runner** (Action/container image pin, secrets, target policy, 
 ## Version pin (do this once)
 
 ```text
-Image / Action:  hypersdk/zyvor-argus@v0.7.0
+Image / Action:  hypersdk/zyvor-argus@v0.8.0
 Container:       ghcr.io/hypersdk/zyvor-argus:v0.4.0
 ```
 
