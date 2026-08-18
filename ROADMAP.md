@@ -172,15 +172,39 @@ ad-hoc redacted buffer (`orchestrator/dashboard/jobs.py`'s `log_progress`).
 Fine for a single-process pipeline; would matter more once the job queue
 scales past one instance (see below).
 
-## Horizontal scale: Postgres-backed store
+## ~~Horizontal scale: Postgres-backed store~~ — done
 
-`MissionControlStore` (`orchestrator/persistence/store.py`) is SQLite —
-single-writer, matching the current single-replica K8s deployment
-(`kubernetes/deployment.yaml`). This is a deliberate, self-documented
-choice, not an oversight — the store's own docstring says the repository
-interface is "deliberately small so a PostgreSQL implementation can replace
-it without changing API routes." Worth doing once there's an actual need to
-run more than one Mission Control instance.
+`MissionControlStore` (SQLite, `orchestrator/persistence/store.py`) is still
+the default — single-writer, matching the current single-replica K8s
+deployment. `PostgresStore` (`orchestrator/persistence/postgres_store.py`,
+new `postgres` extra) implements the identical public method surface, so no
+caller anywhere in the codebase needed to change — `get_store()` picks the
+backend automatically from `ZYVOR_STATE_DB`'s scheme (`postgresql://...` →
+Postgres, anything else → the existing SQLite path).
+
+Two deliberate per-backend improvements rather than a literal line-by-line
+port: `claim_job()` uses `UPDATE ... WHERE id = (SELECT ... FOR UPDATE SKIP
+LOCKED) RETURNING *` — a single atomic statement, and unlike SQLite's
+`BEGIN IMMEDIATE` (which serializes *all* claims globally), it lets
+concurrent workers claim *different* jobs without blocking each other.
+`upsert_requirement()` uses `INSERT ... ON CONFLICT DO NOTHING` for the
+brand-new-id race (the loser falls through to `SELECT ... FOR UPDATE`,
+which blocks until the winner commits, then reads its committed state) —
+same external behavior as SQLite's version, serialized per-id rather than
+table-wide.
+
+**Live-verified** against a real local Postgres 14 instance (no Docker in
+this environment, but Homebrew's `postgres`/`initdb`/`pg_ctl` binaries were
+available): every method category (jobs, schedules, findings, engagements,
+audit, webhook replay, requirements) end to end, plus two concurrency
+scenarios specifically — 10 threads claiming 10 queued jobs (each job
+claimed exactly once, no drops, no duplicates) and 20 threads racing
+`upsert_requirement()` on the same brand-new id (0 errors, exactly 1 version
+persisted). New `tests/unit/test_postgres_store.py`, skipped by default
+(needs a real Postgres + the `postgres` extra) but wired into CI for real:
+`.github/workflows/security.yml` gained a `postgres-quality` job running
+against a genuine `postgres:16` service container, so this doesn't quietly
+bit-rot untested between the rare times someone exercises it locally.
 
 ## Scheduler: single-flight, drops missed ticks
 

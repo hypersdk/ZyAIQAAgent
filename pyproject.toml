@@ -57,6 +57,14 @@ mcp = [
     # written; stay on the stable, documented 1.x API until 2.x settles.
     "mcp>=1.8,<2.0",
 ]
+# For multi-replica HA: set ZYVOR_STATE_DB to a postgresql://... URL and
+# install this extra. MissionControlStore's SQLite implementation stays the
+# default (single-replica); PostgresStore (orchestrator/persistence/postgres_store.py)
+# implements the identical public interface, selected automatically by
+# get_store() based on the URL scheme.
+postgres = [
+    "psycopg[binary]>=3.2",
+]
 
 [project.scripts]
 argus = "orchestrator.cli:main"
