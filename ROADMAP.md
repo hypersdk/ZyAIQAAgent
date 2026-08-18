@@ -162,15 +162,42 @@ Deliberately not built yet, and not stubbed:
   route + Watchfloor panel, matching the pattern already used for
   engagement-policy and artifacts.
 
-## Observability: tracing
+## ~~Observability: tracing~~ — done (within-process; cross-replica propagation still open)
 
-`orchestrator/observability/metrics.py` provides Prometheus-style
-counters/gauges (`/api/v2/metrics`, scope-gated) but there's no distributed
-tracing (OpenTelemetry or otherwise) and only two modules use structured
-logging (`logging.getLogger`) — most of the pipeline reports progress via an
-ad-hoc redacted buffer (`orchestrator/dashboard/jobs.py`'s `log_progress`).
-Fine for a single-process pipeline; would matter more once the job queue
-scales past one instance (see below).
+`orchestrator/observability/metrics.py`'s Prometheus counters/gauges are now
+joined by `orchestrator/observability/tracing.py`, opt-in via
+`ZYVOR_OTEL_ENABLED=true` (off by default — zero cost, and the `otel` extra
+isn't even imported unless enabled). Exports to `OTEL_EXPORTER_OTLP_ENDPOINT`
+if set, otherwise a `ConsoleSpanExporter` for local debugging without a
+collector. Two instrumentation points, wired without touching the ~19
+individual node/job modules themselves:
+
+- `orchestrator/graph.py`'s `_traced()` wraps every LangGraph pipeline node
+  at registration time (`build_graph()`) in a `pipeline.<name>` span —
+  `fetch`, `parse`, `evaluate_quality`, `generate`, `execute`, and every
+  other node get real per-node timing and error status without any of them
+  importing tracing themselves.
+- `orchestrator/dashboard/durable_jobs.py`'s `_worker_loop` wraps each
+  claimed job's execution in a `job.execute` span (`job_id`, `job_kind`,
+  `job.status`, `job.duration_s` attributes; marked `ERROR` on failure).
+
+**Live-verified**, not just unit-tested with a mocked SDK: ran a real
+document-source pipeline slice (`fetch → parse → evaluate_quality`) with
+tracing enabled and confirmed real `pipeline.fetch`/`pipeline.parse`/
+`pipeline.evaluate_quality` spans on stdout; separately ran a real job
+through `DurableJobService` end to end (enqueue → worker claims → executes
+→ finishes) and confirmed a real `job.execute` span with correct attributes
+(`job.status: succeeded`, real duration) came out the other side. New
+`tests/unit/test_tracing.py` (no-op-when-disabled path, plus real span
+emission/error-status assertions against an `InMemorySpanExporter`).
+
+**Deliberately not done, named rather than silently skipped**: trace context
+does not yet propagate across the enqueue → claim boundary when those
+happen on different replicas — would need a persisted `traceparent` column
+on the `jobs` table (mirrored into both `MissionControlStore` and
+`PostgresStore`), so an `enqueue()` span and its later `job.execute` span
+show up as one linked trace instead of two independent ones. Real, bounded
+follow-on work, not part of this pass.
 
 ## ~~Horizontal scale: Postgres-backed store~~ — done
 
