@@ -129,6 +129,37 @@ measured ~47.1% floor to leave headroom for minor cross-Python-version
 coverage variance, with an inline `TODO` to keep raising it as coverage
 grows rather than a plan to close the whole gap at once.
 
+## Multi-source requirements: ticket/email/transcript connectors, deeper impact analysis
+
+The requirements pipeline now supports two real sources — `github` (labeled
+issues, PR bodies, spec files) and `document` (local files, incl. PDF, via
+`knowledge/documents.py`) — plus durable versioned storage
+(`orchestrator/persistence/store.py`'s `requirements`/`requirement_versions`
+tables), LLM-driven quality/gap scoring (`agents/requirement_quality/`), and
+first-cut traceability (`requirement_test_links`): a changed requirement
+surfaces which previously-generated tests trace to its old version.
+
+Deliberately not built yet, and not stubbed:
+
+- **Ticket-system (Jira-like), email, and meeting-transcript sources** —
+  each needs a real per-source connector (OAuth or API client for
+  tickets/email; a transcription/diarization step for meetings) that
+  doesn't exist anywhere in this repo today. `orchestrator/nodes/fetch.py`'s
+  `source` branch is the extension point — a new source only needs to
+  produce `spec_contents: List[str]`, which `parse_requirements` already
+  consumes unchanged, exactly like `document` does today.
+- **Business-flow/data/automation-level impact analysis** — today's impact
+  check answers "which generated tests trace to a requirement that
+  changed," which is real but narrow. A flow/dependency graph (which
+  requirements share a data model, which automation depends on which flow)
+  doesn't exist anywhere in this repo yet and would be a separate,
+  significant modeling effort, not an extension of the existing
+  requirement→test join table.
+- **A dashboard/UI surface for requirement history and quality scores** —
+  the OSS API has no route exposing any of this yet; the natural next step
+  once one exists is an Argus Enterprise proxy route + Watchfloor panel,
+  matching the pattern already used for engagement-policy and artifacts.
+
 ## Observability: tracing
 
 `orchestrator/observability/metrics.py` provides Prometheus-style

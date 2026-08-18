@@ -35,12 +35,22 @@ def parse_requirements(state: PipelineState) -> PipelineState:
         return state
 
     spec_contents = state.get("spec_contents", [])
+    spec_paths = state.get("spec_paths", [])
     source = state.get("source", "local")
+    # Best-effort attribution of each requirement back to the file it came
+    # from — only trustworthy when the two lists line up 1:1 (true for the
+    # `document` source; the `github` source can skip a path that no longer
+    # exists, which would misalign a strict zip, so origin_id is left unset
+    # rather than risk mislabeling).
+    origins = spec_paths if len(spec_paths) == len(spec_contents) else [None] * len(spec_contents)
     all_requirements = []
 
-    for content in spec_contents:
+    for content, origin in zip(spec_contents, origins):
         try:
             parsed = parse_spec_content(content, source=source)
+            for req in parsed.requirements:
+                req.source_type = source
+                req.origin_id = origin
             all_requirements.extend(parsed.requirements)
         except Exception as exc:
             return {**state, "error": f"Failed to parse requirements: {exc}"}

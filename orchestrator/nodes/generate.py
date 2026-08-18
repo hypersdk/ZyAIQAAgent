@@ -22,6 +22,7 @@ from pathlib import Path
 from agents.common.models import Requirement
 from agents.generator.agent import generate_and_validate_test, render_template_fallback
 from agents.generator.quality import collect_existing_hashes
+from orchestrator.persistence.store import get_store
 from orchestrator.state import PipelineState
 
 
@@ -42,6 +43,7 @@ def _generate_batch(
     generated: list[str] = []
     stats = {"quality_passed": 0, "quality_regenerated": 0, "quality_issues": 0}
     existing_hashes = collect_existing_hashes(output_dir)
+    store = get_store()
 
     for req in requirements:
         path, passed, issues = generate_and_validate_test(
@@ -51,6 +53,10 @@ def _generate_batch(
             existing_hashes=existing_hashes,
         )
         generated.append(path)
+        try:
+            store.link_requirement_test(req.id, path)
+        except Exception:
+            pass  # traceability is best-effort — never block test generation on it
         if passed:
             stats["quality_passed"] += 1
         else:
