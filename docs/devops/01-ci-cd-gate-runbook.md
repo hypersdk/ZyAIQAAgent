@@ -58,7 +58,7 @@ jobs:
     steps:
       - name: Run argus
         id: qa
-        uses: hypersdk/zyvor-argus@v0.7.0
+        uses: hypersdk/zyvor-argus@v0.8.0
         with:
           command: test
           target-url: ${{ vars.STAGING_URL }}

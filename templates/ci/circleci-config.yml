@@ -9,7 +9,7 @@ version: 2.1
 jobs:
   argus-smoke:
     docker:
-      - image: ghcr.io/hypersdk/zyvor-argus:v0.7.0
+      - image: ghcr.io/hypersdk/zyvor-argus:v0.8.0
         entrypoint: [""]
     environment:
       ZYVOR_BASE_URL: https://staging.example.com   # or interpolate a CircleCI context/env var
