@@ -642,6 +642,13 @@ class MissionControlStore:
         now = _iso()
         title = str(redact(title))[:300]
         with self.connect() as conn:
+            # BEGIN IMMEDIATE (matching claim_job()'s pattern below) — this
+            # is a read-then-conditionally-write on `requirements.id`'s own
+            # PRIMARY KEY, so without an explicit write lock two concurrent
+            # upserts for the same id (a schedule and a webhook-triggered
+            # run overlapping, say) can both read "does not exist yet" and
+            # both attempt the INSERT, raising an unhandled IntegrityError.
+            conn.execute("BEGIN IMMEDIATE")
             existing = conn.execute(
                 "SELECT latest_version FROM requirements WHERE id=?", (requirement_id,)
             ).fetchone()
@@ -689,6 +696,7 @@ class MissionControlStore:
                     ),
                 )
             row = conn.execute("SELECT * FROM requirements WHERE id=?", (requirement_id,)).fetchone()
+            conn.execute("COMMIT")
         result = dict(row)
         result["is_new_version"] = is_new_version
         result["previous_version"] = version - 1 if is_new_version and version > 1 else None
