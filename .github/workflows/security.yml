@@ -29,12 +29,13 @@ jobs:
       - run: pip install -e '.[dev]' mypy pip-audit bandit[toml] pytest-cov
       - run: ruff check .
       - run: mypy orchestrator agents --ignore-missing-imports
-      # TODO: raise back toward 70% as test coverage improves. Raised 36 -> 40 after
-      # the security-testing feature pass (engagements, misconfig_scan, cve_lookup,
-      # llm_redteam, exploit_poc, attack_chain, host_pentest, cloud_pentest) added
-      # its own coverage (~39% -> ~42% actual, 389 tests); see ROADMAP.md for the
-      # next highest-leverage target (the ~30 job-runner functions themselves).
-      - run: pytest tests/unit --cov=orchestrator --cov=agents --cov-report=term-missing --cov-fail-under=40
+      # TODO: raise back toward 70% as test coverage improves. Raised 40 -> 47 after
+      # bringing all 17 LangGraph pipeline nodes (orchestrator/nodes/*.py) from
+      # 17-47% to 93-100% (~47% -> ~50% actual, 65 new tests); see ROADMAP.md's
+      # "Test coverage" section for what's left (jobs.py's _job_* wrappers,
+      # cli.py, dashboard/k8s.py -- real subprocess/Playwright/network calls,
+      # the genuinely low-marginal-value remainder).
+      - run: pytest tests/unit --cov=orchestrator --cov=agents --cov-report=term-missing --cov-fail-under=47
       - run: pip-audit
       - run: bandit -q -c pyproject.toml -r orchestrator agents -x tests
 

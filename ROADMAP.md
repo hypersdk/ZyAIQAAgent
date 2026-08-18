@@ -117,15 +117,28 @@ claiming `UPDATE` affecting zero rows, exercised via a thin connection
 proxy that spoofs `rowcount=0` on that one statement rather than trying
 to force a genuine SQLite-level race.
 
-`jobs.py`'s `_job_*`/`@app.command()` wrappers (and the similarly-shaped
-thin wrappers in `orchestrator/cli.py`, `orchestrator/dashboard/k8s.py`,
-and `orchestrator/nodes/*.py`) remain the next highest-effort,
-lowest-marginal-value slice if coverage needs to go further.
+**Correction to the note above**: `orchestrator/nodes/*.py` turned out not
+to belong in the same "low marginal value" bucket as `jobs.py`'s
+`_job_*`/`cli.py`'s `@app.command()` wrappers. Those really are thin
+wrappers around real subprocess/Playwright/network calls, expensive to
+mock meaningfully. The 17 LangGraph pipeline nodes are the opposite: small,
+pure `PipelineState -> PipelineState` transforms with real branching logic
+(source routing, coverage-gap merging, quality-score persistence,
+autofix-retry bookkeeping) sitting behind only one or two already-mockable
+agent calls each. All 17 were brought from 17-47% to 93-100% coverage in a
+single pass (`generate.py`, `parse.py`, `fetch.py`'s `github`/`local`
+branches, `report.py`, `discover.py`, `gap_analyze.py`, `notify.py`,
+`apply_autofix.py`, `autofix.py`, `analyze.py`, `execute.py` — `evaluate_quality.py`
+was already 100% from the pass that added it), 65 new tests, moving the
+whole-suite coverage metric from 47% to 50%. `jobs.py`'s `_job_*`/
+`@app.command()` wrappers, `cli.py`, and `dashboard/k8s.py` remain the
+genuinely low-marginal-value remainder — real subprocess/Playwright/network
+calls, not logic worth unit-testing in isolation.
 
 The CI gate (`.github/workflows/security.yml`) enforces
 `--cov-fail-under=40` (raised from 36, itself raised from an original,
 never-actually-met 70% target) — still a deliberate few points below the
-measured ~47.1% floor to leave headroom for minor cross-Python-version
+measured ~50% floor to leave headroom for minor cross-Python-version
 coverage variance, with an inline `TODO` to keep raising it as coverage
 grows rather than a plan to close the whole gap at once.
 
