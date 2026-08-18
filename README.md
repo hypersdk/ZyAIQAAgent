@@ -14,47 +14,6 @@
 
 **Full KT walkthrough (YouTube):** sign-in → the autonomous pipeline with a live Smoke test run → visual regression & quality → journeys (flow/HAR/codegen/AI test) → API/performance/realtime checks → network & security probes → security testing (misconfig scan, CVE lookup, LLM red-team, sandboxed exploit verification) → command palette → schedules & run history → Ask Zyvor — [watch](https://youtu.be/I985Uz8vZHk)
 
-## 🎬 More recordings
-
-<table>
-<tr>
-<td width="50%" align="center">
-<a href="https://youtu.be/ys7SvKKqf9w">
-<img src="https://i.ytimg.com/vi/ys7SvKKqf9w/maxresdefault.jpg" alt="Mission Control → GuestKit flow demo" width="100%">
-</a>
-<br><b>Mission Control → GuestKit flow</b><br>
-<sub>Login → enter a GuestKit URL → run journey — <a href="docs/tutorials/13-test-zyvor-dev-recording.md">how-to</a></sub>
-</td>
-<td width="50%" align="center">
-<a href="https://youtu.be/oXVVWZiRgQY">
-<img src="https://i.ytimg.com/vi/oXVVWZiRgQY/maxresdefault.jpg" alt="Autonomous Playwright journey against zyvor.dev" width="100%">
-</a>
-<br><b>Autonomous journey vs zyvor.dev</b><br>
-<sub>Steps file: <a href="docs/assets/zyvor-dev-demo.steps">zyvor-dev-demo.steps</a></sub>
-</td>
-</tr>
-<tr>
-<td width="50%" align="center">
-<a href="https://youtu.be/EwqVdjSabvE">
-<img src="https://i.ytimg.com/vi/EwqVdjSabvE/maxresdefault.jpg" alt="Direct browser journey of the GuestKit GitHub README" width="100%">
-</a>
-<br><b>GuestKit GitHub README journey</b><br>
-<sub>Direct browser journey, no dashboard</sub>
-</td>
-<td width="50%" align="center">
-<a href="https://youtu.be/43pSPf-FVsE">
-<img src="https://i.ytimg.com/vi/43pSPf-FVsE/maxresdefault.jpg" alt="Direct journey of zyvor.dev/guestkit" width="100%">
-</a>
-<br><b>zyvor.dev/guestkit journey</b><br>
-<sub>Direct journey of the GuestKit product page</sub>
-</td>
-</tr>
-</table>
-
-```bash
-argus flow run https://zyvor.dev --steps docs/assets/zyvor-dev-demo.steps --video
-```
-
 ## 📖 Feature Guide
 
 **[Wiki](https://github.com/hypersdk/zyvor-argus/wiki)** — operator cheat sheets (CLI, Mission Control, journeys, CI/CD, deploy).
