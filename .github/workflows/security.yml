@@ -38,6 +38,38 @@ jobs:
       - run: pip-audit
       - run: bandit -q -c pyproject.toml -r orchestrator agents -x tests
 
+  postgres-quality:
+    # PostgresStore (orchestrator/persistence/postgres_store.py) is the
+    # opt-in multi-replica backend behind get_store() -- exercised only
+    # when ZYVOR_STATE_DB is a postgresql:// URL, so python-quality's
+    # default SQLite-backed run above never touches this code path. A real
+    # `postgres:` service container here is what keeps it from silently
+    # bit-rotting untested between the (rare) times someone runs it locally.
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install --upgrade pip setuptools
+      - run: pip install -e '.[dev,postgres]'
+      - run: pytest tests/unit/test_postgres_store.py -v
+        env:
+          TEST_POSTGRES_DSN: postgresql://postgres@localhost:5432/postgres
+
   node-quality:
     runs-on: ubuntu-latest
     steps:

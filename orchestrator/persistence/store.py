@@ -764,13 +764,29 @@ class MissionControlStore:
         return [row["test_path"] for row in rows]
 
 
-_default_store: MissionControlStore | None = None
+_default_store: Any | None = None
 _default_lock = threading.Lock()
 
 
-def get_store() -> MissionControlStore:
+def get_store() -> Any:
+    """Returns MissionControlStore (SQLite, the default) or PostgresStore --
+    selected by ZYVOR_STATE_DB's scheme. Both implement the identical public
+    method surface (see postgres_store.py's module docstring), so every
+    caller elsewhere in this codebase is unaffected either way.
+
+    The PostgresStore import is deliberately local, not module-level: `psycopg`
+    is an optional extra (`pip install "zyvor-argus[postgres]"`), and this
+    module is imported by nearly every part of the app -- a top-level import
+    here would make psycopg a hard dependency for the SQLite-only default.
+    """
     global _default_store
     with _default_lock:
         if _default_store is None:
-            _default_store = MissionControlStore()
+            configured = os.environ.get("ZYVOR_STATE_DB", "")
+            if configured.startswith("postgresql://") or configured.startswith("postgres://"):
+                from orchestrator.persistence.postgres_store import PostgresStore
+
+                _default_store = PostgresStore(configured)
+            else:
+                _default_store = MissionControlStore()
         return _default_store
