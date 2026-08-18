@@ -25,6 +25,7 @@ from typing import Any
 from fastapi import FastAPI, Header, HTTPException, Request
 
 from orchestrator.graph import get_compiled_graph
+from orchestrator.paths import repo_root as _shared_repo_root
 from orchestrator.state import PipelineState
 
 
@@ -84,7 +85,6 @@ def _build_state_from_event(event: str, payload: dict[str, Any]) -> PipelineStat
 def create_app() -> FastAPI:
     app = FastAPI(title="Zyvor Argus Webhook")
 
-    from pathlib import Path
     from urllib.parse import quote
 
     from fastapi.responses import JSONResponse, RedirectResponse
@@ -161,7 +161,7 @@ def create_app() -> FastAPI:
                 )
         return await call_next(request)
 
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = _shared_repo_root()
     for mount, directory in (("/reports", "reports"), ("/screenshots", "screenshots")):
         target = repo_root / directory
         target.mkdir(parents=True, exist_ok=True)

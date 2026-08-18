@@ -26,7 +26,9 @@ from orchestrator.state import PipelineState
 
 
 def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[2]
+    from orchestrator.paths import repo_root
+
+    return repo_root()
 
 
 def parse_requirements(state: PipelineState) -> PipelineState:

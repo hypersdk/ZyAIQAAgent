@@ -25,7 +25,9 @@ logger = logging.getLogger(__name__)
 
 
 def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[2]
+    from orchestrator.paths import repo_root
+
+    return repo_root()
 
 
 def html_to_pdf(html_path: Path, pdf_path: Optional[Path] = None) -> Optional[Path]:

@@ -26,7 +26,9 @@ from typing import Any, Callable, Optional
 
 
 def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[2]
+    from orchestrator.paths import repo_root
+
+    return repo_root()
 
 
 def run_api_contract(

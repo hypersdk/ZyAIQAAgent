@@ -117,9 +117,9 @@ def content_to_text(content: str | list[str | dict]) -> str:
 
 def load_prompt(name: str) -> str:
     """Load a prompt markdown file from prompts/."""
-    from pathlib import Path
+    from orchestrator.paths import repo_root as _shared_repo_root
 
-    repo_root = Path(__file__).resolve().parents[2]
+    repo_root = _shared_repo_root()
     path = repo_root / "prompts" / f"{name}.md"
     if not path.exists():
         raise FileNotFoundError(f"Prompt not found: {path}")

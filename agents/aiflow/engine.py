@@ -34,7 +34,9 @@ Decider = Callable[[str, dict[str, Any], list[str]], dict[str, Any]]
 
 
 def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[2]
+    from orchestrator.paths import repo_root
+
+    return repo_root()
 
 
 def llm_decider(goal: str, obs: dict[str, Any], history: list[str]) -> dict[str, Any]:
