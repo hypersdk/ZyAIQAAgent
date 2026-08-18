@@ -156,9 +156,11 @@ Deliberately not built yet, and not stubbed:
   significant modeling effort, not an extension of the existing
   requirement→test join table.
 - **A dashboard/UI surface for requirement history and quality scores** —
-  the OSS API has no route exposing any of this yet; the natural next step
-  once one exists is an Argus Enterprise proxy route + Watchfloor panel,
-  matching the pattern already used for engagement-policy and artifacts.
+  the OSS API now exposes this read-only (`GET /api/v2/requirements`,
+  `/{id}`, `/{id}/history`, gated by a new `requirements:read` scope), but
+  nothing renders it yet. Natural next step is an Argus Enterprise proxy
+  route + Watchfloor panel, matching the pattern already used for
+  engagement-policy and artifacts.
 
 ## Observability: tracing
 

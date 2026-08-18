@@ -317,6 +317,34 @@ async def audit_events(request: Request, limit: int = Query(200, ge=1, le=1000))
     return {"events": get_store().list_audit(limit)}
 
 
+@router.get("/requirements")
+async def list_requirements(request: Request, limit: int = Query(200, ge=1, le=500)) -> dict[str, Any]:
+    """Every requirement the pipeline has ever ingested, at its latest known
+    version -- source-agnostic (github/document/local), with its current
+    quality score. Read-only: requirements are written by the pipeline
+    (fetch -> parse -> evaluate_quality), never directly through this API."""
+    require_scope(request, "requirements:read")
+    return {"requirements": get_store().list_requirements(limit)}
+
+
+@router.get("/requirements/{requirement_id}")
+async def get_requirement(request: Request, requirement_id: str) -> dict[str, Any]:
+    """Latest version's full content, quality score, and named quality issues."""
+    require_scope(request, "requirements:read")
+    requirement = get_store().get_requirement(requirement_id)
+    if requirement is None:
+        raise HTTPException(status_code=404, detail="requirement not found")
+    return requirement
+
+
+@router.get("/requirements/{requirement_id}/history")
+async def requirement_history(request: Request, requirement_id: str) -> dict[str, Any]:
+    """Every version on record -- the raw material for a real diff view, and
+    for answering "what changed" when a requirement's quality score moves."""
+    require_scope(request, "requirements:read")
+    return {"versions": get_store().requirement_history(requirement_id)}
+
+
 @router.get("/metrics", include_in_schema=False)
 async def metrics(request: Request) -> Response:
     require_scope(request, "audit:read")
