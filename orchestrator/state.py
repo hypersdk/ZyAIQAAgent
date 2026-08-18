@@ -35,7 +35,10 @@ class PipelineState(TypedDict, total=False):
     source: str
     spec_paths: List[str]
     spec_contents: List[str]
+    document_paths: List[str]
     requirements: List[Requirement]
+    requirement_quality: Dict[str, Any]
+    requirement_impact: Dict[str, List[str]]
     generated_tests: List[str]
     test_results: Optional[TestResult]
     regression_diffs: List[RegressionDiff]

@@ -35,6 +35,8 @@ class Requirement(BaseModel):
     priority: str = "medium"
     steps: List[RequirementStep] = Field(default_factory=list)
     tags: List[str] = Field(default_factory=list)
+    source_type: str = "github"  # 'github' | 'document' | 'local'
+    origin_id: Optional[str] = None  # issue number, file path, etc.
 
 
 class TestCaseResult(BaseModel):
@@ -104,6 +106,18 @@ class TestResult(BaseModel):
 class ParsedRequirements(BaseModel):
     source: str
     requirements: List[Requirement] = Field(default_factory=list)
+
+
+class QualityIssue(BaseModel):
+    kind: str  # ambiguous | missing_acceptance_criteria | contradiction | vague_language | untestable
+    severity: str = "medium"  # low | medium | high
+    message: str
+
+
+class RequirementQuality(BaseModel):
+    requirement_id: str
+    score: float  # 0-100
+    issues: List[QualityIssue] = Field(default_factory=list)
 
 
 class PipelineReport(BaseModel):

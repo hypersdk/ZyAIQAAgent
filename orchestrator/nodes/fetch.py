@@ -87,6 +87,40 @@ def fetch_requirements(state: PipelineState) -> PipelineState:
             except Exception as exc:
                 metadata["discovery_error"] = str(exc)
 
+    if source == "document":
+        document_paths = list(state.get("document_paths", []))
+        if not document_paths:
+            return {**state, "error": "document source requires at least one document_paths entry"}
+
+        # Reuses knowledge/documents.py's existing multi-format extraction
+        # (md/txt/rst/yaml/json/toml/py/rs/html/pdf, incl. real PDF text
+        # extraction via pypdf) instead of a second parser — it already
+        # solves "get plain text out of a real document," which is all a
+        # requirements source needs; chunking/embedding (the rest of that
+        # module) is irrelevant here and deliberately not used.
+        from knowledge.documents import SUPPORTED_SUFFIXES, read_text
+
+        for doc_path in document_paths:
+            p = Path(doc_path)
+            if not p.exists():
+                metadata.setdefault("document_errors", []).append(f"{doc_path}: not found")
+                continue
+            if p.suffix.lower() not in SUPPORTED_SUFFIXES:
+                metadata.setdefault("document_errors", []).append(f"{doc_path}: unsupported file type")
+                continue
+            try:
+                spec_contents.append(read_text(p))
+                spec_paths.append(str(p))
+            except Exception as exc:
+                metadata.setdefault("document_errors", []).append(f"{doc_path}: {exc}")
+
+        return {
+            **state,
+            "spec_paths": spec_paths,
+            "spec_contents": spec_contents,
+            "metadata": metadata,
+        }
+
     for path in spec_paths:
         p = Path(path)
         if p.exists():

@@ -25,6 +25,7 @@ from orchestrator.nodes.api_validate import api_validate
 from orchestrator.nodes.apply_autofix import apply_autofix_node
 from orchestrator.nodes.autofix import autofix_node
 from orchestrator.nodes.discover import discover_coverage
+from orchestrator.nodes.evaluate_quality import evaluate_quality
 from orchestrator.nodes.execute import execute_tests
 from orchestrator.nodes.fetch import fetch_requirements
 from orchestrator.nodes.gap_analyze import gap_analyze
@@ -95,6 +96,7 @@ def build_graph() -> StateGraph:
     graph.add_node("discover", discover_coverage)
     graph.add_node("gap_analyze", gap_analyze)
     graph.add_node("parse", parse_requirements)
+    graph.add_node("evaluate_quality", evaluate_quality)
     graph.add_node("generate", generate_tests)
     graph.add_node("execute", execute_tests)
     graph.add_node("regression", regression_check)
@@ -113,7 +115,8 @@ def build_graph() -> StateGraph:
     graph.add_edge("fetch", "discover")
     graph.add_edge("discover", "gap_analyze")
     graph.add_edge("gap_analyze", "parse")
-    graph.add_edge("parse", "generate")
+    graph.add_edge("parse", "evaluate_quality")
+    graph.add_edge("evaluate_quality", "generate")
     graph.add_edge("generate", "execute")
     # regression/api_validate/log_analyze/v8_coverage each analyze a
     # different, independent slice of the same completed test run

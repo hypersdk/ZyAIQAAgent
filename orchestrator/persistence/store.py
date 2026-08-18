@@ -20,6 +20,7 @@ small so a PostgreSQL implementation can replace it without changing API routes.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import sqlite3
@@ -34,7 +35,7 @@ from typing import Any, Iterator
 from orchestrator.security.redaction import redact
 from orchestrator.security.secrets import assert_persistable
 
-_SCHEMA_VERSION = 2
+_SCHEMA_VERSION = 3
 
 DEFAULT_MAX_JOB_ATTEMPTS = 3
 
@@ -181,6 +182,40 @@ class MissionControlStore:
                     payload_sha256 TEXT NOT NULL
                 );
                 CREATE INDEX IF NOT EXISTS webhook_received_idx ON webhook_deliveries(received_at);
+
+                CREATE TABLE IF NOT EXISTS requirements (
+                    id TEXT PRIMARY KEY,
+                    source_type TEXT NOT NULL,
+                    origin_id TEXT,
+                    title TEXT NOT NULL,
+                    latest_version INTEGER NOT NULL DEFAULT 1,
+                    quality_score REAL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS requirements_source_idx
+                    ON requirements(source_type, updated_at DESC);
+
+                CREATE TABLE IF NOT EXISTS requirement_versions (
+                    requirement_id TEXT NOT NULL REFERENCES requirements(id),
+                    version INTEGER NOT NULL,
+                    content_json TEXT NOT NULL,
+                    content_hash TEXT NOT NULL,
+                    quality_score REAL,
+                    quality_issues_json TEXT,
+                    created_at TEXT NOT NULL,
+                    PRIMARY KEY (requirement_id, version)
+                );
+
+                CREATE TABLE IF NOT EXISTS requirement_test_links (
+                    requirement_id TEXT NOT NULL REFERENCES requirements(id),
+                    requirement_version INTEGER NOT NULL,
+                    test_path TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    PRIMARY KEY (requirement_id, requirement_version, test_path)
+                );
+                CREATE INDEX IF NOT EXISTS requirement_test_links_req_idx
+                    ON requirement_test_links(requirement_id, requirement_version);
                 """
             )
             # `CREATE TABLE IF NOT EXISTS` above is a no-op against a findings
@@ -584,6 +619,141 @@ class MissionControlStore:
             except sqlite3.IntegrityError:
                 return False
         return True
+
+    # Requirements -----------------------------------------------------------
+    def upsert_requirement(
+        self,
+        requirement_id: str,
+        *,
+        source_type: str,
+        origin_id: str | None,
+        title: str,
+        content: dict[str, Any],
+        quality_score: float | None = None,
+        quality_issues: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        """Insert a new version only if `content` differs from the current
+        latest — this is the change-detection primitive impact analysis is
+        built on. Returns the persisted requirement plus whether this call
+        actually created a new version (vs. re-confirming an unchanged one)."""
+        assert_persistable(content)
+        content_json = _json(content)
+        content_hash = hashlib.sha256(content_json.encode("utf-8")).hexdigest()
+        now = _iso()
+        title = str(redact(title))[:300]
+        with self.connect() as conn:
+            existing = conn.execute(
+                "SELECT latest_version FROM requirements WHERE id=?", (requirement_id,)
+            ).fetchone()
+            if existing is None:
+                version = 1
+                is_new_version = True
+                conn.execute(
+                    """INSERT INTO requirements
+                    (id, source_type, origin_id, title, latest_version, quality_score, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (requirement_id, source_type, origin_id, title, version, quality_score, now, now),
+                )
+            else:
+                current_version = conn.execute(
+                    "SELECT content_hash FROM requirement_versions WHERE requirement_id=? AND version=?",
+                    (requirement_id, existing["latest_version"]),
+                ).fetchone()
+                is_new_version = current_version is None or current_version["content_hash"] != content_hash
+                version = existing["latest_version"] + 1 if is_new_version else existing["latest_version"]
+                if is_new_version:
+                    conn.execute(
+                        """UPDATE requirements
+                        SET source_type=?, origin_id=?, title=?, latest_version=?, quality_score=?, updated_at=?
+                        WHERE id=?""",
+                        (source_type, origin_id, title, version, quality_score, now, requirement_id),
+                    )
+                else:
+                    conn.execute(
+                        "UPDATE requirements SET quality_score=?, updated_at=? WHERE id=?",
+                        (quality_score, now, requirement_id),
+                    )
+            if is_new_version:
+                conn.execute(
+                    """INSERT INTO requirement_versions
+                    (requirement_id, version, content_json, content_hash, quality_score, quality_issues_json, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        requirement_id,
+                        version,
+                        content_json,
+                        content_hash,
+                        quality_score,
+                        _json(quality_issues) if quality_issues is not None else None,
+                        now,
+                    ),
+                )
+            row = conn.execute("SELECT * FROM requirements WHERE id=?", (requirement_id,)).fetchone()
+        result = dict(row)
+        result["is_new_version"] = is_new_version
+        result["previous_version"] = version - 1 if is_new_version and version > 1 else None
+        return result
+
+    def get_requirement(self, requirement_id: str) -> dict[str, Any] | None:
+        with self.connect() as conn:
+            row = conn.execute("SELECT * FROM requirements WHERE id=?", (requirement_id,)).fetchone()
+            if row is None:
+                return None
+            version = conn.execute(
+                "SELECT * FROM requirement_versions WHERE requirement_id=? AND version=?",
+                (requirement_id, row["latest_version"]),
+            ).fetchone()
+        result = dict(row)
+        result["content"] = _loads(version["content_json"], None) if version else None
+        result["quality_issues"] = _loads(version["quality_issues_json"], []) if version else []
+        return result
+
+    def list_requirements(self, limit: int = 200) -> list[dict[str, Any]]:
+        with self.connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM requirements ORDER BY updated_at DESC LIMIT ?", (min(limit, 500),)
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def requirement_history(self, requirement_id: str) -> list[dict[str, Any]]:
+        with self.connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM requirement_versions WHERE requirement_id=? ORDER BY version",
+                (requirement_id,),
+            ).fetchall()
+        history = []
+        for row in rows:
+            item = dict(row)
+            item["content"] = _loads(item.pop("content_json"), None)
+            item["quality_issues"] = _loads(item.pop("quality_issues_json"), [])
+            history.append(item)
+        return history
+
+    def link_requirement_test(self, requirement_id: str, test_path: str) -> None:
+        """Records that `test_path` was generated from the requirement's
+        *current* latest version — called right after generation, so
+        "latest" is always the version that was just generated from."""
+        with self.connect() as conn:
+            row = conn.execute(
+                "SELECT latest_version FROM requirements WHERE id=?", (requirement_id,)
+            ).fetchone()
+            if row is None:
+                return
+            conn.execute(
+                """INSERT OR IGNORE INTO requirement_test_links
+                (requirement_id, requirement_version, test_path, created_at)
+                VALUES (?, ?, ?, ?)""",
+                (requirement_id, row["latest_version"], test_path, _iso()),
+            )
+
+    def linked_tests(self, requirement_id: str, version: int) -> list[str]:
+        with self.connect() as conn:
+            rows = conn.execute(
+                """SELECT test_path FROM requirement_test_links
+                WHERE requirement_id=? AND requirement_version=? ORDER BY test_path""",
+                (requirement_id, version),
+            ).fetchall()
+        return [row["test_path"] for row in rows]
 
 
 _default_store: MissionControlStore | None = None
