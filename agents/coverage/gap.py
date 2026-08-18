@@ -23,7 +23,9 @@ from agents.common.models import CoverageCandidate, CoverageGap, Requirement, Re
 
 
 def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[2]
+    from orchestrator.paths import repo_root
+
+    return repo_root()
 
 
 def _slug(text: str) -> str:

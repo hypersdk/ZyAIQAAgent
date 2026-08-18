@@ -32,6 +32,7 @@ import typer
 from dotenv import load_dotenv
 
 from orchestrator.graph import get_compiled_graph
+from orchestrator.paths import repo_root as _shared_repo_root
 from orchestrator.state import PipelineState
 
 app = typer.Typer(
@@ -60,7 +61,7 @@ app.add_typer(ask_app, name="ask")
 
 
 def _load_env() -> None:
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = _shared_repo_root()
     load_dotenv(repo_root / ".env")
 
 
@@ -241,7 +242,7 @@ def test(
     from agents.reporter.summary import write_ci_summary
 
     base_url = os.environ.get("ZYVOR_BASE_URL", "https://zyvor.dev")
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = _shared_repo_root()
     test_dirs = [str(repo_root / "tests" / "manual")]
     grep = grep or os.environ.get("ZYVOR_GREP")
     shard = shard or os.environ.get("ZYVOR_SHARD")
@@ -385,7 +386,7 @@ def create(
     from agents.nl_create.agent import create_and_generate, create_from_natural_language
     from agents.parser.agent import save_requirements
 
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = _shared_repo_root()
     output_dir = repo_root / "tests" / "generated"
 
     typer.echo(f"Creating test from: {description}")
@@ -431,7 +432,7 @@ def regression(
     from agents.execution.runner import run_playwright
 
     base_url = os.environ.get("ZYVOR_BASE_URL", "https://zyvor.dev")
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = _shared_repo_root()
     test_dirs = [str(repo_root / "tests" / "manual")]
 
     typer.echo("Running tests with screenshot capture...")
@@ -491,7 +492,7 @@ def flow(
 
     parsed, mode = parse_flow(text, steps_mode=steps_mode)
     typer.echo(f"{len(parsed)} step(s) parsed ({mode})")
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = _shared_repo_root()
     out_dir = repo_root / "reports" / "artifacts" / "flows" / "cli"
     session_path = ""
     if session:

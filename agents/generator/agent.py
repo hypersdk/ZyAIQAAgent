@@ -131,7 +131,9 @@ def render_template_fallback(
     filename_prefix: str = "",
 ) -> str:
     """Fallback: render Jinja2 template when LLM is unavailable."""
-    repo_root = Path(__file__).resolve().parents[2]
+    from orchestrator.paths import repo_root as _shared_repo_root
+
+    repo_root = _shared_repo_root()
     # Renders TypeScript source, not HTML — autoescaping would corrupt generated
     # code (e.g. `<` becoming `&lt;`), so this one is deliberately not autoescaped.
     env = Environment(loader=FileSystemLoader(repo_root / "templates"), autoescape=False)  # nosec B701

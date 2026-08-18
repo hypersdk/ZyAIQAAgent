@@ -34,7 +34,9 @@ VERSION = "0.1.0"
 
 
 def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[2]
+    from orchestrator.paths import repo_root
+
+    return repo_root()
 
 
 def _overall_status(pods: dict[str, Any], runs: list[dict[str, Any]]) -> str:

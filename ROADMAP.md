@@ -264,14 +264,26 @@ self-contained runtime — see `desktop/README.md` and the plan that shipped
 it. Two real blockers stand between that and a true single-binary/`.pkg`
 distribution someone could install without a dev checkout:
 
-- **`_repo_root()` isn't frozen-binary-aware.** `Path(__file__).resolve().
-  parents[N]`, used throughout `webhook.py`, `routes.py`, `jobs.py`,
-  `cli.py`, `nodes/*.py` to locate `templates/`, `prompts/`, `tests/`,
-  `reports/`, assumes a real filesystem checkout. A PyInstaller freeze (the
-  approach `hypercluster/cli/hypercluster.spec` uses for its own Python CLI)
-  would silently fail to find its own templates unless every one of those
-  call sites is taught to check `sys.frozen`/`sys._MEIPASS` first — a
-  repo-wide audit, not a packaging afterthought.
+- ~~**`_repo_root()` isn't frozen-binary-aware.**~~ **Done.** New
+  `orchestrator/paths.py::repo_root()` checks `sys.frozen`/`sys._MEIPASS`
+  first (PyInstaller's own frozen-app markers — the approach
+  `hypercluster/cli/hypercluster.spec` uses for its own Python CLI),
+  falling back to the real `Path(__file__).resolve().parents[1]` when not
+  frozen. Every one of the 29 files that used to hand-roll
+  `Path(__file__).resolve().parents[N]` locally (`webhook.py`, `cli.py`
+  ×5, `routes.py`, `jobs.py`, `v2_routes.py` via `jobs.py`'s own
+  `_repo_root()`, every `nodes/*.py`, and 14 files under `agents/*`) now
+  delegates to it instead — the repo-wide audit this item asked for, not a
+  packaging afterthought. Live-verified, not just unit-tested: simulated
+  `sys.frozen=True`/`sys._MEIPASS=<fake bundle>` and confirmed both the
+  shared helper and a real downstream consumer (`agents/reporter/agent.py`'s
+  `_repo_root()`) resolve to the same fake bundle path instead of the real
+  checkout. New `tests/unit/test_paths.py` (100% coverage). Doesn't by
+  itself make the desktop app freezable — the other blocker below is
+  untouched — but it removes the one blocker that was actually a code gap
+  rather than a tooling/credential one. `scripts/validate_k8s_manifests.py`
+  was deliberately left as-is — a CI-only hygiene script, never part of any
+  shipped binary, frozen or otherwise.
 - **Playwright's browser binaries aren't freezable.** They're downloaded
   separately via `npx playwright install` (hundreds of MB per browser), so
   even a fully frozen Python side would still need Node + Playwright
