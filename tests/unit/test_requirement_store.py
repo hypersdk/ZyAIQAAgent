@@ -17,6 +17,8 @@
 
 from __future__ import annotations
 
+import threading
+
 from orchestrator.persistence.store import MissionControlStore
 
 
@@ -141,3 +143,33 @@ def test_requirements_migration_is_idempotent(tmp_path):
     db_path = tmp_path / "req.db"
     MissionControlStore(db_path)
     MissionControlStore(db_path)  # second migrate() pass must not error
+
+
+def test_upsert_requirement_is_safe_under_concurrent_first_inserts(tmp_path):
+    """Two overlapping pipeline runs (a schedule and a webhook-triggered run,
+    say) can both call upsert_requirement() for the same brand-new id at
+    the same time. Without an explicit write lock, both read "doesn't exist
+    yet" and both attempt the INSERT, raising an unhandled IntegrityError on
+    `requirements.id`'s own PRIMARY KEY -- reproduced live before this test
+    was added. BEGIN IMMEDIATE (mirroring claim_job()'s existing pattern in
+    this same file) serializes them instead."""
+    store = MissionControlStore(tmp_path / "req.db")
+    errors: list[Exception] = []
+
+    def upsert() -> None:
+        try:
+            store.upsert_requirement(
+                "req-race", source_type="github", origin_id="issue-1.md",
+                title="Race test", content=_content("same content every time"),
+            )
+        except Exception as exc:
+            errors.append(exc)
+
+    threads = [threading.Thread(target=upsert) for _ in range(20)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert errors == []
+    assert len(store.requirement_history("req-race")) == 1

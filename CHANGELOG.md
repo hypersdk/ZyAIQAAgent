@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Fixed
+- `MissionControlStore.upsert_requirement()` (added in the previous pass) had a real, unhandled `sqlite3.IntegrityError` race: unlike `claim_job()` elsewhere in this same file, its read-then-conditionally-write wasn't wrapped in `BEGIN IMMEDIATE`, so two overlapping pipeline runs (a schedule and a webhook-triggered run, say) upserting the same brand-new requirement id could both read "doesn't exist yet" and both attempt the insert. Reproduced live before fixing: 2 of 20 concurrent calls against the same id crashed with `UNIQUE constraint failed: requirements.id`; 0 of 20 after wrapping the method in `BEGIN IMMEDIATE`/`COMMIT`, matching the existing `claim_job()` pattern. New regression test in `tests/unit/test_requirement_store.py`.
+
 ### Added
 - `GET /api/v2/requirements`, `GET /api/v2/requirements/{id}`, and `GET /api/v2/requirements/{id}/history` — the previous pass built durable, versioned requirement storage plus quality scoring but left it with zero HTTP exposure; anyone wanting to see a requirement's current score, content, or version history had to query SQLite directly. Read-only by design (requirements are written by the pipeline's own `fetch → parse → evaluate_quality` chain, never through this API), gated by a new `requirements:read` scope granted to both `viewer` and `operator` roles (`orchestrator/security/rbac.py`). New `tests/unit/test_requirements_route.py`. Live-verified against a real running `argus serve` instance (not just `TestClient`): seeded a real requirement via `MissionControlStore.upsert_requirement()`, hit all three routes over real HTTP, and confirmed a 404 for an unknown id.
 - Durable, versioned requirement storage and a real second requirements source (documents), replacing the previous flat-JSON, GitHub-only, single-run-then-discarded pipeline:
