@@ -54,6 +54,15 @@ def test_initial_state_github_spec_normalized():
     assert state["spec_paths"] == ["docs/spec.md"]
 
 
+def test_initial_state_document_spec_resolved_to_absolute_path(tmp_path, monkeypatch):
+    doc = tmp_path / "spec.pdf"
+    doc.write_bytes(b"%PDF-1.4")
+    monkeypatch.chdir(tmp_path)
+    state = cli._initial_state(source="document", spec="spec.pdf")
+    assert state["document_paths"] == [str(doc.resolve())]
+    assert state["spec_paths"] == []  # document paths are separate from spec_paths
+
+
 def test_initial_state_pr_number_passed_through():
     state = cli._initial_state(pr_number=42)
     assert state["pr_number"] == 42

@@ -94,11 +94,14 @@ def _initial_state(
     expand_coverage: bool = False,
 ) -> PipelineState:
     spec_paths: list[str] = []
+    document_paths: list[str] = []
     if spec:
         if source == "github":
             from github_integration.client import normalize_github_spec_path
 
             spec_paths = [normalize_github_spec_path(spec)]
+        elif source == "document":
+            document_paths = [str(Path(spec).resolve())]
         else:
             spec_paths = [str(Path(spec).resolve())]
 
@@ -107,6 +110,7 @@ def _initial_state(
     return {
         "source": source,
         "spec_paths": spec_paths,
+        "document_paths": document_paths,
         "spec_contents": [],
         "requirements": [],
         "generated_tests": [],
@@ -139,7 +143,7 @@ def _run_discovery_subgraph(state: PipelineState) -> PipelineState:
 
 @test_app.command()
 def run(
-    source: str = typer.Option("local", help="Requirement source: local | github"),
+    source: str = typer.Option("local", help="Requirement source: local | github | document"),
     spec: Optional[str] = typer.Option(
         None,
         help="Spec path: local file, GitHub repo path (docs/specs/foo.md), or GitHub blob URL",
@@ -151,7 +155,7 @@ def run(
         help="Discover routes/pages from GitHub code/docs and generate missing tests",
     ),
 ) -> None:
-    """Run the full QA pipeline: fetch → parse → generate → execute → report → notify."""
+    """Run the full QA pipeline: fetch → parse → evaluate_quality → generate → execute → report → notify."""
     _load_env()
     t0 = time.time()
     started_at = datetime.fromtimestamp(t0, tz=timezone.utc).isoformat()
@@ -284,7 +288,7 @@ def generate(
         None,
         help="Spec path: local file, GitHub repo path (docs/specs/foo.md), or GitHub blob URL",
     ),
-    source: str = typer.Option("local", help="Requirement source: local | github"),
+    source: str = typer.Option("local", help="Requirement source: local | github | document"),
     expand_coverage: bool = typer.Option(
         False,
         "--expand-coverage",
@@ -294,7 +298,7 @@ def generate(
     """Parse spec and generate Playwright tests (no execution)."""
     _load_env()
 
-    subgraph_nodes = ["fetch", "discover", "gap_analyze", "parse", "generate"]
+    subgraph_nodes = ["fetch", "discover", "gap_analyze", "parse", "evaluate_quality", "generate"]
     state = _initial_state(source=source, spec=spec, expand_coverage=expand_coverage)
 
     for node in subgraph_nodes:
@@ -314,6 +318,10 @@ def generate(
             from orchestrator.nodes.parse import parse_requirements
 
             state = parse_requirements(state)
+        elif node == "evaluate_quality":
+            from orchestrator.nodes.evaluate_quality import evaluate_quality
+
+            state = evaluate_quality(state)
         elif node == "generate":
             from orchestrator.nodes.generate import generate_tests
 
@@ -339,7 +347,7 @@ def generate(
 
 @test_app.command()
 def discover(
-    source: str = typer.Option("github", help="Requirement source: local | github"),
+    source: str = typer.Option("github", help="Requirement source: local | github | document"),
     spec: Optional[str] = typer.Option(
         None,
         help="Optional spec path when fetching from GitHub",
