@@ -63,6 +63,14 @@ def _traced(name: str, node: Callable[[PipelineState], PipelineState]) -> Callab
     return wrapped
 
 
+def _add_node(graph: StateGraph, name: str, node: Callable[[PipelineState], PipelineState]) -> None:
+    """add_node() wrapper centralizing a mypy suppression: LangGraph's typed
+    overloads bind NodeInputT to TypedDictLikeV1/V2 | DataclassLike | BaseModel,
+    which a functools.wraps-wrapped Callable over our total=False PipelineState
+    doesn't structurally satisfy even though it works correctly at runtime."""
+    graph.add_node(name, node)  # type: ignore[call-overload]
+
+
 def route_on_results(state: PipelineState) -> str:
     """Branch on test pass/fail including regression, API, and log issues."""
     test_results = state.get("test_results")
@@ -114,24 +122,24 @@ def build_graph() -> StateGraph:
     """Build and compile the QA pipeline graph."""
     graph = StateGraph(PipelineState)
 
-    graph.add_node("fetch", _traced("fetch", fetch_requirements))
-    graph.add_node("discover", _traced("discover", discover_coverage))
-    graph.add_node("gap_analyze", _traced("gap_analyze", gap_analyze))
-    graph.add_node("parse", _traced("parse", parse_requirements))
-    graph.add_node("evaluate_quality", _traced("evaluate_quality", evaluate_quality))
-    graph.add_node("generate", _traced("generate", generate_tests))
-    graph.add_node("execute", _traced("execute", execute_tests))
-    graph.add_node("regression", _traced("regression", regression_check))
-    graph.add_node("api_validate", _traced("api_validate", api_validate))
-    graph.add_node("log_analyze", _traced("log_analyze", log_analyze))
-    graph.add_node("v8_coverage", _traced("v8_coverage", collect_v8_coverage_node))
-    graph.add_node("merge_results", _traced("merge_results", merge_results))
-    graph.add_node("analyze", _traced("analyze", analyze_failures_node))
-    graph.add_node("autofix", _traced("autofix", autofix_node))
-    graph.add_node("apply_autofix", _traced("apply_autofix", apply_autofix_node))
-    graph.add_node("learn_skills", _traced("learn_skills", learn_skills_node))
-    graph.add_node("report", _traced("report", generate_report))
-    graph.add_node("notify", _traced("notify", notify_channels))
+    _add_node(graph, "fetch", _traced("fetch", fetch_requirements))
+    _add_node(graph, "discover", _traced("discover", discover_coverage))
+    _add_node(graph, "gap_analyze", _traced("gap_analyze", gap_analyze))
+    _add_node(graph, "parse", _traced("parse", parse_requirements))
+    _add_node(graph, "evaluate_quality", _traced("evaluate_quality", evaluate_quality))
+    _add_node(graph, "generate", _traced("generate", generate_tests))
+    _add_node(graph, "execute", _traced("execute", execute_tests))
+    _add_node(graph, "regression", _traced("regression", regression_check))
+    _add_node(graph, "api_validate", _traced("api_validate", api_validate))
+    _add_node(graph, "log_analyze", _traced("log_analyze", log_analyze))
+    _add_node(graph, "v8_coverage", _traced("v8_coverage", collect_v8_coverage_node))
+    _add_node(graph, "merge_results", _traced("merge_results", merge_results))
+    _add_node(graph, "analyze", _traced("analyze", analyze_failures_node))
+    _add_node(graph, "autofix", _traced("autofix", autofix_node))
+    _add_node(graph, "apply_autofix", _traced("apply_autofix", apply_autofix_node))
+    _add_node(graph, "learn_skills", _traced("learn_skills", learn_skills_node))
+    _add_node(graph, "report", _traced("report", generate_report))
+    _add_node(graph, "notify", _traced("notify", notify_channels))
 
     graph.set_entry_point("fetch")
     graph.add_edge("fetch", "discover")
