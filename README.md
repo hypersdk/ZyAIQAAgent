@@ -351,7 +351,18 @@ See [`ROADMAP.md`](ROADMAP.md) for exactly what's open — genuinely deferred wo
 
 ## Enterprise & support
 
-Zyvor Argus community edition is Apache-2.0, self-hostable, and fully featured out of the box. Looking for enterprise support, managed deployments, fail-closed security hardening ([docs/enterprise-v2.md](docs/enterprise-v2.md)), or a commercial relationship with Zyvor? Visit **[zyvor.dev](https://zyvor.dev)**.
+Zyvor Argus community edition is Apache-2.0, self-hostable, and fully featured out of the box. Enterprise v2 is a security/durability overlay you install on top of it — not a paywalled fork.
+
+| | Community (this repo) | Enterprise v2 ([docs/enterprise-v2.md](docs/enterprise-v2.md)) |
+|---|---|---|
+| **Job queue** | In-memory scheduler | Durable SQLite-backed queue with idempotency keys |
+| **Webhooks** | Standard GitHub webhook handling | Signature-verified `/api/v2` router, replay-rejecting delivery IDs |
+| **Secrets** | Standard env-based config | Recursive secret redaction, `$secret` references, hashed service tokens |
+| **Security testing** | Standard probes | Fail-closed SSRF target policy, signed/admin-authorized security engagements, RBAC (viewer/operator/admin) |
+| **AI actions** | Direct LLM/heuristic execution | Every LLM/heuristic action routed through a deterministic safety gateway |
+| **Support** | [GitHub Issues](https://github.com/hypersdk/zyvor-argus/issues) | SLA, [sales@zyvor.dev](mailto:sales@zyvor.dev) |
+
+Looking for enterprise support, managed deployments, or a commercial relationship with Zyvor? Visit **[zyvor.dev](https://zyvor.dev)**.
 
 ## License
 
