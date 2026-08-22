@@ -10,6 +10,8 @@
 
 **Reads requirements, scores them for quality, generates Playwright tests, runs them after every deploy, and tells you exactly what broke and why — with authorized security testing and a live ops console built in.**
 
+[zyvor.dev/docs](https://zyvor.dev/docs?utm_source=github&utm_medium=zyvor-argus) · [Blog](https://zyvor.dev/blog?utm_source=github&utm_medium=zyvor-argus)
+
 [![Zyvor Argus · Mission Control — KT Walkthrough](https://i.ytimg.com/vi/I985Uz8vZHk/maxresdefault.jpg)](https://youtu.be/I985Uz8vZHk)
 
 **Full KT walkthrough (YouTube):** sign-in → the autonomous pipeline with a live Smoke test run → visual regression & quality → journeys (flow/HAR/codegen/AI test) → API/performance/realtime checks → network & security probes → security testing (misconfig scan, CVE lookup, LLM red-team, sandboxed exploit verification) → command palette → schedules & run history → Ask Zyvor — [watch](https://youtu.be/I985Uz8vZHk)
@@ -137,6 +139,8 @@ argus test generate --source github --spec docs/specs/my-feature.md
 See [**Writing Tests & GitHub Integration**](docs/test-authoring.md) for the full command reference.
 
 ## Documentation
+
+**Official product docs & blog:** [zyvor.dev/docs](https://zyvor.dev/docs?utm_source=github&utm_medium=zyvor-argus) · [zyvor.dev/blog](https://zyvor.dev/blog?utm_source=github&utm_medium=zyvor-argus)
 
 **Operator wiki:** [https://github.com/hypersdk/zyvor-argus/wiki](https://github.com/hypersdk/zyvor-argus/wiki)
 
