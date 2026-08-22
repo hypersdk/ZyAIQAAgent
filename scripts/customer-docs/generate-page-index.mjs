@@ -53,7 +53,7 @@ const lines = [
   '',
   'Every Mission Control surface and action card.',
   '',
-  `_Generated: ${new Date().toISOString().slice(0, 10)} · ${routes.length} routes_`,
+  `_${routes.length} routes_`,
   '',
   'Regenerate: `node scripts/customer-docs/generate-page-index.mjs`',
   '',
