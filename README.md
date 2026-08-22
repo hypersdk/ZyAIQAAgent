@@ -14,6 +14,21 @@
 
 **Full KT walkthrough (YouTube):** sign-in → the autonomous pipeline with a live Smoke test run → visual regression & quality → journeys (flow/HAR/codegen/AI test) → API/performance/realtime checks → network & security probes → security testing (misconfig scan, CVE lookup, LLM red-team, sandboxed exploit verification) → command palette → schedules & run history → Ask Zyvor — [watch](https://youtu.be/I985Uz8vZHk)
 
+## Table of contents
+
+- [Feature Guide](#feature-guide)
+- [Architecture](#architecture)
+- [Quick Start](#quick-start)
+- [Documentation](#documentation)
+- [CLI Commands](#cli-commands)
+- [Phase Features](#phase-features)
+- [Environment Variables](#environment-variables)
+- [Project Structure](#project-structure)
+- [CI/CD](#cicd)
+- [Roadmap Status](#roadmap-status)
+- [Enterprise & support](#enterprise--support)
+- [License](#license)
+
 ## 📖 Feature Guide
 
 **[Wiki](https://github.com/hypersdk/zyvor-argus/wiki)** — operator cheat sheets (CLI, Mission Control, journeys, CI/CD, deploy).
@@ -333,6 +348,10 @@ pytest tests/unit -q
 | **6** | Complete | Requirements quality pipeline (multi-source ingestion, gap/ambiguity scoring, versioned traceability), Postgres-backed store for multi-replica deployments, optional OpenTelemetry tracing |
 
 See [`ROADMAP.md`](ROADMAP.md) for exactly what's open — genuinely deferred work, and what's blocked by something other than effort (a missing credential, a tool that can't do it), named plainly either way.
+
+## Enterprise & support
+
+Zyvor Argus community edition is Apache-2.0, self-hostable, and fully featured out of the box. Looking for enterprise support, managed deployments, fail-closed security hardening ([docs/enterprise-v2.md](docs/enterprise-v2.md)), or a commercial relationship with Zyvor? Visit **[zyvor.dev](https://zyvor.dev)**.
 
 ## License
 
